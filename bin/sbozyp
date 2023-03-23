@@ -329,7 +329,7 @@ sub installed_sbo_pkgs { # TODO: test installed_sbo_pkgs # NOT TESTED
     return %installed_sbo_pkgs;
 }
 
-sub prepare_pkg { # NOT TESTED
+sub prepare_pkg {
     my ($pkg) = @_;
     my $arch = sbozyp_qx('uname -m');
     my $arch_unsupported;
