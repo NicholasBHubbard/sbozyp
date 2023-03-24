@@ -353,7 +353,7 @@ END
     open $fh, '>', $test_config or die;
     print $fh <<"END";
 TMPDIR=$TEST_DIR
-CLEANUP=0
+CLEANUP=1
 REPO_ROOT=$TEST_DIR/var/lib/sbozyp/SBo
 REPO_GIT_URL=git://git.slackbuilds.org/slackbuilds.git
 # SBo Version 14.1 is very unlikely to be updated, which means our tests should
@@ -363,7 +363,7 @@ END
     close $fh or die;
     Sbozyp::parse_config_file($test_config);
     is(\%Sbozyp::CONFIG,
-       {TMPDIR=>"$TEST_DIR", CLEANUP=>0,REPO_ROOT=>"$TEST_DIR/var/lib/sbozyp/SBo",REPO_GIT_URL=>'git://git.slackbuilds.org/slackbuilds.git',REPO_GIT_BRANCH=>'14.1'},
+       {TMPDIR=>"$TEST_DIR", CLEANUP=>1,REPO_ROOT=>"$TEST_DIR/var/lib/sbozyp/SBo",REPO_GIT_URL=>'git://git.slackbuilds.org/slackbuilds.git',REPO_GIT_BRANCH=>'14.1'},
        '%CONFIG is properly set for use by the test of this test script'
     );
 };
