@@ -31,7 +31,7 @@ GetOptions(
 sub url_exists_or_bail {
     my ($url) = @_;
     unless (0 == system('wget', '--spider', $url)) {
-        bail_out("url '$url' does not exist (via wget --spider). This test script likely needs to be updated.");
+        bail_out("url '$url' no longer exists. This test script likely needs to be updated. You need to find software in the SBo 14.1 repo whos DOWNLOAD url(s) still exist");
     }
 }
 
