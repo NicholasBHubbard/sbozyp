@@ -627,4 +627,25 @@ subtest 'build_slackware_pkg()' => sub {
     );
 };
 
+subtest 'install_slackware_pkg()' => sub {
+    skip_all('install_slackware_pkg() requires root') unless $> == 0;
+    url_exists_or_bail('http://www.cpan.org/authors/id/A/AD/ADAMK/File-Which-1.09.tar.gz');
+
+    my $pkg = Sbozyp::pkg('perl/perl-File-Which');
+    my $slackware_pkg = Sbozyp::build_slackware_pkg($pkg);
+
+    local $ENV{ROOT} = "$TEST_DIR/tmp_install"; # controls installpkg's install destination
+    local $Sbozyp::CONFIG{CLEANUP} = 0;
+
+    Sbozyp::install_slackware_pkg($slackware_pkg);
+    ok(-f "$TEST_DIR/tmp_install/usr/bin/pwhich" && -f "$TEST_DIR/tmp_install/usr/lib/File/Which.pm" && -f "$TEST_DIR/tmp_install/var/lib/pkgtools/packages/perl-File-Which-1.09-x86_64-1_SBo",
+       'successfully installs slackware pkg'
+    );
+    ok(-f $slackware_pkg, 'does not remove the slackware package when $CONFIG{CLEANUP} is false');
+
+    local $Sbozyp::CONFIG{CLEANUP} = 1;
+    Sbozyp::install_slackware_pkg($slackware_pkg);
+    ok(! -f $slackware_pkg, 'removes slackware package when $CONFIG{CLEANUP} is true');
+};
+
 done_testing;

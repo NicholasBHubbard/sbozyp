@@ -399,7 +399,7 @@ sub build_slackware_pkg {
     return $slackware_pkg;
 }
 
-sub install_slackware_pkg { # NOT TESTED
+sub install_slackware_pkg {
     my ($slackware_pkg) = @_;
     sbozyp_system("installpkg '$slackware_pkg'");
     sbozyp_unlink($slackware_pkg) if $CONFIG{CLEANUP};
