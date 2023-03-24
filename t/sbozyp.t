@@ -28,6 +28,7 @@ GetOptions(
             #                      HELPERS                     #
             ####################################################
 
+# url_exists_or_bail() is used for future proofing this test script. We downloads files from the internet that could disappear at any time. All urls should be checked for existence before executing tests that will download them. This prevents us from getting failures that appear to be with a problem with sbozyp, but are actually caused by the url we are testing against no longer existing.
 sub url_exists_or_bail {
     my ($url) = @_;
     unless (0 == system('wget', '--spider', $url)) {
