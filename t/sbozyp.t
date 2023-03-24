@@ -469,38 +469,38 @@ subtest 'pkg_queue()' => sub {
      );
 };
 
-subtest 'parse_pkgtools_pkgname()' => sub {
-    is([Sbozyp::parse_pkgtools_pkgname('acpica-20220331-x86_64-1_SBo')],
+subtest 'parse_slackware_pkgname()' => sub {
+    is([Sbozyp::parse_slackware_pkgname('acpica-20220331-x86_64-1_SBo')],
        ['development/acpica', '20220331'],
        'parses non-hyphened pkgname'
     );
 
-    is([Sbozyp::parse_pkgtools_pkgname('password-store-1.7.4-noarch-1_SBo')],
+    is([Sbozyp::parse_slackware_pkgname('password-store-1.7.4-noarch-1_SBo')],
        ['system/password-store', '1.7.4'],
        'parses single-hyphened pkgname'
     );
 
-    is([Sbozyp::parse_pkgtools_pkgname('perl-File-Copy-Recursive-0.2.3-x86_64-1_SBo')],
+    is([Sbozyp::parse_slackware_pkgname('perl-File-Copy-Recursive-0.2.3-x86_64-1_SBo')],
        ['perl/perl-File-Copy-Recursive', '0.2.3'],
        'parses many-hyphened pkgname'
     );
 
-    is([Sbozyp::parse_pkgtools_pkgname('functools32-3.2.3_1-x86_64-1_SBo')],
+    is([Sbozyp::parse_slackware_pkgname('functools32-3.2.3_1-x86_64-1_SBo')],
        ['python/functools32', '3.2.3_1'],
        'parses pkgname containing numbers'
     );
 
-    is([Sbozyp::parse_pkgtools_pkgname('virtualbox-kernel-6.1.40_6.1.12-x86_64-1_SBo')],
+    is([Sbozyp::parse_slackware_pkgname('virtualbox-kernel-6.1.40_6.1.12-x86_64-1_SBo')],
        ['system/virtualbox-kernel', '6.1.40_6.1.12'],
        'parses version containing underscore'
     );
 
-    is([Sbozyp::parse_pkgtools_pkgname('acpica-20220331-x86_64-1000_SBo')],
+    is([Sbozyp::parse_slackware_pkgname('acpica-20220331-x86_64-1000_SBo')],
        ['development/acpica', '20220331'],
        'parses pkgname with multi-digit revision'
     );
 
-    ok(!defined Sbozyp::parse_pkgtools_pkgname('acpica-20220331-x86_64-1'), q(rejects pkgname without '_SBo' tag));
+    ok(!defined Sbozyp::parse_slackware_pkgname('acpica-20220331-x86_64-1'), q(rejects pkgname without '_SBo' tag));
 };
 
 subtest 'prepare_pkg()' => sub {

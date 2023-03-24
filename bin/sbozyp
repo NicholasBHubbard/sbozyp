@@ -315,9 +315,9 @@ sub pkg_queue {
     return @queue;
 }
 
-sub parse_pkgtools_pkgname {
-    my ($pkgtools_pkgname) = @_;
-    my ($prgnam, $version) = $pkgtools_pkgname =~ /^([\w-]+)-([^-]*)-[^-]*-\d+_SBo$/;
+sub parse_slackware_pkgname {
+    my ($slackware_pkgname) = @_;
+    my ($prgnam, $version) = $slackware_pkgname =~ /^([\w-]+)-([^-]*)-[^-]*-\d+_SBo$/;
     my $pkgname = find_pkgname($prgnam);
     return ($pkgname, $version);
 }
