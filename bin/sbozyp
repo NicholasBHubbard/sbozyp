@@ -389,7 +389,7 @@ sub prepare_pkg {
     return $staging_dir;
 }
 
-sub build_slackware_pkg { # NOT TESTED
+sub build_slackware_pkg {
     my ($pkg) = @_;
     local $ENV{OUTPUT} = sbozyp_mkdir("$CONFIG{TMPDIR}");
     my $staging_dir = prepare_pkg($pkg);
