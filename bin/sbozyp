@@ -368,7 +368,7 @@ sub prepare_pkg {
         my $file = basename($url);
         my $got_md5 = sbozyp_qx("md5sum '$staging_dir/$file' | cut -d' ' -f1");
         if ($md5 ne $got_md5) {
-            print "sbozyp: pkg error '$pkg': md5sum mismatch for '$url'\n";
+            print "sbozyp: pkg error '@{[$pkg->{PKGNAME}]}': md5sum mismatch for '$url'\n";
             print "\n";
             print "  expected: $md5\n";
             print "  got:      $got_md5\n";
