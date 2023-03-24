@@ -622,7 +622,7 @@ subtest 'build_slackware_pkg()' => sub {
     url_exists_or_bail('http://download.savannah.gnu.org/releases/jcal/jcal-0.4.1.tar.gz');
     my $pkg = Sbozyp::pkg('libraries/jcal');
     is(Sbozyp::build_slackware_pkg($pkg),
-       "$Sbozyp::CONFIG{TMfooPDIR}/jcal-0.4.1-x86_64-1_SBo.tgz",
+       "$Sbozyp::CONFIG{TMPDIR}/jcal-0.4.1-x86_64-1_SBo.tgz",
        'successfully builds slackware pkg and outputs it to $CONFIG{TMPDIR}'
     );
 };
