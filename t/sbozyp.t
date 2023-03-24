@@ -28,10 +28,10 @@ GetOptions(
             #                      HELPERS                     #
             ####################################################
 
-sub url_exists_or_fail {
+sub url_exists_or_bail {
     my ($url) = @_;
     unless (0 == system('wget', '--spider', $url)) {
-        fail("url '$url' does not exist (via wget --spider)");
+        bail_out("url '$url' does not exist (via wget --spider). This test script likely needs to be updated.");
     }
 }
 
@@ -508,7 +508,7 @@ subtest 'prepare_pkg()' => sub {
     local *STDIN;
     my $stdin;
 
-    url_exists_or_fail('http://download.savannah.gnu.org/releases/jcal/jcal-0.4.1.tar.gz');
+    url_exists_or_bail('http://download.savannah.gnu.org/releases/jcal/jcal-0.4.1.tar.gz');
     my $dir = Sbozyp::prepare_pkg(scalar(Sbozyp::pkg('libraries/jcal')));
     is([Sbozyp::sbozyp_readdir("$dir")],
        ["$dir/slack-desc","$dir/jcal.info","$dir/jcal.SlackBuild","$dir/README","$dir/jcal-0.4.1.tar.gz"],
@@ -516,7 +516,7 @@ subtest 'prepare_pkg()' => sub {
     );
 
     if (`uname -m` =~ /^x86_64$/) {
-        url_exists_or_fail('http://sourceforge.net/projects/libemf/files/libemf/1.0.7/libEMF-1.0.7.tar.gz');
+        url_exists_or_bail('http://sourceforge.net/projects/libemf/files/libemf/1.0.7/libEMF-1.0.7.tar.gz');
 
         my $pkg = Sbozyp::pkg('libraries/libEMF'); # libEMF is UNSUPPORTED on x86_64
 
@@ -544,7 +544,7 @@ subtest 'prepare_pkg()' => sub {
         );
 
     } else {
-        url_exists_or_fail('http://downloads.teeworlds.com/teeworlds-0.6.3-linux_x86_64.tar.gz');
+        url_exists_or_bail('http://downloads.teeworlds.com/teeworlds-0.6.3-linux_x86_64.tar.gz');
 
         my $pkg = Sbozyp::pkg('games/teeworlds'); # games/teeworlds is UNSUPPORTED on non-x86_64 systems
 
@@ -571,7 +571,7 @@ subtest 'prepare_pkg()' => sub {
         );
     }
 
-    url_exists_or_fail('https://cpan.metacpan.org/authors/id/M/MG/MGRABNAR/File-Tail-1.3.tar.gz');
+    url_exists_or_bail('https://cpan.metacpan.org/authors/id/M/MG/MGRABNAR/File-Tail-1.3.tar.gz');
     # force an md5sum mismatch to test how prepare_pkg() deals with this situation. Note that 'perl/perl-File-Tail' should no longer be used in tests for the rest of the suite.
     open my $fh_r, '<', "$Sbozyp::CONFIG{REPO_ROOT}/perl/perl-File-Tail/perl-File-Tail.info" or die;
     open my $fh_w, '>', "$TEST_DIR/tmp.info";
