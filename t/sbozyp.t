@@ -660,6 +660,32 @@ subtest 'remove_slackware_pkg()' => sub {
 
     remove_tree("$TEST_DIR/tmp_root") or die;
 };
+
+subtest 'installed_sbo_pkgs()' => sub {
+    skip_all('need root access so we can install pkgs with install_slackware_pkg()') unless $> == 0;
+
+    url_exists_or_bail('http://www.cpan.org/authors/id/A/AD/ADAMK/File-Which-1.09.tar.gz');
+    url_exists_or_bail('www.cpan.org/authors/id/S/SA/SANKO/Readonly-2.00.tar.gz');
+    url_exists_or_bail('http://search.cpan.org/CPAN/authors/id/E/ET/ETHER/Test-Pod-1.51.tar.gz');
+
+    local $ENV{ROOT} = "$TEST_DIR/tmp_root";
+
+    Sbozyp::install_slackware_pkg(Sbozyp::build_slackware_pkg(scalar(Sbozyp::pkg('perl/perl-File-Which'))));
+    Sbozyp::install_slackware_pkg(Sbozyp::build_slackware_pkg(scalar(Sbozyp::pkg('perl/perl-Readonly'))));
+    Sbozyp::install_slackware_pkg(Sbozyp::build_slackware_pkg(scalar(Sbozyp::pkg('perl/perl-Test-Pod'))));
+
+    is({Sbozyp::installed_sbo_pkgs()},
+       {'perl/perl-File-Which'=>'1.09','perl/perl-Readonly'=>'2.00','perl/perl-Test-Pod'=>'1.51'},
+       'finds all installed SBo pkgs (respecting $ENV{ROOT}) and returns a hash assocating their pkgname to their version'
+    );
+
+    mv("$TEST_DIR/tmp_root/var/lib/pkgtools/packages/perl-File-Which-1.09-x86_64-1_SBo",
+       "$TEST_DIR/tmp_root/var/lib/pkgtools/packages/perl-File-Which-1.09-x86_64-1"
+    ) or die;
+    is({Sbozyp::installed_sbo_pkgs()},
+       {'perl/perl-Readonly'=>'2.00','perl/perl-Test-Pod'=>'1.51'},
+       q(only returns pkgs that have the '_SBo' tag)
+    );
 };
 
 done_testing;

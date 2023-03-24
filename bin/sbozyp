@@ -322,10 +322,11 @@ sub parse_slackware_pkgname {
     return ($pkgname, $version);
 }
 
-sub installed_sbo_pkgs { # TODO: test installed_sbo_pkgs # NOT TESTED
+sub installed_sbo_pkgs {
+    my $root = $ENV{ROOT} // '/';
     my %installed_sbo_pkgs = map {
-        my ($pkgname, $version) = parse_pkgtools_pkgname(basename($_));
-    } grep /_SBo$/, sbozyp_readdir('/var/lib/pkgtools/packages');
+        my ($pkgname, $version) = parse_slackware_pkgname(basename($_));
+    } grep /_SBo$/, sbozyp_readdir("$root/var/lib/pkgtools/packages");
     return %installed_sbo_pkgs;
 }
 
