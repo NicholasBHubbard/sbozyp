@@ -617,4 +617,14 @@ subtest 'prepare_pkg()' => sub {
     );
 };
 
+subtest 'build_slackware_pkg()' => sub {
+    skip_all('build_slackware_pkg() requires root') unless $> == 0;
+    url_exists_or_bail('http://download.savannah.gnu.org/releases/jcal/jcal-0.4.1.tar.gz');
+    my $pkg = Sbozyp::pkg('libraries/jcal');
+    is(Sbozyp::build_slackware_pkg($pkg),
+       "$Sbozyp::CONFIG{TMfooPDIR}/jcal-0.4.1-x86_64-1_SBo.tgz",
+       'successfully builds slackware pkg and outputs it to $CONFIG{TMPDIR}'
+    );
+};
+
 done_testing;
