@@ -15,10 +15,10 @@ use File::Path qw(make_path remove_tree);
 use File::Copy qw(mv);
 use Getopt::Long qw(:config no_ignore_case bundling);
 use Cwd qw(getcwd);
+use FindBin qw($Bin);
+require "$Bin/../bin/sbozyp";
 
 $SIG{INT} = sub { die "sbozyp.t: got a SIGINT ... going down!\n" };
-
-my $TEST_DIR = File::Temp->newdir(DIR => '/tmp', TEMPLATE => 'sbozyp.tXXXXXX', CLEANUP => 1);
 
 GetOptions(
     'repo-root=s' => \my $REPO_ROOT
@@ -39,8 +39,7 @@ sub url_exists_or_bail {
             #                       TESTS                      #
             ####################################################
 
-use FindBin qw($Bin);
-require "$Bin/../bin/sbozyp";
+my $TEST_DIR = File::Temp->newdir(DIR => '/tmp', TEMPLATE => 'sbozyp.tXXXXXX', CLEANUP => 1);
 
 subtest 'sbozyp_die()' => sub {
     like(dies { Sbozyp::sbozyp_die('dead') },
