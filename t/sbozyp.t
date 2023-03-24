@@ -648,4 +648,14 @@ subtest 'install_slackware_pkg()' => sub {
     ok(! -f $slackware_pkg, 'removes slackware package when $CONFIG{CLEANUP} is true');
 };
 
+subtest 'remove_slackware_pkg()' => sub {
+    skip_all('remove_slackware_pkg() requires root') unless $> == 0;
+    local $ENV{ROOT} = "$TEST_DIR/tmp_install"; # controls removepkg's removal destination
+    # this slackware pkg is installed from the 'install_slackware_pkg()' subtest
+    Sbozyp::remove_slackware_pkg('perl-File-Which-1.09-x86_64-1_SBo');
+    ok(! -f "$TEST_DIR/tmp_install/usr/bin/pwhich" && ! -f "$TEST_DIR/tmp_install/usr/lib/File/Which.pm" && ! -f "$TEST_DIR/tmp_install/var/lib/pkgtools/packages/perl-File-Which-1.09-x86_64-1_SBo",
+       'successfully removes slackware pkg'
+    );
+};
+
 done_testing;
