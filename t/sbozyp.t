@@ -662,7 +662,7 @@ subtest 'install_slackware_pkg()' => sub {
     local $Sbozyp::CONFIG{CLEANUP} = 0;
 
     Sbozyp::install_slackware_pkg($slackware_pkg);
-    ok(-f "$TEST_DIR/tmp_root/usr/bin/pwhich" && -f "$TEST_DIR/tmp_root/usr/lib/File/Which.pm" && -f "$TEST_DIR/tmp_root/var/lib/pkgtools/packages/perl-File-Which-1.09-x86_64-1_SBo",
+    ok(-f "$TEST_DIR/tmp_root/var/lib/pkgtools/packages/perl-File-Which-1.09-x86_64-1_SBo",
        'successfully installs slackware pkg'
     );
     ok(-f $slackware_pkg, 'does not remove the slackware package when $CONFIG{CLEANUP} is false');
@@ -670,6 +670,28 @@ subtest 'install_slackware_pkg()' => sub {
     local $Sbozyp::CONFIG{CLEANUP} = 1;
     Sbozyp::install_slackware_pkg($slackware_pkg);
     ok(! -f $slackware_pkg, 'removes slackware package when $CONFIG{CLEANUP} is true');
+
+    # update the slackbuild for perl-File-Which version 1.23 and install it to test that install_slackware_pkg() automatically upgrades old packages
+    url_exists_or_bail('https://cpan.metacpan.org/authors/id/P/PL/PLICEASE/File-Which-1.23.tar.gz');
+    open my $fh_r, '<', "$Sbozyp::CONFIG{REPO_ROOT}/perl/perl-File-Which/perl-File-Which.info" or die;
+    open my $fh_w, '>', "$TEST_DIR/perl-File-Which.info.tmp" or die;
+    while (<$fh_r>) {
+        if    (/^VERSION/)  { print $fh_w qq(VERSION="1.23"\n) }
+        elsif (/^DOWNLOAD/) { print $fh_w qq(DOWNLOAD="https://cpan.metacpan.org/authors/id/P/PL/PLICEASE/File-Which-1.23.tar.gz"\n) }
+        elsif (/^MD5SUM/)   { print $fh_w qq(MD5SUM="c8f054534c3c098dd7a0dada60aaae34"\n) }
+        else                { print $fh_w $_ }
+    }
+    close $fh_r or die;
+    close $fh_w or die;
+    open $fh_r, '<', "$Sbozyp::CONFIG{REPO_ROOT}/perl/perl-File-Which/perl-File-Which.SlackBuild" or die;
+    open $fh_w, '>', "$TEST_DIR/perl-File-Which.SlackBuild.tmp" or die;
+    while (<$fh_r>) { if (/^VERSION=/) { print $fh_w 'VERSION=${VERSION:-1.23}',"\n" } else { print $fh_w $_ } }
+    close $fh_r or die;
+    close $fh_w or die;
+    mv("$TEST_DIR/perl-File-Which.info.tmp","$Sbozyp::CONFIG{REPO_ROOT}/perl/perl-File-Which/perl-File-Which.info") or die;
+    mv("$TEST_DIR/perl-File-Which.SlackBuild.tmp","$Sbozyp::CONFIG{REPO_ROOT}/perl/perl-File-Which/perl-File-Which.SlackBuild") or die;
+    Sbozyp::install_slackware_pkg(Sbozyp::build_slackware_pkg(scalar(Sbozyp::pkg('perl/perl-File-Which', 'IGNORE_CACHE'))));
+    ok(-f "$TEST_DIR/tmp_root/var/lib/pkgtools/packages/perl-File-Which-1.23-x86_64-1_SBo" && ! -f "$TEST_DIR/tmp_root/var/lib/pkgtools/packages/perl-File-Which-1.09-x86_64-1_SBo", 'upgrades pkg if we install a newer version of an existing pkg');
 };
 
 subtest 'remove_slackware_pkg()' => sub {
