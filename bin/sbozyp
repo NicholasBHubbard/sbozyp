@@ -155,6 +155,13 @@ sub all_categories {
     return @categories
 }
 
+sub all_pkgnames {
+    my @pkgnames = sort map {
+        my ($pkgname) = $_ =~ m,/([^/]+/[^/]+)$,;
+    } sbozyp_qx("find '$CONFIG{REPO_ROOT}' -not -path '*/.git/*' -type d -mindepth 2 -maxdepth 2");
+    return @pkgnames;
+}
+
 sub find_pkgname {
     my ($prgnam) = @_;
     $prgnam or return;
