@@ -160,7 +160,7 @@ sub find_pkgname {
     $prgnam or return;
     return $prgnam if $prgnam =~ m,^[^/]+/[^/]+$, && -d "$CONFIG{REPO_ROOT}/$prgnam";
     my $pkgname;
-    for my $category (pkg_categories()) {
+    for my $category (all_categories()) {
         $pkgname = "$category/$prgnam" if -d "$CONFIG{REPO_ROOT}/$category/$prgnam";
     }
     return $pkgname;
