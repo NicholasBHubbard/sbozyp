@@ -129,9 +129,6 @@ subtest 'sbozyp_copy()' => sub {
     unlink "$TEST_DIR/foo" or die;
     unlink "$TEST_DIR/bar" or die;
 
-    # say "HERE";
-    # system('tree', "$TEST_DIR");
-
     make_path("$TEST_DIR/baz/quux") or die;
     open $fh, '>', "$TEST_DIR/baz/foo" or die;
     close $fh or die;
@@ -597,9 +594,6 @@ subtest 'prepare_pkg()' => sub {
     close $fh_w or die;
     mv("$TEST_DIR/tmp.info", "$Sbozyp::CONFIG{REPO_ROOT}/perl/perl-File-Tail/perl-File-Tail.info") or die;
 
-    say "HERE";
-    system('cat', "$Sbozyp::CONFIG{REPO_ROOT}/perl/perl-File-Tail/perl-File-Tail.info");
-
     open $stdin, '<', \ "i\n";
     *STDIN = $stdin;
     $dir = Sbozyp::prepare_pkg(scalar(Sbozyp::pkg('perl/perl-File-Tail')));
@@ -687,10 +681,11 @@ subtest 'install_slackware_pkg()' => sub {
 subtest 'remove_slackware_pkg()' => sub {
     skip_all('remove_slackware_pkg() requires root') unless $> == 0;
 
-    local $ENV{ROOT} = "$TEST_DIR/tmp_root"; # controls removepkg's removal destination
+    local $ENV{ROOT} = "$TEST_DIR/tmp_root";
+
     # this slackware pkg is installed from the 'install_slackware_pkg()' subtest
-    Sbozyp::remove_slackware_pkg('perl-File-Which-1.09-x86_64-1_SBo');
-    ok(! -f "$TEST_DIR/tmp_root/usr/bin/pwhich" && ! -f "$TEST_DIR/tmp_root/usr/lib/File/Which.pm" && ! -f "$TEST_DIR/tmp_root/var/lib/pkgtools/packages/perl-File-Which-1.09-x86_64-1_SBo",
+    Sbozyp::remove_slackware_pkg('perl-File-Which-1.23-x86_64-1_SBo');
+    ok(! -f "$TEST_DIR/tmp_root/var/lib/pkgtools/packages/perl-File-Which-1.23-x86_64-1_SBo",
        'successfully removes slackware pkg'
     );
 
@@ -700,23 +695,23 @@ subtest 'remove_slackware_pkg()' => sub {
 subtest 'installed_sbo_pkgs()' => sub {
     skip_all('need root access so we can install pkgs with install_slackware_pkg()') unless $> == 0;
 
-    url_exists_or_bail('http://www.cpan.org/authors/id/A/AD/ADAMK/File-Which-1.09.tar.gz');
     url_exists_or_bail('www.cpan.org/authors/id/S/SA/SANKO/Readonly-2.00.tar.gz');
     url_exists_or_bail('http://search.cpan.org/CPAN/authors/id/E/ET/ETHER/Test-Pod-1.51.tar.gz');
+    url_exists_or_bail('http://search.cpan.org/CPAN/authors/id/D/DO/DOY/Try-Tiny-0.22.tar.gz');
 
     local $ENV{ROOT} = "$TEST_DIR/tmp_root";
 
-    Sbozyp::install_slackware_pkg(Sbozyp::build_slackware_pkg(scalar(Sbozyp::pkg('perl/perl-File-Which'))));
     Sbozyp::install_slackware_pkg(Sbozyp::build_slackware_pkg(scalar(Sbozyp::pkg('perl/perl-Readonly'))));
     Sbozyp::install_slackware_pkg(Sbozyp::build_slackware_pkg(scalar(Sbozyp::pkg('perl/perl-Test-Pod'))));
+    Sbozyp::install_slackware_pkg(Sbozyp::build_slackware_pkg(scalar(Sbozyp::pkg('perl/perl-Try-Tiny'))));
 
     is({Sbozyp::installed_sbo_pkgs()},
-       {'perl/perl-File-Which'=>'1.09','perl/perl-Readonly'=>'2.00','perl/perl-Test-Pod'=>'1.51'},
+       {'perl/perl-Readonly'=>'2.00','perl/perl-Test-Pod'=>'1.51','perl/perl-Try-Tiny'=>'0.22'},
        'finds all installed SBo pkgs (respecting $ENV{ROOT}) and returns a hash assocating their pkgname to their version'
     );
 
-    mv("$TEST_DIR/tmp_root/var/lib/pkgtools/packages/perl-File-Which-1.09-x86_64-1_SBo",
-       "$TEST_DIR/tmp_root/var/lib/pkgtools/packages/perl-File-Which-1.09-x86_64-1"
+    mv("$TEST_DIR/tmp_root/var/lib/pkgtools/packages/perl-Try-Tiny-0.22-x86_64-1_SBo",
+       "$TEST_DIR/tmp_root/var/lib/pkgtools/packages/perl-Try-Tiny-0.22-x86_64-1"
     ) or die;
     is({Sbozyp::installed_sbo_pkgs()},
        {'perl/perl-Readonly'=>'2.00','perl/perl-Test-Pod'=>'1.51'},
