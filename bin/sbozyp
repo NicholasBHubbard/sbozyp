@@ -125,9 +125,9 @@ sub sbozyp_sync_main { # NOT TESTED
 
 sub pkg {
     state %pkg_cache;
-    my ($prgnam) = @_;
+    my ($prgnam, $ignore_cache) = @_;
     my $pkgname = find_pkgname($prgnam) // sbozyp_die("could not find a package named '$prgnam'");
-    if (my $pkg = $pkg_cache{$pkgname}) { return wantarray ? %$pkg : $pkg }
+    if (!$ignore_cache and my $pkg = $pkg_cache{$pkgname}) { return wantarray ? %$pkg : $pkg }
     my $info_file = "$CONFIG{REPO_ROOT}/$pkgname/@{[basename($pkgname)]}.info";
     my %info = parse_info_file($info_file);
     my %pkg = (
