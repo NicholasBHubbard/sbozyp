@@ -39,14 +39,15 @@ sub main { # NOT TESTED
     elsif ($cmd eq 'qr') { $cmd = 'query'   }
     elsif ($cmd eq 'sy') { $cmd = 'sync'    }
     # run the command
-    if    ($cmd =~ /^(?:--help|-h)$/)    { print help_string()        }
-    elsif ($cmd =~ /^(?:--version|-v)$/) { print $VERSION, "\n"       }
-    elsif ($cmd eq 'install')            { sbozyp_install_main(@argv) }
-    elsif ($cmd eq 'remove')             { sbozyp_remove_main(@argv)  }
-    elsif ($cmd eq 'search')             { sbozyp_search_main(@argv)  }
-    elsif ($cmd eq 'query')              { sbozyp_query_main(@argv)   }
-    elsif ($cmd eq 'sync')               { sbozyp_sync_main(@argv)    }
-    else                                 { die_usage()                }
+    if    ($cmd =~ /^(?:--help|-h)$/)    { print help_string()  }
+    elsif ($cmd =~ /^(?:--version|-v)$/) { print $VERSION, "\n" }
+    elsif ($cmd eq 'install')            { install_main(@argv)  }
+    elsif ($cmd eq 'query')              { query_main(@argv)    }
+    elsif ($cmd eq 'remove')             { remove_main(@argv)   }
+    elsif ($cmd eq 'search')             { search_main(@argv)   }
+    elsif ($cmd eq 'upgrade')            { upgrade_main(@argv)  }
+    elsif ($cmd eq 'sync')               { sync_main(@argv)     }
+    else                                 { die_usage()          }
     # all good
     exit 0;
 }
@@ -55,7 +56,7 @@ sub main { # NOT TESTED
             #                     COMMANDS                     #
             ####################################################
 
-sub sbozyp_install_main { # NOT TESTED
+sub install_main { # NOT TESTED
     i_am_root_or_die();
     my $usage = 'usage: sbozyp install <TODO>';
     GetOptionsFromArray(
@@ -86,12 +87,12 @@ sub sbozyp_install_main { # NOT TESTED
     }
 }
 
-sub sbozyp_remove_main { # NOT TESTED
+sub remove_main { # NOT TESTED
     i_am_root_or_die();
     'TODO';
 }
 
-sub sbozyp_search_main { # NOT TESTED
+sub search_main { # NOT TESTED
     my $usage = 'usage: sbozyp search <TODO>';
     GetOptionsFromArray(
         \@_,
@@ -109,11 +110,10 @@ sub sbozyp_search_main { # NOT TESTED
     print "$_\n" for @matches;
 }
 
-sub sbozyp_query_main { # NOT TESTED
-    'TODO'
+sub query_main { # NOT TESTED
 }
 
-sub sbozyp_sync_main { # NOT TESTED
+sub sync_main { # NOT TESTED
     i_am_root_or_die();
     my $usage = 'usage: sbozyp sync <TODO>';
     sync_repo();
