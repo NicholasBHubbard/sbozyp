@@ -20,10 +20,6 @@ require "$Bin/../bin/sbozyp";
 
 $SIG{INT} = sub { die "sbozyp.t: got a SIGINT ... going down!\n" };
 
-GetOptions(
-    'repo-root=s' => \my $REPO_ROOT
-) or die "sbozyp.t: error in command line arguments\n";
-
             ####################################################
             #                      HELPERS                     #
             ####################################################
@@ -369,12 +365,6 @@ END
 };
 
 subtest 'sync_repo()' => sub {
-    # If the '$REPO_ROOT' variable is set by the '--repo-root' command line option, and specifies a SBo 14.1 repo, we skip the expensive tests for 'sync_repo()'. This will greatly speed up the time this test script takes to run.
-    if ($REPO_ROOT and `git -C '$REPO_ROOT' branch --show-current` =~ /^14\.1$/) {
-        $Sbozyp::CONFIG{REPO_ROOT} = $REPO_ROOT;
-        skip_all(q(skipping tests for sync_repo() due to the '--repo-root' flag being passed));
-    }
-
     Sbozyp::sync_repo();
     ok(-d "$TEST_DIR/var/lib/sbozyp/SBo/.git", 'clones SBo repo to $CONFIG{REPO_ROOT} if it has not yet been cloned');
     ok(`git -C '$TEST_DIR/var/lib/sbozyp/SBo' branch --show-current` =~ /^14\.1$/, 'clones branch specified by $CONFIG{REPO_GIT_BRANCH}');
