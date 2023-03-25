@@ -65,12 +65,12 @@ sub sbozyp_install_main { # NOT TESTED
         's' => \my $sync,
         'y|no-confirm' => \my $no_confirm
     ) or sbozyp_die('error in command line arguments');
-    my $pkg = $_[0] // die "$usage\n";
+    my $pkg = pkg($_[0]) // die "$usage\n";
     sync_repo() if $sync;
     my @pkgs = $no_deps ? ($pkg) : pkg_queue($pkg);
     unless ($no_confirm) {
         print 'sbozyp: pkgs to install:', "\n";
-        print "  $_\n" for @pkgs;
+        print '  ', $_->{PKGNAME}, "\n" for @pkgs;
         print "\n";
       PROMPT_USER:
         print '  do you want to proceed? y/n', "\n";
