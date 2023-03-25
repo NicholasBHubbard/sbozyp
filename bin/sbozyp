@@ -148,7 +148,7 @@ sub pkg {
     return wantarray ? %pkg : \%pkg;
 }
 
-sub pkg_categories {
+sub all_categories {
     my @categories = sort map {
         basename($_);
     } sbozyp_qx("find '$CONFIG{REPO_ROOT}' -not -path '*/.git' -type d -mindepth 1 -maxdepth 1");

@@ -374,8 +374,8 @@ subtest 'sync_repo()' => sub {
     Sbozyp::sync_repo(); pass('pulls repo if it is already cloned');
 };
 
-subtest 'pkg_categories' => sub {
-    is([Sbozyp::pkg_categories()],
+subtest 'all_categories' => sub {
+    is([Sbozyp::all_categories()],
        ['academic','accessibility','audio','business','desktop','development','games','gis','graphics','ham','haskell','libraries','misc','multimedia','network','office','perl','python','ruby','system'],
        'returns correct package categories (sorted)'
     );
