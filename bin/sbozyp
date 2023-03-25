@@ -399,7 +399,7 @@ sub prepare_pkg {
 
 sub build_slackware_pkg {
     my ($pkg) = @_;
-    local $ENV{OUTPUT} = sbozyp_mkdir("$CONFIG{TMPDIR}");
+    local $ENV{OUTPUT} = $CONFIG{TMPDIR};
     my $staging_dir = prepare_pkg($pkg);
     my $slackbuild = $pkg->{PRGNAM} . '.SlackBuild';
     my $slackbuild_stdout = sbozyp_qx("cd '$staging_dir' && chmod +x ./$slackbuild && ./$slackbuild");
