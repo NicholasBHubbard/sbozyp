@@ -326,7 +326,7 @@ sub parse_slackware_pkgname {
     my ($slackware_pkgname) = @_;
     my ($prgnam, $version) = $slackware_pkgname =~ /^([\w-]+)-([^-]*)-[^-]*-\d+_SBo$/;
     my $pkgname = find_pkgname($prgnam);
-    return ($pkgname, $version);
+    return ($pkgname => $version);
 }
 
 sub installed_sbo_pkgs {
