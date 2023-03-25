@@ -425,12 +425,12 @@ subtest 'pkg()' => sub {
     url_exists_or_bail('http://git.zx2c4.com/password-store/snapshot/password-store-1.4.2.tar.xz');
 
     is({Sbozyp::pkg('system/password-store')},
-       {PKGNAME=>'system/password-store',PKGDIR=>"$Sbozyp::CONFIG{REPO_ROOT}/system/password-store",PRGNAM=>'password-store',VERSION=>'1.4.2',HOMEPAGE=>'http://zx2c4.com/projects/password-store/',DOWNLOAD=>['http://git.zx2c4.com/password-store/snapshot/password-store-1.4.2.tar.xz'],MD5SUM=>['c6382dbf5be4036021bf1ce61254b04b'],DOWNLOAD_x86_64=>[],MD5SUM_x86_64=>[],REQUIRES=>['xclip','pwgen'],MAINTAINER=>'Michael Ren',EMAIL=>'micron33@gmail.com'},
+       {PRGNAM=>'password-store',DESC_FILE=>"$Sbozyp::CONFIG{REPO_ROOT}/system/password-store/slack-desc",INFO_FILE=>"$Sbozyp::CONFIG{REPO_ROOT}/system/password-store/password-store.info",SLACKBUILD=>"$Sbozyp::CONFIG{REPO_ROOT}/system/password-store/password-store.SlackBuild",README=>"$Sbozyp::CONFIG{REPO_ROOT}/system/password-store/README",PKGNAME=>'system/password-store',PKGDIR=>"$Sbozyp::CONFIG{REPO_ROOT}/system/password-store",VERSION=>'1.4.2',HOMEPAGE=>'http://zx2c4.com/projects/password-store/',DOWNLOAD=>['http://git.zx2c4.com/password-store/snapshot/password-store-1.4.2.tar.xz'],MD5SUM=>['c6382dbf5be4036021bf1ce61254b04b'],DOWNLOAD_x86_64=>[],MD5SUM_x86_64=>[],REQUIRES=>['xclip','pwgen'],MAINTAINER=>'Michael Ren',EMAIL=>'micron33@gmail.com'},
        'creates correct pkg hash'
     );
 
     is({Sbozyp::pkg('password-store')},
-       {PKGNAME=>'system/password-store',PKGDIR=>"$Sbozyp::CONFIG{REPO_ROOT}/system/password-store",PRGNAM=>'password-store',VERSION=>'1.4.2',HOMEPAGE=>'http://zx2c4.com/projects/password-store/',DOWNLOAD=>['http://git.zx2c4.com/password-store/snapshot/password-store-1.4.2.tar.xz'],MD5SUM=>['c6382dbf5be4036021bf1ce61254b04b'],DOWNLOAD_x86_64=>[],MD5SUM_x86_64=>[],REQUIRES=>['xclip','pwgen'],MAINTAINER=>'Michael Ren',EMAIL=>'micron33@gmail.com'},
+       {PRGNAM=>'password-store',DESC_FILE=>"$Sbozyp::CONFIG{REPO_ROOT}/system/password-store/slack-desc",INFO_FILE=>"$Sbozyp::CONFIG{REPO_ROOT}/system/password-store/password-store.info",SLACKBUILD=>"$Sbozyp::CONFIG{REPO_ROOT}/system/password-store/password-store.SlackBuild",README=>"$Sbozyp::CONFIG{REPO_ROOT}/system/password-store/README",PKGNAME=>'system/password-store',PKGDIR=>"$Sbozyp::CONFIG{REPO_ROOT}/system/password-store",VERSION=>'1.4.2',HOMEPAGE=>'http://zx2c4.com/projects/password-store/',DOWNLOAD=>['http://git.zx2c4.com/password-store/snapshot/password-store-1.4.2.tar.xz'],MD5SUM=>['c6382dbf5be4036021bf1ce61254b04b'],DOWNLOAD_x86_64=>[],MD5SUM_x86_64=>[],REQUIRES=>['xclip','pwgen'],MAINTAINER=>'Michael Ren',EMAIL=>'micron33@gmail.com'},
        'accepts just a prgnam'
     );
 
@@ -449,17 +449,17 @@ subtest 'pkg()' => sub {
     rename "$TEST_DIR/password-store.info.tmp", "$Sbozyp::CONFIG{REPO_ROOT}/system/password-store/password-store.info" or die;
 
     is({Sbozyp::pkg('system/password-store')},
-       {PKGNAME=>'system/password-store',PKGDIR=>"$Sbozyp::CONFIG{REPO_ROOT}/system/password-store",PRGNAM=>'password-store',VERSION=>'1.4.2',HOMEPAGE=>'http://zx2c4.com/projects/password-store/',DOWNLOAD=>['http://git.zx2c4.com/password-store/snapshot/password-store-1.4.2.tar.xz'],MD5SUM=>['c6382dbf5be4036021bf1ce61254b04b'],DOWNLOAD_x86_64=>[],MD5SUM_x86_64=>[],REQUIRES=>['xclip','pwgen'],MAINTAINER=>'Michael Ren',EMAIL=>'micron33@gmail.com'},
+       {PRGNAM=>'password-store',DESC_FILE=>"$Sbozyp::CONFIG{REPO_ROOT}/system/password-store/slack-desc",INFO_FILE=>"$Sbozyp::CONFIG{REPO_ROOT}/system/password-store/password-store.info",SLACKBUILD=>"$Sbozyp::CONFIG{REPO_ROOT}/system/password-store/password-store.SlackBuild",README=>"$Sbozyp::CONFIG{REPO_ROOT}/system/password-store/README",PKGNAME=>'system/password-store',PKGDIR=>"$Sbozyp::CONFIG{REPO_ROOT}/system/password-store",VERSION=>'1.4.2',HOMEPAGE=>'http://zx2c4.com/projects/password-store/',DOWNLOAD=>['http://git.zx2c4.com/password-store/snapshot/password-store-1.4.2.tar.xz'],MD5SUM=>['c6382dbf5be4036021bf1ce61254b04b'],DOWNLOAD_x86_64=>[],MD5SUM_x86_64=>[],REQUIRES=>['xclip','pwgen'],MAINTAINER=>'Michael Ren',EMAIL=>'micron33@gmail.com'},
        'caches pkgs by default'
     );
 
     is({Sbozyp::pkg('system/password-store', 1)},
-       {PRGNAM=>'FOO',PKGNAME=>'system/password-store',PKGDIR=>"$Sbozyp::CONFIG{REPO_ROOT}/system/password-store",VERSION=>'1.4.2',HOMEPAGE=>'http://zx2c4.com/projects/password-store/',DOWNLOAD=>['http://git.zx2c4.com/password-store/snapshot/password-store-1.4.2.tar.xz'],MD5SUM=>['c6382dbf5be4036021bf1ce61254b04b'],DOWNLOAD_x86_64=>[],MD5SUM_x86_64=>[],REQUIRES=>['xclip','pwgen'],MAINTAINER=>'Michael Ren',EMAIL=>'micron33@gmail.com'},
+       {PRGNAM=>'FOO',DESC_FILE=>"$Sbozyp::CONFIG{REPO_ROOT}/system/password-store/slack-desc",INFO_FILE=>"$Sbozyp::CONFIG{REPO_ROOT}/system/password-store/password-store.info",SLACKBUILD=>"$Sbozyp::CONFIG{REPO_ROOT}/system/password-store/password-store.SlackBuild",README=>"$Sbozyp::CONFIG{REPO_ROOT}/system/password-store/README",PKGNAME=>'system/password-store',PKGDIR=>"$Sbozyp::CONFIG{REPO_ROOT}/system/password-store",VERSION=>'1.4.2',HOMEPAGE=>'http://zx2c4.com/projects/password-store/',DOWNLOAD=>['http://git.zx2c4.com/password-store/snapshot/password-store-1.4.2.tar.xz'],MD5SUM=>['c6382dbf5be4036021bf1ce61254b04b'],DOWNLOAD_x86_64=>[],MD5SUM_x86_64=>[],REQUIRES=>['xclip','pwgen'],MAINTAINER=>'Michael Ren',EMAIL=>'micron33@gmail.com'},
        'ignores cache if passed true value as second argument'
     );
 
     is({Sbozyp::pkg('system/password-store')},
-       {PRGNAM=>'FOO',PKGNAME=>'system/password-store',PKGDIR=>"$Sbozyp::CONFIG{REPO_ROOT}/system/password-store",VERSION=>'1.4.2',HOMEPAGE=>'http://zx2c4.com/projects/password-store/',DOWNLOAD=>['http://git.zx2c4.com/password-store/snapshot/password-store-1.4.2.tar.xz'],MD5SUM=>['c6382dbf5be4036021bf1ce61254b04b'],DOWNLOAD_x86_64=>[],MD5SUM_x86_64=>[],REQUIRES=>['xclip','pwgen'],MAINTAINER=>'Michael Ren',EMAIL=>'micron33@gmail.com'},
+       {PRGNAM=>'FOO',DESC_FILE=>"$Sbozyp::CONFIG{REPO_ROOT}/system/password-store/slack-desc",INFO_FILE=>"$Sbozyp::CONFIG{REPO_ROOT}/system/password-store/password-store.info",SLACKBUILD=>"$Sbozyp::CONFIG{REPO_ROOT}/system/password-store/password-store.SlackBuild",README=>"$Sbozyp::CONFIG{REPO_ROOT}/system/password-store/README",PKGNAME=>'system/password-store',PKGDIR=>"$Sbozyp::CONFIG{REPO_ROOT}/system/password-store",VERSION=>'1.4.2',HOMEPAGE=>'http://zx2c4.com/projects/password-store/',DOWNLOAD=>['http://git.zx2c4.com/password-store/snapshot/password-store-1.4.2.tar.xz'],MD5SUM=>['c6382dbf5be4036021bf1ce61254b04b'],DOWNLOAD_x86_64=>[],MD5SUM_x86_64=>[],REQUIRES=>['xclip','pwgen'],MAINTAINER=>'Michael Ren',EMAIL=>'micron33@gmail.com'},
        'overwrites existing cached package when ignoring cache'
     );
 };

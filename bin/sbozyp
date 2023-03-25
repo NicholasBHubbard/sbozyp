@@ -133,6 +133,10 @@ sub pkg {
     my %pkg = (
         PKGNAME         => $pkgname,
         PKGDIR          => "$CONFIG{REPO_ROOT}/$pkgname",
+        INFO_FILE       => $info_file,
+        SLACKBUILD      => "$CONFIG{REPO_ROOT}/$pkgname/".basename($pkgname).'.SlackBuild',
+        DESC_FILE       => "$CONFIG{REPO_ROOT}/$pkgname/slack-desc",
+        README          => "$CONFIG{REPO_ROOT}/$pkgname/README",
         PRGNAM          => $info{PRGNAM},
         VERSION         => $info{VERSION},
         HOMEPAGE        => $info{HOMEPAGE},
