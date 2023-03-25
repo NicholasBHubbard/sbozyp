@@ -428,8 +428,10 @@ subtest 'parse_info_file()' => sub {
 };
 
 subtest 'pkg()' => sub {
-    is({Sbozyp::pkg('office/mu')},
-       {PKGNAME=>'office/mu',PKGDIR=>"$Sbozyp::CONFIG{REPO_ROOT}/office/mu",PRGNAM=>'mu',VERSION=>'0.9.15',HOMEPAGE=>'http://www.djcbsoftware.nl/code/mu/',DOWNLOAD=>['https://github.com/djcb/mu/archive/0.9.15.tar.gz'],MD5SUM=>['afbd704c8eb0bf2218a44bd4475cc457'],DOWNLOAD_x86_64=>[],MD5SUM_x86_64=>[],REQUIRES=>['xapian-core'],MAINTAINER=>'Jostein Berntsen',EMAIL=>'jbernts@broadpark.no'},
+    url_exists_or_bail('http://git.zx2c4.com/password-store/snapshot/password-store-1.4.2.tar.xz');
+
+    is({Sbozyp::pkg('system/password-store')},
+       {PKGNAME=>'system/password-store',PKGDIR=>"$Sbozyp::CONFIG{REPO_ROOT}/system/password-store",PRGNAM=>'password-store',VERSION=>'1.4.2',HOMEPAGE=>'http://zx2c4.com/projects/password-store/',DOWNLOAD=>['http://git.zx2c4.com/password-store/snapshot/password-store-1.4.2.tar.xz'],MD5SUM=>['c6382dbf5be4036021bf1ce61254b04b'],DOWNLOAD_x86_64=>[],MD5SUM_x86_64=>[],REQUIRES=>['xclip','pwgen'],MAINTAINER=>'Michael Ren',EMAIL=>'micron33@gmail.com'},
        'creates correct pkg hash'
     );
 
