@@ -443,7 +443,7 @@ subtest 'pkg()' => sub {
 
     open my $fh_r, '<', "$Sbozyp::CONFIG{REPO_ROOT}/system/password-store/password-store.info" or die;
     open my $fh_w, '>', "$TEST_DIR/password-store.info.tmp" or die;
-    while (<$fh_r>) { if (/^PRGNAM/) { print $fh_w qq(PRGNAM="FOO"\n) } else { print $fh_w $_ } }
+    while (<$fh_r>) { if (/^PRGNAM=/) { print $fh_w qq(PRGNAM="FOO"\n) } else { print $fh_w $_ } }
     close $fh_r or die;
     close $fh_w or die;
     rename "$TEST_DIR/password-store.info.tmp", "$Sbozyp::CONFIG{REPO_ROOT}/system/password-store/password-store.info" or die;
@@ -594,7 +594,7 @@ subtest 'prepare_pkg()' => sub {
     open my $fh_r, '<', "$Sbozyp::CONFIG{REPO_ROOT}/perl/perl-File-Tail/perl-File-Tail.info" or die;
     open my $fh_w, '>', "$TEST_DIR/tmp.info";
     while (<$fh_r>) {
-        if (/^MD5SUM/) { print $fh_w qq(MD5SUM="foo"\n) }
+        if (/^MD5SUM=/) { print $fh_w qq(MD5SUM="foo"\n) }
         else { print $fh_w $_ }
     }
     close $fh_r or die;
@@ -667,9 +667,9 @@ subtest 'install_slackware_pkg()' => sub {
     open my $fh_r, '<', "$Sbozyp::CONFIG{REPO_ROOT}/perl/perl-File-Which/perl-File-Which.info" or die;
     open my $fh_w, '>', "$TEST_DIR/perl-File-Which.info.tmp" or die;
     while (<$fh_r>) {
-        if    (/^VERSION/)  { print $fh_w qq(VERSION="1.23"\n) }
-        elsif (/^DOWNLOAD/) { print $fh_w qq(DOWNLOAD="https://cpan.metacpan.org/authors/id/P/PL/PLICEASE/File-Which-1.23.tar.gz"\n) }
-        elsif (/^MD5SUM/)   { print $fh_w qq(MD5SUM="c8f054534c3c098dd7a0dada60aaae34"\n) }
+        if    (/^VERSION=/)  { print $fh_w qq(VERSION="1.23"\n) }
+        elsif (/^DOWNLOAD=/) { print $fh_w qq(DOWNLOAD="https://cpan.metacpan.org/authors/id/P/PL/PLICEASE/File-Which-1.23.tar.gz"\n) }
+        elsif (/^MD5SUM=/)   { print $fh_w qq(MD5SUM="c8f054534c3c098dd7a0dada60aaae34"\n) }
         else                { print $fh_w $_ }
     }
     close $fh_r or die;
