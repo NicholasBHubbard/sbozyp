@@ -213,8 +213,13 @@ subtest 'sbozyp_find_files_recursive()' => sub {
 
     like(dies { Sbozyp::sbozyp_find_files_recursive("$TEST_DIR/bar") },
          qr/^sbozyp: error: could not opendir '\Q$TEST_DIR\E\/bar': No such file or directory$/,
-         'dies with usefule error message if cannot opendir()'
-     );
+         'dies with useful error message if cannot opendir()'
+    );
+
+    like(dies { Sbozyp::sbozyp_find_files_recursive("$TEST_DIR/foo/bar_f") },
+         qr/^sbozyp: error: could not opendir '\Q$TEST_DIR\E\/bar': Not a directory$/,
+         'dies with useful error message if passed a plain file'
+    );
 
     remove_tree("$TEST_DIR/foo") or die;
 };

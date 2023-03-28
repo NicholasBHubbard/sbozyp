@@ -242,14 +242,15 @@ sub sbozyp_find_files_recursive { # TODO: test sbozyp_files_in_dir()
     my ($dir) = @_;
     my @files;
     my $find_files_recursive = sub {
-        my ($file_or_dir) = @_;
-        if (-f $file_or_dir) {
-            push @files, $file_or_dir;
-        } else {
-            __SUB__->($_) for sbozyp_readdir($file_or_dir);
+        for my $f (@_) {
+            if (-f $f) {
+                push @files, $f;
+            } else {
+                __SUB__->(sbozyp_readdir($f));
+            }
         }
     };
-    $find_files_recursive->($dir);
+    $find_files_recursive->(sbozyp_readdir($dir));
     return sort(@files);
 }
 
