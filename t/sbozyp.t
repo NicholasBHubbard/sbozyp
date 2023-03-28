@@ -193,6 +193,32 @@ subtest 'sbozyp_readdir()' => sub {
     );
 };
 
+subtest 'sbozyp_find_files_recursive()' => sub {
+    make_path("$TEST_DIR/foo/bar/baz") or die;
+    open my $fh, '>', "$TEST_DIR/foo/foo_f" or die;
+    close $fh or die;
+    open $fh, '>', "$TEST_DIR/foo/bar_f" or die;
+    close $fh or die;
+    open $fh, '>', "$TEST_DIR/foo/bar/foo_f" or die;
+    close $fh or die;
+    open $fh, '>', "$TEST_DIR/foo/bar/baz/baz_f" or die;
+    close $fh or die;
+    open $fh, '>', "$TEST_DIR/foo/bar/baz/quux_f" or die;
+    close $fh or die;
+
+    is([Sbozyp::sbozyp_find_files_recursive("$TEST_DIR/foo")],
+       ["$TEST_DIR/foo/bar/baz/baz_f","$TEST_DIR/foo/bar/baz/quux_f","$TEST_DIR/foo/bar/foo_f","$TEST_DIR/foo/bar_f","$TEST_DIR/foo/foo_f"],
+       'returns all files in directory recursively'
+    );
+
+    like(dies { Sbozyp::sbozyp_find_files_recursive("$TEST_DIR/bar") },
+         qr/^sbozyp: error: could not opendir '\Q$TEST_DIR\E\/bar': No such file or directory$/,
+         'dies with usefule error message if cannot opendir()'
+     );
+
+    remove_tree("$TEST_DIR/foo") or die;
+};
+
 subtest 'sbozyp_chdir()' => sub {
     my $orig_dir = getcwd(); # save this so we can switch back
 
