@@ -238,7 +238,7 @@ sub sbozyp_readdir {
     return @files;
 }
 
-sub sbozyp_find_files_recursive { # TODO: test sbozyp_files_in_dir()
+sub sbozyp_find_files_recursive {
     my ($dir) = @_;
     my @files;
     my $find_files_recursive = sub {
