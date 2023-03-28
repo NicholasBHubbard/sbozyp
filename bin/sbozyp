@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
 use strict;
-use warnings;
+use warnings FATAL => 'all';
 use v5.34.0; # The Perl version on Slackware 15.0 (sbozyp's min version)
 
 package Sbozyp;
