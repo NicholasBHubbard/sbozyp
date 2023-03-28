@@ -240,17 +240,17 @@ sub sbozyp_readdir {
 
 sub sbozyp_find_files_recursive { # TODO: test sbozyp_files_in_dir()
     my ($dir) = @_;
-    my @dir_contents;
+    my @files;
     my $find_files_recursive = sub {
         my ($file_or_dir) = @_;
         if (-f $file_or_dir) {
-            push @dir_contents, $file_or_dir;
+            push @files, $file_or_dir;
         } else {
             __SUB__->($_) for sbozyp_readdir($file_or_dir);
         }
     };
     $find_files_recursive->($dir);
-    return sort(@dir_contents);
+    return sort(@files);
 }
 
 sub sbozyp_chdir {
