@@ -234,7 +234,7 @@ sub sbozyp_move {
 sub sbozyp_readdir {
     my ($dir) = @_;
     opendir(my $dh, $dir) or sbozyp_die("could not opendir '$dir': $!");
-    my @files = map { "$dir/$_" } grep { !/^\.\.?$/ } readdir($dh);
+    my @files = sort map { "$dir/$_" } grep { !/^\.\.?$/ } readdir($dh);
     return @files;
 }
 
