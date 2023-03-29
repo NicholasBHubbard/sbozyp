@@ -187,6 +187,16 @@ sub parse_info_file {
     return %info;
 }
 
+sub is_multilib {
+    my $is_multilib = -f '/etc/profile.d/32dev.sh';
+    return $is_multilib;
+}
+
+sub arch {
+    my $arch = sbozyp_qx('uname -m');
+    return $arch;
+}
+
 sub sbozyp_die {
     my ($msg) = @_;
     die "sbozyp: error: $msg\n";

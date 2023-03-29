@@ -38,6 +38,19 @@ sub url_exists_or_bail {
 
 my $TEST_DIR = File::Temp->newdir(DIR => '/tmp', TEMPLATE => 'sbozyp.tXXXXXX', CLEANUP => 1);
 
+subtest 'is_multilib' => sub {
+    if (-f '/etc/profile.d/32dev.sh') {
+        ok(Sbozyp::is_multilib(), 'true if system is multilib');
+    } else {
+        ok(!Sbozyp::is_multilib(), 'false if system is not multilib');
+    }
+};
+
+subtest 'arch' => sub {
+    chomp(my $arch = `uname -m`);
+    is(Sbozyp::arch(), $arch, 'returns the systems architecture');
+};
+
 subtest 'sbozyp_die()' => sub {
     like(dies { Sbozyp::sbozyp_die('dead') },
          qr/^sbozyp: error: dead$/,
