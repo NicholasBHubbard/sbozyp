@@ -46,7 +46,7 @@ subtest 'is_multilib_system()' => sub {
     }
 };
 
-subtest 'arch' => sub {
+subtest 'arch()' => sub {
     chomp(my $arch = `uname -m`);
     is(Sbozyp::arch(), $arch, 'returns the systems architecture');
 };
