@@ -187,9 +187,9 @@ sub parse_info_file {
     return %info;
 }
 
-sub is_multilib {
-    my $is_multilib = -f '/etc/profile.d/32dev.sh';
-    return $is_multilib;
+sub is_multilib_system {
+    my $is_multilib_system = -f '/etc/profile.d/32dev.sh';
+    return $is_multilib_system;
 }
 
 sub arch {

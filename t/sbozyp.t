@@ -38,11 +38,11 @@ sub url_exists_or_bail {
 
 my $TEST_DIR = File::Temp->newdir(DIR => '/tmp', TEMPLATE => 'sbozyp.tXXXXXX', CLEANUP => 1);
 
-subtest 'is_multilib' => sub {
+subtest 'is_multilib_system()' => sub {
     if (-f '/etc/profile.d/32dev.sh') {
-        ok(Sbozyp::is_multilib(), 'true if system is multilib');
+        ok(Sbozyp::is_multilib_system(), 'true if system is multilib');
     } else {
-        ok(!Sbozyp::is_multilib(), 'false if system is not multilib');
+        ok(!Sbozyp::is_multilib_system(), 'false if system is not multilib');
     }
 };
 
