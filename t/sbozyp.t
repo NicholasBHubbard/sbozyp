@@ -403,6 +403,10 @@ END
        {TMPDIR=>"$TEST_DIR", CLEANUP=>1,REPO_ROOT=>"$TEST_DIR/var/lib/sbozyp/SBo",REPO_GIT_URL=>'git://git.slackbuilds.org/slackbuilds.git',REPO_GIT_BRANCH=>'14.1'},
        '%CONFIG is properly set for use by the test of this test script'
     );
+
+    unlink $test_config or die;
+};
+
 subtest 'sbozyp_tee()' => sub {
     my $teed_stdout;
     my $real_stdout = capture { $teed_stdout = Sbozyp::sbozyp_tee('echo -e "foo\nbar\nbaz"') };
