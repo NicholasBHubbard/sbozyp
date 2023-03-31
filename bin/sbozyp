@@ -229,7 +229,7 @@ sub sbozyp_qx {
 
 sub sbozyp_tee {
     my ($cmd) = @_;
-    my $tmp = File::Temp->new(TEMPLATE => 'sbozyp_tmpXXXXXX', DIR => $CONFIG{TMPDIR});
+    my $tmp = File::Temp->new(DIR => $CONFIG{TMPDIR}, TEMPLATE => 'sbozyp_XXXXXX');
     $cmd = "set -o pipefail && ( $cmd ) | tee '$tmp'";
     sbozyp_system('bash', '-c', $cmd);
     seek $tmp, 0, 0;
