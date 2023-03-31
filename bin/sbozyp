@@ -353,15 +353,12 @@ sub pkg_queue {
     my @queue = ($pkg);
     my $resolve_deps = sub {
         my ($pkg) = @_;
+        # $pkg->{REQUIRES} will never contain %README% as it is removed when we parse a pkgs info file (see pkg()).
         for my $req (@{$pkg->{REQUIRES}}) {
-            if ($req eq '%README%') {
-                print "sbozyp: pkg '@{[$pkg->{PKGNAME}]}' has optional dependencies specified in its README file\n";
-            } else {
-                my $req_pkg = pkg($req);
-                @queue = grep { $req_pkg->{PKGNAME} ne $_->{PKGNAME} } @queue;
-                unshift @queue, $req_pkg;
-                __SUB__->($req_pkg);
-            }
+            my $req_pkg = pkg($req);
+            @queue = grep { $req_pkg->{PKGNAME} ne $_->{PKGNAME} } @queue;
+            unshift @queue, $req_pkg;
+            __SUB__->($req_pkg);
         }
     };
     $resolve_deps->($pkg);

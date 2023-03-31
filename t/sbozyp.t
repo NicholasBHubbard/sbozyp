@@ -568,10 +568,7 @@ subtest 'pkg_queue()' => sub {
     );
 
     my ($stdout) = capture { Sbozyp::pkg_queue(scalar(Sbozyp::pkg('system/openrc'))) };
-    like($stdout,
-         qr/^sbozyp: pkg 'system\/openrc' has optional dependencies specified in its README file$/,
-         q(outputs message about pkg having optional deps specified in its README file if '%README%' is in its 'REQUIRES')
-     );
+    is($stdout, '', 'does not warn about package with %README% in its REQUIRES');
 };
 
 subtest 'parse_slackware_pkgname()' => sub {
