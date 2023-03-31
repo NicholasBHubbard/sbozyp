@@ -418,6 +418,7 @@ END
     unlink $test_config or die;
 };
 
+# the sbozyp_tee() subtest must come after the parse_config_file() subtest, as sbozyp_tee()'s implementation uses CONFIG{TMPDIR} which is set in the parse_config_file() subtest.
 subtest 'sbozyp_tee()' => sub {
     my $teed_stdout;
     my ($real_stdout) = capture { $teed_stdout = Sbozyp::sbozyp_tee('echo -e "foo\nbar\nbaz"') };
