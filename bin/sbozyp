@@ -34,10 +34,11 @@ sub main { # NOT TESTED
     parse_config_file();
     # provide cmd abbreviations
     if    ($cmd eq 'in') { $cmd = 'install' }
+    elsif ($cmd eq 'qr') { $cmd = 'query'   }
     elsif ($cmd eq 'rm') { $cmd = 'remove'  }
     elsif ($cmd eq 'se') { $cmd = 'search'  }
-    elsif ($cmd eq 'qr') { $cmd = 'query'   }
     elsif ($cmd eq 'sy') { $cmd = 'sync'    }
+    elsif ($cmd eq 'up') { $cmd = 'upgrade' }
     # run the command
     if    ($cmd =~ /^(?:--help|-h)$/)    { print help_string()  }
     elsif ($cmd =~ /^(?:--version|-v)$/) { print $VERSION, "\n" }
