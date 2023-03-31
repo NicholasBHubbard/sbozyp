@@ -197,6 +197,12 @@ sub arch {
     return $arch;
 }
 
+sub sbozyp_getopts {
+    my $error;
+    local $SIG{__WARN__} = sub { chomp($error = $_[0]) };
+    GetOptionsFromArray(@_) or sbozyp_die($error);
+}
+
 sub sbozyp_die {
     my ($msg) = @_;
     die "sbozyp: error: $msg\n";

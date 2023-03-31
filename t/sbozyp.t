@@ -103,6 +103,17 @@ subtest 'sbozyp_qx()' => sub {
      );
 };
 
+subtest 'sbozyp_getopts()' => sub {
+    my @args = ('-f', '-b', 'foo', 'quux');
+    Sbozyp::sbozyp_getopts(\@args, 'f' => \my $foo, 'b=s' => \my $bar);
+    ok(($foo and $bar eq 'foo'), 'parses options with Getopt::Long::GetOptionsFromArray()');
+    is([@args], ['quux'], 'mutates input array to remove options');
+    like(dies { Sbozyp::sbozyp_getopts(['-b'], 'f' => \my $blah) },
+         qr/^sbozyp: error: Unknown option: b$/,
+         'dies with useful error message if option parsing fails'
+    );
+};
+
 subtest 'sbozyp_open()' => sub {
     ok(lives { Sbozyp::sbozyp_open('>', "$TEST_DIR/foo") }, 'lives if open() succeeds');
 
