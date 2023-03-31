@@ -204,9 +204,9 @@ sub sbozyp_die {
 
 sub sbozyp_system {
     my @cmd = @_;
-    my $status = system(@cmd) >> 8;
-    unless (0 == $status) {
-        sbozyp_die("system command '@cmd' exited with status $status");
+    my $exit_status = system(@cmd) >> 8;
+    unless (0 == $exit_status) {
+        sbozyp_die("system command '@cmd' exited with status $exit_status");
     }
 }
 
@@ -214,8 +214,8 @@ sub sbozyp_qx {
     my ($cmd) = @_;
     wantarray ? chomp(my @output = qx($cmd)) : chomp(my $output = qx($cmd));
     unless (0 == $?) {
-        my $status = $? >> 8;
-        sbozyp_die("system command '$cmd' exited with status $status");
+        my $exit_status = $? >> 8;
+        sbozyp_die("system command '$cmd' exited with status $exit_status");
     }
     return wantarray ? @output : $output;
 }
