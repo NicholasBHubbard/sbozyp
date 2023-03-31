@@ -220,6 +220,16 @@ sub sbozyp_qx {
     return wantarray ? @output : $output;
 }
 
+sub sbozyp_tee {
+    my ($cmd) = @_;
+    my $tmp = File::Temp->new(TEMPLATE => 'sbozyp_tmpXXXXXX', DIR => $CONFIG{TMPDIR});
+    $cmd = "set -o pipefail && ( $cmd ) | tee '$tmp'";
+    sbozyp_system('bash', '-c', $cmd);
+    seek $tmp, 0, 0;
+    my $stdout = do { local $/; <$tmp> };
+    return $stdout;
+}
+
 sub sbozyp_open {
     my ($mode, $path) = @_;
     open(my $fh, $mode, $path) or sbozyp_die("could not open file '$path': $!");

@@ -403,6 +403,18 @@ END
        {TMPDIR=>"$TEST_DIR", CLEANUP=>1,REPO_ROOT=>"$TEST_DIR/var/lib/sbozyp/SBo",REPO_GIT_URL=>'git://git.slackbuilds.org/slackbuilds.git',REPO_GIT_BRANCH=>'14.1'},
        '%CONFIG is properly set for use by the test of this test script'
     );
+subtest 'sbozyp_tee()' => sub {
+    my $teed_stdout;
+    my $real_stdout = capture { $teed_stdout = Sbozyp::sbozyp_tee('echo -e "foo\nbar\nbaz"') };
+    is($teed_stdout, $real_stdout, 'captures stdout');
+    $real_stdout = capture { $teed_stdout = Sbozyp::sbozyp_tee('echo foo && echo bar ; echo baz') };
+    is($teed_stdout, $real_stdout, 'captures stdout of shell command with meta chars');
+    is([Sbozyp::sbozyp_readdir($Sbozyp::CONFIG{TMPDIR})], [], 'cleans up tmp file from $CONFIG{TMPDIR}');
+    like(dies { Sbozyp::sbozyp_tee('false') },
+         qr/^sbozyp: error: system command 'bash -c set -o pipefail && \( false \) \| tee '[^']+'' exited with status 1$/,
+         'dies with useful error message is system command fails'
+    );
+    is([Sbozyp::sbozyp_readdir($Sbozyp::CONFIG{TMPDIR})], [], 'cleans up tmp file from $CONFIG{TMPDIR} after a failed system command');
 };
 
 subtest 'sync_repo()' => sub {
