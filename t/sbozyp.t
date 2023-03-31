@@ -409,9 +409,10 @@ END
 
 subtest 'sbozyp_tee()' => sub {
     my $teed_stdout;
-    my $real_stdout = capture { $teed_stdout = Sbozyp::sbozyp_tee('echo -e "foo\nbar\nbaz"') };
+    my ($real_stdout) = capture { $teed_stdout = Sbozyp::sbozyp_tee('echo -e "foo\nbar\nbaz"') };
     is($teed_stdout, $real_stdout, 'captures stdout');
-    $real_stdout = capture { $teed_stdout = Sbozyp::sbozyp_tee('echo foo && echo bar ; echo baz') };
+    is(Sbozyp::sbozyp_tee('1>&2 echo foo'), '', 'returns empty string if command produces no output to STDOUT');
+    ($real_stdout) = capture { $teed_stdout = Sbozyp::sbozyp_tee('echo foo && echo bar ; echo baz') };
     is($teed_stdout, $real_stdout, 'captures stdout of shell command with meta chars');
     is([Sbozyp::sbozyp_readdir($Sbozyp::CONFIG{TMPDIR})], [], 'cleans up tmp file from $CONFIG{TMPDIR}');
     like(dies { Sbozyp::sbozyp_tee('false') },
@@ -523,6 +524,21 @@ subtest 'pkg()' => sub {
        'overwrites existing cached package when ignoring cache'
     );
 };
+
+# subtest 'pkg_query()' => sub {
+#     # used to mock STDIN
+#     local *STDIN;
+#     my $stdin;
+
+#     open my $stdin, '<', \"1\n";
+
+#     my ($stdout) = capture { Sbozyp::pkg_query(scalar(Sbozyp::pkg('office/mu'))) };
+
+#     say "HERE:";
+#     say "$stdout";
+
+#     pass();
+# };
 
 subtest 'pkg_queue()' => sub {
     is([Sbozyp::pkg_queue(scalar(Sbozyp::pkg('office/ccal')))],
