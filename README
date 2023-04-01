@@ -1,0 +1,5 @@
+This is a fake software release that is only meant for use in sbozyp test code.
+
+By creating this release, and uploading it under sbozyp's GitHub releases,
+sbozyp test code has software to download from the internet and test against,
+while being be sure that it will exist for as long as sbozyp is around.
