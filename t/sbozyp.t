@@ -436,8 +436,12 @@ subtest 'sbozyp_tee()' => sub {
 
 subtest 'sync_repo()' => sub {
     Sbozyp::sync_repo();
-    ok(-d "$TEST_DIR/var/lib/sbozyp/SBo/.git", 'clones SBo repo to $CONFIG{REPO_ROOT} if it has not yet been cloned');
-    ok(`git -C '$TEST_DIR/var/lib/sbozyp/SBo' branch --show-current` =~ /^14\.1$/, 'clones branch specified by $CONFIG{REPO_GIT_BRANCH}');
+    ok(-d "$TEST_DIR/var/lib/sbozyp/SBo/.git",
+       'clones SBo repo to $CONFIG{REPO_ROOT} if it has not yet been cloned'
+    );
+    ok(`git -C '$TEST_DIR/var/lib/sbozyp/SBo' branch --show-current` =~ /^14\.1$/,
+       'clones branch specified by $CONFIG{REPO_GIT_BRANCH}'
+    );
 
     system("git -C '$TEST_DIR/var/lib/sbozyp/SBo' checkout -b 14.2");
     Sbozyp::sync_repo();
