@@ -522,7 +522,7 @@ __END__
 
 =pod
 
-=head1 NAME
+=head1 Name
 
 sbozyp - A package manager for Slackware's SlackBuilds.org
 
