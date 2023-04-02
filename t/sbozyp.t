@@ -453,6 +453,9 @@ subtest 'sync_repo()' => sub {
     Sbozyp::sync_repo(); pass('pulls repo if it is already cloned');
 };
 
+# add our mock packages to the SBo 14.1 repo we just cloned in the sync_repo() subtest
+Sbozyp::sbozyp_copy("$FindBin::Bin/mock-packages", "$Sbozyp::CONFIG{REPO_ROOT}/misc");
+
 subtest 'all_categories()' => sub {
     is([Sbozyp::all_categories()],
        ['academic','accessibility','audio','business','desktop','development','games','gis','graphics','ham','haskell','libraries','misc','multimedia','network','office','perl','python','ruby','system'],
