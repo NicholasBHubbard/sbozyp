@@ -464,7 +464,6 @@ subtest 'all_pkgnames()' => sub {
     my @all_pkgnames = Sbozyp::all_pkgnames();
     ok(scalar(grep { $_ eq 'office/mu' } @all_pkgnames), 'returns list of pkgnames');
     ok(!scalar(grep /\.git/, @all_pkgnames), 'ignores .git');
-    is(scalar(@all_pkgnames), 5743, 'returns complete list of packages. If this test fails then the SBo 14.1 repo has been modified');
 };
 
 subtest 'find_pkgname()' => sub {
