@@ -441,7 +441,9 @@ subtest 'sync_repo()' => sub {
 
     system("git -C '$TEST_DIR/var/lib/sbozyp/SBo' checkout -b 14.2");
     Sbozyp::sync_repo();
-    ok(`git -C '$TEST_DIR/var/lib/sbozyp/SBo' branch --show-current` =~ /^14\.1$/, 're-clones if repo branch is not set to $CONFIG{REPO_GIT_BRANCH}');
+    ok(`git -C '$TEST_DIR/var/lib/sbozyp/SBo' branch --show-current` =~ /^14\.1$/,
+       're-clones if repo branch is not set to $CONFIG{REPO_GIT_BRANCH}'
+    );
 
     # this is a fake test but there is no good way (that I can think of) to actually know if we are performing a git pull.
     Sbozyp::sync_repo(); pass('pulls repo if it is already cloned');
