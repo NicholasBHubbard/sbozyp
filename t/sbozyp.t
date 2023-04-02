@@ -483,15 +483,15 @@ subtest 'find_pkgname()' => sub {
 };
 
 subtest 'parse_info_file()' => sub {
-    my $info_file = "$Sbozyp::CONFIG{REPO_ROOT}/office/mu/mu.info";
+    my $info_file = "$Sbozyp::CONFIG{REPO_ROOT}/misc/sbozyp-basic/sbozyp-basic.info";
     is({Sbozyp::parse_info_file($info_file)},
-       {PRGNAM=>'mu',VERSION=>'0.9.15',HOMEPAGE=>'http://www.djcbsoftware.nl/code/mu/',DOWNLOAD=>'https://github.com/djcb/mu/archive/0.9.15.tar.gz',MD5SUM=>'afbd704c8eb0bf2218a44bd4475cc457',DOWNLOAD_x86_64=>'',MD5SUM_x86_64=>'',REQUIRES=>'xapian-core',MAINTAINER=>'Jostein Berntsen',EMAIL=>'jbernts@broadpark.no'},
+       {PRGNAM=>'sbozyp-basic',VERSION=>'1.0',HOMEPAGE=>'https://github.com/NicholasBHubbard/sbozyp/releases/tag/SbozypFakeRelease-1.0',DOWNLOAD=>'https://github.com/NicholasBHubbard/sbozyp/archive/refs/tags/SbozypFakeRelease-1.0.tar.gz',MD5SUM=>'1973a308d90831774a0922e9ec0085ff',DOWNLOAD_x86_64=>'',MD5SUM_x86_64=>'',REQUIRES=>'',MAINTAINER=>'Nicholas Hubbard',EMAIL=>'nicholashubbard@posteo.net'},
        'parses info file into correct hash'
     );
 
-    $info_file = "$Sbozyp::CONFIG{REPO_ROOT}/system/virtualbox/virtualbox.info";
+    $info_file = "$Sbozyp::CONFIG{REPO_ROOT}/misc/sbozyp-multiple-download/sbozyp-multiple-download.info";
     is({Sbozyp::parse_info_file($info_file)},
-       {PRGNAM=>'virtualbox',VERSION=>'4.3.24',HOMEPAGE=>'http://www.virtualbox.org',DOWNLOAD=>'http://download.virtualbox.org/virtualbox/4.3.24/VirtualBox-4.3.24.tar.bz2 http://download.virtualbox.org/virtualbox/4.3.24/VBoxGuestAdditions_4.3.24.iso http://download.virtualbox.org/virtualbox/4.3.24/UserManual.pdf http://download.virtualbox.org/virtualbox/4.3.24/SDKRef.pdf',MD5SUM=>'c9711ee4a040de131c638168d321f3ff a1a4ccd53257c881214aa889f28de9b6 c087b4a00b8d475fdfdc50fab47c1231 6ca97ffd038cb760bff403b615329009',DOWNLOAD_x86_64=>'UNTESTED','MD5SUM_x86_64'=>'',REQUIRES=>'acpica virtualbox-kernel',MAINTAINER=>'Heinz Wiesinger',EMAIL=>'pprkut@liwjatan.at'},
+       {PRGNAM=>'sbozyp-multiple-download',VERSION=>'1.0',HOMEPAGE=>'https://github.com/NicholasBHubbard/sbozyp/releases/tag/SbozypFakeRelease-1.0',DOWNLOAD=>'https://github.com/NicholasBHubbard/sbozyp/archive/refs/tags/SbozypFakeRelease-1.0.tar.gz https://github.com/NicholasBHubbard/sbozyp/archive/refs/tags/SbozypFakeRelease-1.0.tar.gz https://github.com/NicholasBHubbard/sbozyp/archive/refs/tags/SbozypFakeRelease-1.0.tar.gz',MD5SUM=>'1973a308d90831774a0922e9ec0085ff 1973a308d90831774a0922e9ec0085ff 1973a308d90831774a0922e9ec0085ff',DOWNLOAD_x86_64=>'','MD5SUM_x86_64'=>'',REQUIRES=>'',MAINTAINER=>'Nicholas Hubbard',EMAIL=>'nicholashubbard@posteo.net'},
        'squishes newline-escapes into single spaces'
     );
 
