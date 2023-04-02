@@ -470,8 +470,8 @@ subtest 'all_pkgnames()' => sub {
 };
 
 subtest 'find_pkgname()' => sub {
-    is(Sbozyp::find_pkgname('mu'), 'office/mu', 'finds pkgname');
-    is(Sbozyp::find_pkgname('office/mu'), 'office/mu', 'accepts full pkgname');
+    is(Sbozyp::find_pkgname('sbozyp-basic'), 'misc/sbozyp-basic', 'finds pkgname');
+    is(Sbozyp::find_pkgname('misc/sbozyp-basic'), 'misc/sbozyp-basic', 'accepts full pkgname');
     ok(!defined Sbozyp::find_pkgname('NOTAPACKAGE'), 'returns undef if given non-existent prgnam');
     ok(!defined Sbozyp::find_pkgname('FOO/NOTAPACKAGE'), 'returns undef if given non-existent pkgname');
     ok(!defined Sbozyp::find_pkgname('perl/NOTAPACKAGE'), 'rejects pkgname with valid category');
