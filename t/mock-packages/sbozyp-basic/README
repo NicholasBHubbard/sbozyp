@@ -1,0 +1,5 @@
+This is a mock package to be used in sbozyp test code.
+
+There is nothing special about this package, it is as basic as a
+Slackware package can be. All other mock packages are based off of
+this package.

@@ -1,0 +1,4 @@
+This is a mock package to be used in sbozyp test code.
+
+Depended on by sbozyp-recursive-dep-A, and depends on
+sbozyp-recursive-dep-E.

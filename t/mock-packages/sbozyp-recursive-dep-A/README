@@ -1,0 +1,6 @@
+This is a mock package to be used in sbozyp test code.
+
+This is the toplevel package of the mock dependency tree.
+Not depended on by any package, and depends on
+sbozyp-recursive-dep-B, and sbozyp-recursive-dep-C, which
+is specified by its .info file's REQUIRE field.

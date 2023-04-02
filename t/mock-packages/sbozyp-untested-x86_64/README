@@ -1,0 +1,5 @@
+This is a mock package to be used in sbozyp test code.
+
+This package specifies that it is untested on the x86_64
+architecture by specifiying DOWNLOAD_x86_64="UNTESTED" in
+its .info file.
