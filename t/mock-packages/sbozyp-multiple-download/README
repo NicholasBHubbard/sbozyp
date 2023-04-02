@@ -1,7 +1,8 @@
 This is a mock package to be used in sbozyp test code.
 
-This package specifies two download urls in the DOWNLOAD field
-of its .info file. It is important to note that the two urls
+This package specifies thre download urls in the DOWNLOAD field
+of its .info file. These values are split up on multiple lines
+with newline escapes. It is important to note that the three urls
 (and md5's) are the same, so this mock package should probably
 only be used in testing the creation of a pkg data structure,
 and not actually be built/installed.
