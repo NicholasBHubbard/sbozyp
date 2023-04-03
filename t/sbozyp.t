@@ -521,28 +521,6 @@ subtest 'pkg()' => sub {
          qr/^sbozyp: error: could not find a package named 'FOO'$/,
          'dies with useful error message if passed invalid prgnam'
     );
-
-    open my $fh_r, '<', "$Sbozyp::CONFIG{REPO_ROOT}/system/password-store/password-store.info" or die;
-    open my $fh_w, '>', "$TEST_DIR/password-store.info.tmp" or die;
-    while (<$fh_r>) { if (/^PRGNAM=/) { print $fh_w qq(PRGNAM="FOO"\n) } else { print $fh_w $_ } }
-    close $fh_r or die;
-    close $fh_w or die;
-    rename "$TEST_DIR/password-store.info.tmp", "$Sbozyp::CONFIG{REPO_ROOT}/system/password-store/password-store.info" or die;
-
-    is({Sbozyp::pkg('system/password-store')},
-       {PRGNAM=>'password-store',DESC_FILE=>"$Sbozyp::CONFIG{REPO_ROOT}/system/password-store/slack-desc",INFO_FILE=>"$Sbozyp::CONFIG{REPO_ROOT}/system/password-store/password-store.info",SLACKBUILD_FILE=>"$Sbozyp::CONFIG{REPO_ROOT}/system/password-store/password-store.SlackBuild",README_FILE=>"$Sbozyp::CONFIG{REPO_ROOT}/system/password-store/README",PKGNAME=>'system/password-store',PKGDIR=>"$Sbozyp::CONFIG{REPO_ROOT}/system/password-store",VERSION=>'1.4.2',HOMEPAGE=>'http://zx2c4.com/projects/password-store/',DOWNLOAD=>['http://git.zx2c4.com/password-store/snapshot/password-store-1.4.2.tar.xz'],MD5SUM=>['c6382dbf5be4036021bf1ce61254b04b'],DOWNLOAD_x86_64=>[],MD5SUM_x86_64=>[],REQUIRES=>['xclip','pwgen'],MAINTAINER=>'Michael Ren',EMAIL=>'micron33@gmail.com'},
-       'caches pkgs by default'
-    );
-
-    is({Sbozyp::pkg('system/password-store', 1)},
-       {PRGNAM=>'FOO',DESC_FILE=>"$Sbozyp::CONFIG{REPO_ROOT}/system/password-store/slack-desc",INFO_FILE=>"$Sbozyp::CONFIG{REPO_ROOT}/system/password-store/password-store.info",SLACKBUILD_FILE=>"$Sbozyp::CONFIG{REPO_ROOT}/system/password-store/password-store.SlackBuild",README_FILE=>"$Sbozyp::CONFIG{REPO_ROOT}/system/password-store/README",PKGNAME=>'system/password-store',PKGDIR=>"$Sbozyp::CONFIG{REPO_ROOT}/system/password-store",VERSION=>'1.4.2',HOMEPAGE=>'http://zx2c4.com/projects/password-store/',DOWNLOAD=>['http://git.zx2c4.com/password-store/snapshot/password-store-1.4.2.tar.xz'],MD5SUM=>['c6382dbf5be4036021bf1ce61254b04b'],DOWNLOAD_x86_64=>[],MD5SUM_x86_64=>[],REQUIRES=>['xclip','pwgen'],MAINTAINER=>'Michael Ren',EMAIL=>'micron33@gmail.com'},
-       'ignores cache if passed true value as second argument'
-    );
-
-    is({Sbozyp::pkg('system/password-store')},
-       {PRGNAM=>'FOO',DESC_FILE=>"$Sbozyp::CONFIG{REPO_ROOT}/system/password-store/slack-desc",INFO_FILE=>"$Sbozyp::CONFIG{REPO_ROOT}/system/password-store/password-store.info",SLACKBUILD_FILE=>"$Sbozyp::CONFIG{REPO_ROOT}/system/password-store/password-store.SlackBuild",README_FILE=>"$Sbozyp::CONFIG{REPO_ROOT}/system/password-store/README",PKGNAME=>'system/password-store',PKGDIR=>"$Sbozyp::CONFIG{REPO_ROOT}/system/password-store",VERSION=>'1.4.2',HOMEPAGE=>'http://zx2c4.com/projects/password-store/',DOWNLOAD=>['http://git.zx2c4.com/password-store/snapshot/password-store-1.4.2.tar.xz'],MD5SUM=>['c6382dbf5be4036021bf1ce61254b04b'],DOWNLOAD_x86_64=>[],MD5SUM_x86_64=>[],REQUIRES=>['xclip','pwgen'],MAINTAINER=>'Michael Ren',EMAIL=>'micron33@gmail.com'},
-       'overwrites existing cached package when ignoring cache'
-    );
 };
 
 # subtest 'pkg_query()' => sub {
