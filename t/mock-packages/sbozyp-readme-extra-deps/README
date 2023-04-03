@@ -1,0 +1,5 @@
+This is a mock package to be used in sbozyp test code.
+
+This package specifies a %README% in the REQUIRES field of
+its .info file, which signals that this package has optional
+recursive dependencies that are discussed in the README file.
