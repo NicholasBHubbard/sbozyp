@@ -198,10 +198,12 @@ sub pkg {
         DOWNLOAD_x86_64 => [split ' ', $info{DOWNLOAD_x86_64}],
         MD5SUM_x86_64   => [split ' ', $info{MD5SUM_x86_64}],
         REQUIRES        => [grep { $_ ne '%README%' } split(' ', $info{REQUIRES})],
-        HAS_EXTRA_DEPS  => scalar(grep { $_ eq '%README%' } $info{REQUIRES}),
+        HAS_EXTRA_DEPS  => scalar(grep { $_ eq '%README%' } split(' ', $info{REQUIRES})),
         ARCH_UNSUPPORTED  => do {
             my @urls = split ' ', arch() eq 'x86_64' ? $info{DOWNLOAD_x86_64} : $info{DOWNLOAD};
-            grep(/^(UNSUPPORTED|UNTESTED)$/, @urls) ? lc $1 : 0;
+            if    (grep { $_ eq 'UNSUPPORTED' } @urls) { 'unsupported' }
+            elsif (grep { $_ eq 'UNTESTED'    } @urls) { 'untested'    }
+            else                                       { 0             }
         }
     };
     $pkg_cache{$pkgname} = $pkg;

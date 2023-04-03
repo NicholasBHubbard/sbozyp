@@ -12,25 +12,14 @@ use File::Temp;
 use File::stat;
 use File::Find;
 use File::Path qw(make_path remove_tree);
+use File::Basename qw(basename);
 use File::Copy qw(mv);
 use Getopt::Long qw(:config no_ignore_case bundling);
 use Cwd qw(getcwd);
-use FindBin qw($Bin);
-require "$Bin/../bin/sbozyp";
+use FindBin;
+require "$FindBin::Bin/../bin/sbozyp";
 
 $SIG{INT} = sub { die "sbozyp.t: got a SIGINT ... going down!\n" };
-
-            ####################################################
-            #                      HELPERS                     #
-            ####################################################
-
-# url_exists_or_bail() is used for future proofing this test script. We downloads files from the internet that could disappear at any time. All urls should be checked for existence before executing tests that will download them. This prevents us from getting failures that appear to be with a problem with sbozyp, but are actually caused by the url we are testing against no longer existing.
-sub url_exists_or_bail {
-    my ($url) = @_;
-    unless (0 == system('wget', '--spider', $url)) {
-        bail_out("url '$url' no longer exists. This test script likely needs to be updated. You need to find software in the SBo 14.1 repo whos DOWNLOAD url(s) still exist");
-    }
-}
 
             ####################################################
             #                       TESTS                      #
@@ -503,16 +492,27 @@ subtest 'parse_info_file()' => sub {
 };
 
 subtest 'pkg()' => sub {
-    url_exists_or_bail('http://git.zx2c4.com/password-store/snapshot/password-store-1.4.2.tar.xz');
-
-    is({Sbozyp::pkg('system/password-store')},
-       {PRGNAM=>'password-store',DESC_FILE=>"$Sbozyp::CONFIG{REPO_ROOT}/system/password-store/slack-desc",INFO_FILE=>"$Sbozyp::CONFIG{REPO_ROOT}/system/password-store/password-store.info",SLACKBUILD_FILE=>"$Sbozyp::CONFIG{REPO_ROOT}/system/password-store/password-store.SlackBuild",README_FILE=>"$Sbozyp::CONFIG{REPO_ROOT}/system/password-store/README",PKGNAME=>'system/password-store',PKGDIR=>"$Sbozyp::CONFIG{REPO_ROOT}/system/password-store",VERSION=>'1.4.2',HOMEPAGE=>'http://zx2c4.com/projects/password-store/',DOWNLOAD=>['http://git.zx2c4.com/password-store/snapshot/password-store-1.4.2.tar.xz'],MD5SUM=>['c6382dbf5be4036021bf1ce61254b04b'],DOWNLOAD_x86_64=>[],MD5SUM_x86_64=>[],REQUIRES=>['xclip','pwgen'],MAINTAINER=>'Michael Ren',EMAIL=>'micron33@gmail.com'},
+    is({Sbozyp::pkg('misc/sbozyp-basic')},
+       {PRGNAM=>'sbozyp-basic',DESC_FILE=>"$Sbozyp::CONFIG{REPO_ROOT}/misc/sbozyp-basic/slack-desc",INFO_FILE=>"$Sbozyp::CONFIG{REPO_ROOT}/misc/sbozyp-basic/sbozyp-basic.info",SLACKBUILD_FILE=>"$Sbozyp::CONFIG{REPO_ROOT}/misc/sbozyp-basic/sbozyp-basic.SlackBuild",README_FILE=>"$Sbozyp::CONFIG{REPO_ROOT}/misc/sbozyp-basic/README",PKGNAME=>'misc/sbozyp-basic',PKGDIR=>"$Sbozyp::CONFIG{REPO_ROOT}/misc/sbozyp-basic",VERSION=>'1.0',HOMEPAGE=>'https://github.com/NicholasBHubbard/sbozyp/releases/tag/SbozypFakeRelease-1.0',DOWNLOAD=>['https://github.com/NicholasBHubbard/sbozyp/archive/refs/tags/SbozypFakeRelease-1.0.tar.gz'],MD5SUM=>['1973a308d90831774a0922e9ec0085ff'],DOWNLOAD_x86_64=>[],MD5SUM_x86_64=>[],REQUIRES=>[],MAINTAINER=>'Nicholas Hubbard',EMAIL=>'nicholashubbard@posteo.net',ARCH_UNSUPPORTED=>0,HAS_EXTRA_DEPS=>0},
        'creates correct pkg hash'
     );
 
-    is({Sbozyp::pkg('password-store')},
-       {PRGNAM=>'password-store',DESC_FILE=>"$Sbozyp::CONFIG{REPO_ROOT}/system/password-store/slack-desc",INFO_FILE=>"$Sbozyp::CONFIG{REPO_ROOT}/system/password-store/password-store.info",SLACKBUILD_FILE=>"$Sbozyp::CONFIG{REPO_ROOT}/system/password-store/password-store.SlackBuild",README_FILE=>"$Sbozyp::CONFIG{REPO_ROOT}/system/password-store/README",PKGNAME=>'system/password-store',PKGDIR=>"$Sbozyp::CONFIG{REPO_ROOT}/system/password-store",VERSION=>'1.4.2',HOMEPAGE=>'http://zx2c4.com/projects/password-store/',DOWNLOAD=>['http://git.zx2c4.com/password-store/snapshot/password-store-1.4.2.tar.xz'],MD5SUM=>['c6382dbf5be4036021bf1ce61254b04b'],DOWNLOAD_x86_64=>[],MD5SUM_x86_64=>[],REQUIRES=>['xclip','pwgen'],MAINTAINER=>'Michael Ren',EMAIL=>'micron33@gmail.com'},
+    is({Sbozyp::pkg('sbozyp-basic')},
+       {PRGNAM=>'sbozyp-basic',DESC_FILE=>"$Sbozyp::CONFIG{REPO_ROOT}/misc/sbozyp-basic/slack-desc",INFO_FILE=>"$Sbozyp::CONFIG{REPO_ROOT}/misc/sbozyp-basic/sbozyp-basic.info",SLACKBUILD_FILE=>"$Sbozyp::CONFIG{REPO_ROOT}/misc/sbozyp-basic/sbozyp-basic.SlackBuild",README_FILE=>"$Sbozyp::CONFIG{REPO_ROOT}/misc/sbozyp-basic/README",PKGNAME=>'misc/sbozyp-basic',PKGDIR=>"$Sbozyp::CONFIG{REPO_ROOT}/misc/sbozyp-basic",VERSION=>'1.0',HOMEPAGE=>'https://github.com/NicholasBHubbard/sbozyp/releases/tag/SbozypFakeRelease-1.0',DOWNLOAD=>['https://github.com/NicholasBHubbard/sbozyp/archive/refs/tags/SbozypFakeRelease-1.0.tar.gz'],MD5SUM=>['1973a308d90831774a0922e9ec0085ff'],DOWNLOAD_x86_64=>[],MD5SUM_x86_64=>[],REQUIRES=>[],MAINTAINER=>'Nicholas Hubbard',EMAIL=>'nicholashubbard@posteo.net',ARCH_UNSUPPORTED=>0,HAS_EXTRA_DEPS=>0},
        'accepts just a prgnam'
+    );
+
+    is({Sbozyp::pkg('misc/sbozyp-readme-extra-deps')},
+       {PRGNAM=>'sbozyp-readme-extra-deps',DESC_FILE=>"$Sbozyp::CONFIG{REPO_ROOT}/misc/sbozyp-readme-extra-deps/slack-desc",INFO_FILE=>"$Sbozyp::CONFIG{REPO_ROOT}/misc/sbozyp-readme-extra-deps/sbozyp-readme-extra-deps.info",SLACKBUILD_FILE=>"$Sbozyp::CONFIG{REPO_ROOT}/misc/sbozyp-readme-extra-deps/sbozyp-readme-extra-deps.SlackBuild",README_FILE=>"$Sbozyp::CONFIG{REPO_ROOT}/misc/sbozyp-readme-extra-deps/README",PKGNAME=>'misc/sbozyp-readme-extra-deps',PKGDIR=>"$Sbozyp::CONFIG{REPO_ROOT}/misc/sbozyp-readme-extra-deps",VERSION=>'1.0',HOMEPAGE=>'https://github.com/NicholasBHubbard/sbozyp/releases/tag/SbozypFakeRelease-1.0',DOWNLOAD=>['https://github.com/NicholasBHubbard/sbozyp/archive/refs/tags/SbozypFakeRelease-1.0.tar.gz'],MD5SUM=>['1973a308d90831774a0922e9ec0085ff'],DOWNLOAD_x86_64=>[],MD5SUM_x86_64=>[],REQUIRES=>['sbozyp-basic'],MAINTAINER=>'Nicholas Hubbard',EMAIL=>'nicholashubbard@posteo.net',ARCH_UNSUPPORTED=>0,HAS_EXTRA_DEPS=>1},
+       'specifies HAS_EXTRA_DEPS=>1 if %README% is in .info files requires, and does not include %README% in the pkgs REQUIRES field'
+    );
+
+    my $is_x86_64 = Sbozyp::arch() eq 'x86_64';
+    my $unsupported_pkgname = $is_x86_64 ? 'misc/sbozyp-unsupported-x86_64' : 'misc/sbozyp-unsupported-no-x86_64';
+    my $unsupported_prgnam = basename($unsupported_pkgname);
+    is({Sbozyp::pkg($unsupported_pkgname)},
+       {PRGNAM=>$unsupported_prgnam,DESC_FILE=>"$Sbozyp::CONFIG{REPO_ROOT}/$unsupported_pkgname/slack-desc",INFO_FILE=>"$Sbozyp::CONFIG{REPO_ROOT}/$unsupported_pkgname/$unsupported_prgnam.info",SLACKBUILD_FILE=>"$Sbozyp::CONFIG{REPO_ROOT}/$unsupported_pkgname/$unsupported_prgnam.SlackBuild",README_FILE=>"$Sbozyp::CONFIG{REPO_ROOT}/$unsupported_pkgname/README",PKGNAME=>$unsupported_pkgname,PKGDIR=>"$Sbozyp::CONFIG{REPO_ROOT}/$unsupported_pkgname",VERSION=>'1.0',HOMEPAGE=>'https://github.com/NicholasBHubbard/sbozyp/releases/tag/SbozypFakeRelease-1.0',DOWNLOAD=> $is_x86_64 ? ['https://github.com/NicholasBHubbard/sbozyp/archive/refs/tags/SbozypFakeRelease-1.0.tar.gz'] : [],MD5SUM=> $is_x86_64 ? ['1973a308d90831774a0922e9ec0085ff'] : [],DOWNLOAD_x86_64=> $is_x86_64 ? ['UNSUPPORTED'] : ['https://github.com/NicholasBHubbard/sbozyp/archive/refs/tags/SbozypFakeRelease-1.0.tar.gz'],MD5SUM_x86_64=> $is_x86_64 ? [] : ['1973a308d90831774a0922e9ec0085ff'],REQUIRES=>[],MAINTAINER=>'Nicholas Hubbard',EMAIL=>'nicholashubbard@posteo.net',ARCH_UNSUPPORTED=>'unsupported',HAS_EXTRA_DEPS=>0},
+       'creates correct pkg for package that is unsupported on this architecture'
     );
 
     is(ref(Sbozyp::pkg('system/password-store')), 'HASH', 'returns hashref in scalar context');
@@ -539,23 +539,25 @@ subtest 'pkg()' => sub {
 # };
 
 subtest 'pkg_queue()' => sub {
-    is([Sbozyp::pkg_queue(scalar(Sbozyp::pkg('office/ccal')))],
-       [scalar(Sbozyp::pkg('office/ccal'))],
+    is([Sbozyp::pkg_queue(scalar(Sbozyp::pkg('misc/sbozyp-recursive-dep-E')))],
+       [scalar(Sbozyp::pkg('misc/sbozyp-recursive-dep-E'))],
        'returns single elem list containing input package when it has no deps'
     );
 
-    is([Sbozyp::pkg_queue(scalar(Sbozyp::pkg('office/mu')))],
-       [scalar(Sbozyp::pkg('xapian-core')), scalar(Sbozyp::pkg('office/mu'))],
+    is([Sbozyp::pkg_queue(scalar(Sbozyp::pkg('misc/sbozyp-recursive-dep-B')))],
+       [scalar(Sbozyp::pkg('misc/sbozyp-recursive-dep-D')), scalar(Sbozyp::pkg('misc/sbozyp-recursive-dep-B'))],
        'returns two elem list in correct order for pkg with single dependency'
     );
 
-    is([Sbozyp::pkg_queue(scalar(Sbozyp::pkg('perl/perl-Net-SMTP-SSL')))],
-       [scalar(Sbozyp::pkg('perl/perl-Net-LibIDN')), scalar(Sbozyp::pkg('perl/Net-SSLeay')), scalar(Sbozyp::pkg('perl/perl-IO-Socket-SSL')), scalar(Sbozyp::pkg('perl/perl-Net-SMTP-SSL'))],
+    is([Sbozyp::pkg_queue(scalar(Sbozyp::pkg('misc/sbozyp-recursive-dep-A')))],
+       [scalar(Sbozyp::pkg('misc/sbozyp-recursive-dep-E')), scalar(Sbozyp::pkg('misc/sbozyp-recursive-dep-C')), scalar(Sbozyp::pkg('misc/sbozyp-recursive-dep-D')), scalar(Sbozyp::pkg('misc/sbozyp-recursive-dep-B')), scalar(Sbozyp::pkg('misc/sbozyp-recursive-dep-A'))],
        'resolves recursive dependencies'
     );
 
-    my ($stdout) = capture { Sbozyp::pkg_queue(scalar(Sbozyp::pkg('system/openrc'))) };
-    is($stdout, '', 'does not warn about package with %README% in its REQUIRES');
+    is([Sbozyp::pkg_queue(scalar(Sbozyp::pkg('misc/sbozyp-readme-extra-deps')))],
+       [scalar(Sbozyp::pkg('misc/sbozyp-basic')), scalar(Sbozyp::pkg('misc/sbozyp-readme-extra-deps'))],
+       'does not trip up from %README% being in the .info files REQUIRES'
+    );
 };
 
 subtest 'parse_slackware_pkgname()' => sub {
