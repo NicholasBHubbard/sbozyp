@@ -600,113 +600,38 @@ subtest 'parse_slackware_pkgname()' => sub {
 };
 
 subtest 'prepare_pkg()' => sub {
-    # used to mock STDIN
-    local *STDIN;
-    my $stdin;
-
-    url_exists_or_bail('http://download.savannah.gnu.org/releases/jcal/jcal-0.4.1.tar.gz');
-    my $dir = Sbozyp::prepare_pkg(scalar(Sbozyp::pkg('libraries/jcal')));
-    is([Sbozyp::sbozyp_readdir("$dir")],
-       ["$dir/slack-desc","$dir/jcal.info","$dir/jcal.SlackBuild","$dir/README","$dir/jcal-0.4.1.tar.gz"],
-       'downloads and copies correct files to tmp dir'
+    my $pkg = Sbozyp::pkg('misc/sbozyp-basic');
+    my $staging_dir = Sbozyp::prepare_pkg($pkg);
+    is([Sbozyp::sbozyp_readdir($staging_dir)],
+       ["$staging_dir/README","$staging_dir/SbozypFakeRelease-1.0.tar.gz","$staging_dir/sbozyp-basic.SlackBuild","$staging_dir/sbozyp-basic.info","$staging_dir/slack-desc"],
+       'returns tmp dir containing all of the pkgs files and its downloaded source code'
     );
 
-    if (`uname -m` =~ /^x86_64$/) {
-        url_exists_or_bail('http://sourceforge.net/projects/libemf/files/libemf/1.0.7/libEMF-1.0.7.tar.gz');
+    $pkg = Sbozyp::pkg('misc/sbozyp-nested-dir');
+    $staging_dir = Sbozyp::prepare_pkg($pkg);
+    is([do { my @files; File::Find::find(sub { push @files, $File::Find::name if -f $File::Find::name }, "$staging_dir"); sort @files }],
+       ["$staging_dir/README","$staging_dir/SbozypFakeRelease-1.0.tar.gz","$staging_dir/nested-dir/bar.txt","$staging_dir/nested-dir/foo.txt","$staging_dir/sbozyp-nested-dir.SlackBuild","$staging_dir/sbozyp-nested-dir.info","$staging_dir/slack-desc"],
+       'includes files in nested directories of the package'
+    );
 
-        my $pkg = Sbozyp::pkg('libraries/libEMF'); # libEMF is UNSUPPORTED on x86_64
-
-        open $stdin, '<', \ "i\n";
-        *STDIN = $stdin;
-        $dir = Sbozyp::prepare_pkg($pkg);
-        is([Sbozyp::sbozyp_readdir("$dir")],
-           ["$dir/slack-desc","$dir/libEMF.info","$dir/libEMF.SlackBuild","$dir/README","$dir/libEMF-1.0.7.tar.gz"],
-           'ignores unsupported package and prepares anyways if user decides to (i)gnore'
-        );
-
-        open $stdin, '<', \ "a\n";
-        *STDIN = $stdin;
-        like(dies { Sbozyp::prepare_pkg($pkg) },
-             qr/^$/,
-             'dies if user decides to (a)bort due to unsupported package'
-        );
-
-        open $stdin, '<', \ "FOO\ni\n";
-        *STDIN = $stdin;
-        $dir = Sbozyp::prepare_pkg($pkg);
-        is([Sbozyp::sbozyp_readdir("$dir")],
-           ["$dir/slack-desc","$dir/libEMF.info","$dir/libEMF.SlackBuild","$dir/README","$dir/libEMF-1.0.7.tar.gz"],
-           're-prompts if user provides an invalid option'
-        );
-
-    } else {
-        url_exists_or_bail('http://downloads.teeworlds.com/teeworlds-0.6.3-linux_x86_64.tar.gz');
-
-        my $pkg = Sbozyp::pkg('games/teeworlds'); # games/teeworlds is UNSUPPORTED on non-x86_64 systems
-
-        open $stdin, '<', \ "i\n";
-        *STDIN = $stdin;
-        $dir = Sbozyp::prepare_pkg($pkg);
-        is([Sbozyp::sbozyp_readdir($dir)],
-           ["$dir/teeworlds.png","$dir/teeworlds.info","$dir/teeworlds.desktop","$dir/teeworlds.SlackBuild","$dir/slack-desc","$dir/doinst.sh","$dir/README","$dir/teeworlds-0.6.3-linux_x86_64.tar.gz"],
-           'ignores unsupported package and prepares anyways if user decides to (i)gnore'
-        );
-
-        open $stdin, '<', \ "a\n";
-        like(dies { Sbozyp::prepare_pkg($pkg) },
-             qr/^$/,
-             'dies if user decides to (a)bort due to unsupported package'
-        );
-
-        open $stdin, '<', \ "FOO\ni\n";
-        *STDIN = $stdin;
-        $dir = Sbozyp::prepare_pkg($pkg);
-        is([Sbozyp::sbozyp_readdir($dir)],
-           ["$dir/teeworlds.png","$dir/teeworlds.info","$dir/teeworlds.desktop","$dir/teeworlds.SlackBuild","$dir/slack-desc","$dir/doinst.sh","$dir/README","$dir/teeworlds-0.6.3-linux_x86_64.tar.gz"],
-           're-prompts if user provides an invalid option'
+    if (Sbozyp::arch() eq 'x86_64') {
+        $pkg = Sbozyp::pkg('misc/sbozyp-unsupported-not-x86_64');
+        $staging_dir = Sbozyp::prepare_pkg($pkg);
+        is([Sbozyp::sbozyp_readdir($staging_dir)],
+           ["$staging_dir/README","$staging_dir/SbozypFakeRelease-1.0.tar.gz","$staging_dir/sbozyp-unsupported-not-x86_64.SlackBuild","$staging_dir/sbozyp-unsupported-not-x86_64.info","$staging_dir/slack-desc"],
+           'properly prepares package only supported on x86_64'
         );
     }
 
-    url_exists_or_bail('https://cpan.metacpan.org/authors/id/M/MG/MGRABNAR/File-Tail-1.3.tar.gz');
-    # force an md5sum mismatch to test how prepare_pkg() deals with this situation. Note that 'perl/perl-File-Tail' should no longer be used in tests for the rest of the suite.
-    open my $fh_r, '<', "$Sbozyp::CONFIG{REPO_ROOT}/perl/perl-File-Tail/perl-File-Tail.info" or die;
-    open my $fh_w, '>', "$TEST_DIR/tmp.info";
-    while (<$fh_r>) {
-        if (/^MD5SUM=/) { print $fh_w qq(MD5SUM="foo"\n) }
-        else { print $fh_w $_ }
-    }
-    close $fh_r or die;
-    close $fh_w or die;
-    mv("$TEST_DIR/tmp.info", "$Sbozyp::CONFIG{REPO_ROOT}/perl/perl-File-Tail/perl-File-Tail.info") or die;
-
-    open $stdin, '<', \ "i\n";
-    *STDIN = $stdin;
-    $dir = Sbozyp::prepare_pkg(scalar(Sbozyp::pkg('perl/perl-File-Tail')));
-    is([Sbozyp::sbozyp_readdir("$dir")],
-       ["$dir/perl-File-Tail.info","$dir/slack-desc","$dir/perl-File-Tail.SlackBuild","$dir/README","$dir/File-Tail-1.3.tar.gz"],
-       'ignores md5sum mismatch and continues preparation if user decides to (i)gnore'
+    $pkg = Sbozyp::pkg('misc/sbozyp-nonexistent-url');
+    ok(dies { Sbozyp::prepare_pkg($pkg) },
+       'dies if packages download url does not exist'
     );
 
-    open $stdin, '<', \"a\n";
-    *STDIN = $stdin;
-    like(dies { Sbozyp::prepare_pkg(scalar(Sbozyp::pkg('perl/perl-File-Tail'))) },
-         qr/^$/,
-         'dies on md5sum mismatch if user decides to (a)bort'
-     );
-
-    open $stdin, '<', \"r\na\n";
-    *STDIN = $stdin;
-    like(dies { Sbozyp::prepare_pkg(scalar(Sbozyp::pkg('perl/perl-File-Tail'))) },
-         qr/^$/,
-         'retries download if user decides to (r)etry'
-     );
-
-    open $stdin, '<', \ "FOO\ni\n";
-    *STDIN = $stdin;
-    $dir = Sbozyp::prepare_pkg(scalar(Sbozyp::pkg('perl/perl-File-Tail')));
-    is([Sbozyp::sbozyp_readdir("$dir")],
-       ["$dir/perl-File-Tail.info","$dir/slack-desc","$dir/perl-File-Tail.SlackBuild","$dir/README","$dir/File-Tail-1.3.tar.gz"],
-       're-prompts if user provides an invalid option'
+    $pkg = Sbozyp::pkg('misc/sbozyp-md5sum-mismatch');
+    like(dies { Sbozyp::prepare_pkg($pkg) },
+         qr|^sbozyp: error: md5sum mismatch for 'https://github\.com/NicholasBHubbard/sbozyp/archive/refs/tags/SbozypFakeRelease-1\.0\.tar\.gz': expected '29b3a308d97831774aa926e94c00a59f': got '1973a308d90831774a0922e9ec0085ff'$|,
+         'dies with useful error message if there is an md5sum mismatch'
     );
 };
 
