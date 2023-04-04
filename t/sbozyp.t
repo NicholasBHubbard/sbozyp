@@ -13,7 +13,6 @@ use File::stat;
 use File::Find;
 use File::Path qw(make_path remove_tree);
 use File::Basename qw(basename);
-use File::Copy qw(mv);
 use Getopt::Long qw(:config no_ignore_case bundling);
 use Cwd qw(getcwd);
 use FindBin;
