@@ -637,11 +637,16 @@ subtest 'prepare_pkg()' => sub {
 
 subtest 'build_slackware_pkg()' => sub {
     skip_all('build_slackware_pkg() requires root') unless $> == 0;
-    url_exists_or_bail('http://download.savannah.gnu.org/releases/jcal/jcal-0.4.1.tar.gz');
-    my $pkg = Sbozyp::pkg('libraries/jcal');
-    is(Sbozyp::build_slackware_pkg($pkg),
-       "$Sbozyp::CONFIG{TMPDIR}/jcal-0.4.1-x86_64-1_SBo.tgz",
+    my $pkg = Sbozyp::pkg('sbozyp-basic');
+    my $slackware_pkg;
+    my $stdout = capture { $slackware_pkg = Sbozyp::build_slackware_pkg($pkg) };
+    is($slackware_pkg,
+       "$Sbozyp::CONFIG{TMPDIR}/sbozyp-basic-1.0-noarch-1_SBo.tgz",
        'successfully builds slackware pkg and outputs it to $CONFIG{TMPDIR}'
+    );
+    like($stdout,
+         qr/Slackware package \Q$Sbozyp::CONFIG{TMPDIR}\E\/sbozyp-basic-1\.0-noarch-1_SBo\.tgz created/,
+         'SlackBuild output produces to STDOUT'
     );
 };
 
