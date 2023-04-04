@@ -1,0 +1,7 @@
+This is a mock package to be used in sbozyp test code.
+
+This is version 2.0 of sbozyp-basic. It is important to note
+that this package is not valid, as its PRGNAM is still sbozyp-basic.
+It is also important to know that this package installs the exact
+same (fake) software as sbozyp-basic. This mock package is used to
+test sbozyps package upgrading capabilities.
