@@ -676,6 +676,8 @@ subtest 'install_slackware_pkg()' => sub {
     ok(-f "$TEST_DIR/tmp_root/var/lib/pkgtools/packages/sbozyp-basic-2.0-noarch-1_SBo" && !-f  "$TEST_DIR/tmp_root/var/lib/pkgtools/packages/sbozyp-basic-1.0-noarch-1_SBo",
        'upgrades package if older version already exists'
     );
+
+    remove_tree "$TEST_DIR/tmp_root" or die;
 };
 
 subtest 'remove_slackware_pkg()' => sub {
