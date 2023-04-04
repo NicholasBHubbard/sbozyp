@@ -600,14 +600,14 @@ subtest 'parse_slackware_pkgname()' => sub {
 };
 
 subtest 'prepare_pkg()' => sub {
-    my $pkg = Sbozyp::pkg('misc/sbozyp-basic');
+    my $pkg = Sbozyp::pkg('sbozyp-basic');
     my $staging_dir = Sbozyp::prepare_pkg($pkg);
     is([Sbozyp::sbozyp_readdir($staging_dir)],
        ["$staging_dir/README","$staging_dir/SbozypFakeRelease-1.0.tar.gz","$staging_dir/sbozyp-basic.SlackBuild","$staging_dir/sbozyp-basic.info","$staging_dir/slack-desc"],
        'returns tmp dir containing all of the pkgs files and its downloaded source code'
     );
 
-    $pkg = Sbozyp::pkg('misc/sbozyp-nested-dir');
+    $pkg = Sbozyp::pkg('sbozyp-nested-dir');
     $staging_dir = Sbozyp::prepare_pkg($pkg);
     is([do { my @files; File::Find::find(sub { push @files, $File::Find::name if -f $File::Find::name }, "$staging_dir"); sort @files }],
        ["$staging_dir/README","$staging_dir/SbozypFakeRelease-1.0.tar.gz","$staging_dir/nested-dir/bar.txt","$staging_dir/nested-dir/foo.txt","$staging_dir/sbozyp-nested-dir.SlackBuild","$staging_dir/sbozyp-nested-dir.info","$staging_dir/slack-desc"],
@@ -615,7 +615,7 @@ subtest 'prepare_pkg()' => sub {
     );
 
     if (Sbozyp::arch() eq 'x86_64') {
-        $pkg = Sbozyp::pkg('misc/sbozyp-unsupported-not-x86_64');
+        $pkg = Sbozyp::pkg('sbozyp-unsupported-not-x86_64');
         $staging_dir = Sbozyp::prepare_pkg($pkg);
         is([Sbozyp::sbozyp_readdir($staging_dir)],
            ["$staging_dir/README","$staging_dir/SbozypFakeRelease-1.0.tar.gz","$staging_dir/sbozyp-unsupported-not-x86_64.SlackBuild","$staging_dir/sbozyp-unsupported-not-x86_64.info","$staging_dir/slack-desc"],
@@ -623,12 +623,12 @@ subtest 'prepare_pkg()' => sub {
         );
     }
 
-    $pkg = Sbozyp::pkg('misc/sbozyp-nonexistent-url');
+    $pkg = Sbozyp::pkg('sbozyp-nonexistent-url');
     ok(dies { Sbozyp::prepare_pkg($pkg) },
        'dies if packages download url does not exist'
     );
 
-    $pkg = Sbozyp::pkg('misc/sbozyp-md5sum-mismatch');
+    $pkg = Sbozyp::pkg('sbozyp-md5sum-mismatch');
     like(dies { Sbozyp::prepare_pkg($pkg) },
          qr|^sbozyp: error: md5sum mismatch for 'https://github\.com/NicholasBHubbard/sbozyp/archive/refs/tags/SbozypFakeRelease-1\.0\.tar\.gz': expected '29b3a308d97831774aa926e94c00a59f': got '1973a308d90831774a0922e9ec0085ff'$|,
          'dies with useful error message if there is an md5sum mismatch'
