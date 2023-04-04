@@ -62,7 +62,7 @@ sub install_main { # NOT TESTED
     my $help_msg = <<"END_HELP";
 $usage
 
-Options are:
+options are:
   -h    print this help message
   -n    do not install package dependencies
   -s    sync repository before installation
@@ -120,7 +120,7 @@ sub search_main { # NOT TESTED
     my $help_msg = <<"END_HELP";
 $usage
 
-Options are:
+options are:
   -h    print this help message
   -c    match case sensitive
   -n    match against CATEGORY/PKGNAM insteed of just PKGNAM
@@ -155,7 +155,7 @@ Query package named 'pkgname'.
 This command will drop you into an interactive prompt for viewing 'pkgname's
 files in your pager.
 
-Options are:
+options are:
   -h    print this help message
 END_HELP
     sbozyp_getopts(\@_, 'h' => \my $help);
