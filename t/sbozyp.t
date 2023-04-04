@@ -696,28 +696,29 @@ subtest 'remove_slackware_pkg()' => sub {
 subtest 'installed_sbo_pkgs()' => sub {
     skip_all('need root access so we can install pkgs with install_slackware_pkg()') unless $> == 0;
 
-    url_exists_or_bail('www.cpan.org/authors/id/S/SA/SANKO/Readonly-2.00.tar.gz');
-    url_exists_or_bail('http://search.cpan.org/CPAN/authors/id/E/ET/ETHER/Test-Pod-1.51.tar.gz');
-    url_exists_or_bail('http://search.cpan.org/CPAN/authors/id/D/DO/DOY/Try-Tiny-0.22.tar.gz');
-
     local $ENV{ROOT} = "$TEST_DIR/tmp_root";
 
-    Sbozyp::install_slackware_pkg(Sbozyp::build_slackware_pkg(scalar(Sbozyp::pkg('perl/perl-Readonly'))));
-    Sbozyp::install_slackware_pkg(Sbozyp::build_slackware_pkg(scalar(Sbozyp::pkg('perl/perl-Test-Pod'))));
-    Sbozyp::install_slackware_pkg(Sbozyp::build_slackware_pkg(scalar(Sbozyp::pkg('perl/perl-Try-Tiny'))));
+    my $pkg1 = Sbozyp::pkg('sbozyp-basic');
+    my $pkg2 = Sbozyp::pkg('sbozyp-nested-dir');
+    my $pkg3 = Sbozyp::pkg('sbozyp-readme-extra-deps');
+
+    Sbozyp::install_slackware_pkg(Sbozyp::build_slackware_pkg($pkg1));
+    Sbozyp::install_slackware_pkg(Sbozyp::build_slackware_pkg($pkg2));
+    Sbozyp::install_slackware_pkg(Sbozyp::build_slackware_pkg($pkg3));
 
     is({Sbozyp::installed_sbo_pkgs()},
-       {'perl/perl-Readonly'=>'2.00','perl/perl-Test-Pod'=>'1.51','perl/perl-Try-Tiny'=>'0.22'},
+       {'misc/sbozyp-basic'=>'1.0','misc/sbozyp-nested-dir'=>'1.0','misc/sbozyp-readme-extra-deps'=>'1.0'},
        'finds all installed SBo pkgs (respecting $ENV{ROOT}) and returns a hash assocating their pkgname to their version'
     );
 
-    mv("$TEST_DIR/tmp_root/var/lib/pkgtools/packages/perl-Try-Tiny-0.22-x86_64-1_SBo",
-       "$TEST_DIR/tmp_root/var/lib/pkgtools/packages/perl-Try-Tiny-0.22-x86_64-1"
-    ) or die;
+    rename "$TEST_DIR/tmp_root/var/lib/pkgtools/packages/sbozyp-basic-1.0-noarch-1_SBo", "$TEST_DIR/tmp_root/var/lib/pkgtools/packages/sbozyp-basic-1.0-noarch-1" or die;
+
     is({Sbozyp::installed_sbo_pkgs()},
-       {'perl/perl-Readonly'=>'2.00','perl/perl-Test-Pod'=>'1.51'},
+       {'misc/sbozyp-nested-dir'=>'1.0','misc/sbozyp-readme-extra-deps'=>'1.0'},
        q(only returns pkgs that have the '_SBo' tag)
     );
+
+    remove_tree("$TEST_DIR/tmp_root") or die;
 };
 
 done_testing;
