@@ -684,9 +684,10 @@ subtest 'remove_slackware_pkg()' => sub {
 
     local $ENV{ROOT} = "$TEST_DIR/tmp_root";
 
-    # this slackware pkg is installed from the 'install_slackware_pkg()' subtest
-    Sbozyp::remove_slackware_pkg('perl-File-Which-1.23-x86_64-1_SBo');
-    ok(! -f "$TEST_DIR/tmp_root/var/lib/pkgtools/packages/perl-File-Which-1.23-x86_64-1_SBo",
+    my $pkg = Sbozyp::pkg('sbozyp-basic');
+    Sbozyp::install_slackware_pkg(Sbozyp::build_slackware_pkg($pkg));
+    Sbozyp::remove_slackware_pkg('sbozyp-basic');
+    ok(!-f "$TEST_DIR/tmp_root/var/lib/pkgtools/packages/sbozyp-basic-1.0-noarch-1_SBo",
        'successfully removes slackware pkg'
     );
 
