@@ -76,7 +76,6 @@ END_HELP
         'i' => \my $non_interactive
     );
     if ($help) { print $help_msg ; return }
-    local $CONFIG{NON_INTERACTIVE} = 1 if $non_interactive;
     i_am_root_or_die();
     my $pkg = pkg($_[0] // die "$usage\n");
     sync_repo() if $sync;
