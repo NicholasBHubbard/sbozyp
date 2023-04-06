@@ -559,6 +559,24 @@ subtest 'pkg_queue()' => sub {
     );
 };
 
+subtest 'merge_pkg_queues()' => sub {
+    my $pkg1 = Sbozyp::pkg('sbozyp-basic');
+    my $pkg2 = Sbozyp::pkg('sbozyp-basic');
+    my $pkg3 = Sbozyp::pkg('sbozyp-nested-dir');
+
+    my @queue = Sbozyp::merge_pkg_queues($pkg1, $pkg3, $pkg1, $pkg3, $pkg3, $pkg1, $pkg3);
+    is(\@queue,
+       [$pkg1, $pkg3],
+       'removes all duplicate pkgs, leaving only the first occurence'
+    );
+
+    @queue = Sbozyp::merge_pkg_queues($pkg1, $pkg2);
+    is(\@queue,
+       [$pkg1],
+       'removes duplicate pkgs by PKGNAME'
+    );
+};
+
 subtest 'parse_slackware_pkgname()' => sub {
     is([Sbozyp::parse_slackware_pkgname('acpica-20220331-x86_64-1_SBo')],
        ['development/acpica', '20220331'],

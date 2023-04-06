@@ -451,6 +451,17 @@ sub pkg_queue {
     return @queue;
 }
 
+sub merge_pkg_queues {
+    my @queue;
+    my %seen;
+    for my $pkg (@_) {
+        next if $seen{$pkg->{PKGNAME}};
+        $seen{$pkg->{PKGNAME}} = 1;
+        push @queue, $pkg;
+    }
+    return @queue;
+}
+
 sub parse_slackware_pkgname {
     my ($slackware_pkgname) = @_;
     my ($prgnam, $version) = $slackware_pkgname =~ /^([\w-]+)-([^-]*)-[^-]*-\d+_SBo$/;
