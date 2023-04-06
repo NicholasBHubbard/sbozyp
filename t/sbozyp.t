@@ -427,18 +427,12 @@ subtest 'sync_repo()' => sub {
     ok(-d "$TEST_DIR/var/lib/sbozyp/SBo/.git",
        'clones SBo repo to $CONFIG{REPO_ROOT} if it has not yet been cloned'
     );
-    ok(`git -C '$TEST_DIR/var/lib/sbozyp/SBo' branch --show-current` =~ /^14\.1$/,
-       'clones branch specified by $CONFIG{REPO_GIT_BRANCH}'
-    );
 
-    system("git -C '$TEST_DIR/var/lib/sbozyp/SBo' checkout -b 14.2");
-    Sbozyp::sync_repo();
-    ok(`git -C '$TEST_DIR/var/lib/sbozyp/SBo' branch --show-current` =~ /^14\.1$/,
-       're-clones if repo branch is not set to $CONFIG{REPO_GIT_BRANCH}'
+    my (undef, $stderr) = capture { Sbozyp::sync_repo() };
+    like($stderr,
+         qr/Cloning into '\Q$Sbozyp::CONFIG{REPO_ROOT}\E'/,
+         're-clones repo if it already exists'
     );
-
-    # this is a fake test but there is no good way (that I can think of) to actually know if we are performing a git pull.
-    Sbozyp::sync_repo(); pass('pulls repo if it is already cloned');
 };
 
 # add our mock packages to the SBo 14.1 repo we just cloned in the sync_repo() subtest

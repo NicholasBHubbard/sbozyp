@@ -423,15 +423,8 @@ sub parse_config_file {
 }
 
 sub sync_repo {
-    my $repo_root = $CONFIG{REPO_ROOT};
-    my $repo_url = $CONFIG{REPO_GIT_URL};
-    my $repo_branch = $CONFIG{REPO_GIT_BRANCH};
-    if (-d "$repo_root/.git" and $repo_branch eq sbozyp_qx("git -C '$repo_root' branch --show-current")) {
-        sbozyp_system('git', '-C', $repo_root, 'pull');
-    } else {
-        sbozyp_mkdir_empty($repo_root);
-        sbozyp_system('git', 'clone', '-b', $repo_branch, $repo_url, $repo_root);
-    }
+    sbozyp_mkdir_empty($CONFIG{REPO_ROOT});
+    sbozyp_system('git', 'clone', '-b', $CONFIG{REPO_GIT_BRANCH}, $CONFIG{REPO_GIT_URL}, $CONFIG{REPO_ROOT});
 }
 
 sub pkg_queue {
