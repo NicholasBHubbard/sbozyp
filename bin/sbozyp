@@ -31,8 +31,8 @@ main(@ARGV) unless caller;
 sub main { # NOT TESTED
     my @argv = @_;
     my $cmd = shift(@argv) or die_usage();
-    parse_config_file();
-    # provide cmd abbreviations
+    parse_config_file(); # mutates the global %CONFIG
+    # provide command abbreviations
     if    ($cmd eq 'in') { $cmd = 'install' }
     elsif ($cmd eq 'qr') { $cmd = 'query'   }
     elsif ($cmd eq 'rm') { $cmd = 'remove'  }
@@ -409,7 +409,7 @@ sub parse_config_file {
     my $fh = sbozyp_open('<', $config_file);
     while (<$fh>) {
         chomp;
-        my $line_copy = $_; # saved so we can create a nice error message if things go wrong
+        my $line_copy = $_; # save $_ so we can create a nice error message if things go wrong
         s/#.*//;            # no comments
         s/^\s+//;           # no leading whitespace
         s/\s+$//;           # no trailing whitespace
