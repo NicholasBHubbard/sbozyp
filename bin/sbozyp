@@ -1,5 +1,9 @@
 #!/usr/bin/perl
 
+# PKG     = sbozyp's internal representation of a SBo package (represented by a hash)
+# PKGNAME = the name of a SBo package. Has the form CATEGORY/PRGNAM
+# PRGNAM  = the name of a program that is packaged by SBo
+
 use strict;
 use warnings FATAL => 'all';
 use v5.34.0; # The Perl version on Slackware 15.0 (sbozyp's min version)
