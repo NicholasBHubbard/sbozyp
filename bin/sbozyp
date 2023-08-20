@@ -3,6 +3,7 @@
 # PKG     = sbozyp's internal representation of a SBo package (represented by a hash)
 # PKGNAME = the name of a SBo package. Has the form CATEGORY/PRGNAM
 # PRGNAM  = the name of a program that is packaged by SBo
+# SLACKWARE_PKG = the path to a built SBo package
 
 use strict;
 use warnings FATAL => 'all';
