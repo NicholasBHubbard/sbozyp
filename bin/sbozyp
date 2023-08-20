@@ -28,6 +28,10 @@ our %CONFIG = (
 
 main(@ARGV) unless caller;
 
+sub die_usage {
+    die 'usage: sbozyp COMMAND <..ARGS>', "\n";
+}
+
 sub main { # NOT TESTED
     my @argv = @_;
     my $cmd = shift(@argv) or die_usage();
