@@ -256,7 +256,7 @@ sub all_pkgnames {
     return @pkgnames;
 }
 
-sub find_pkgname {
+sub find_pkgname { # if $prgnam is a pkgname then just return it back
     my ($prgnam) = @_;
     $prgnam or return;
     return $prgnam if $prgnam =~ m,^[^/]+/[^/]+$, && -d "$CONFIG{REPO_ROOT}/$prgnam";
