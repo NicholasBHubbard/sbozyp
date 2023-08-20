@@ -519,12 +519,8 @@ sub build_slackware_pkg {
 
 sub install_slackware_pkg {
     my ($slackware_pkg) = @_;
-
-    if (is_requested_pkg($slackware_pkg)) {
-        update_database_of_requested_packages($slackware_pkg);
-    }
-
     sbozyp_system("upgradepkg --reinstall --install-new '$slackware_pkg'");
+    sbozyp_unlink($slackware_pkg) if $CONFIG{CLEANUP};
 }
 
 sub remove_slackware_pkg {
