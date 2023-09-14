@@ -92,7 +92,7 @@ END_HELP
     unless ($non_interactive) {
         for my $pkg (@queue) {
             if ($pkg->{HAS_EXTRA_DEPS}) {
-                print "sbozyp: pkg '@{[$pkg->{PKGNAME}]}' has optional dependencies\n";
+                print "sbozyp: pkg '$pkg->{PKGNAME}' has optional dependencies\n";
               PROMPT_USER:
                 print '  would you like to view ', $pkg->{PKGNAME}, '\'s README file? y/n', "\n";
                 print '  -> ';
