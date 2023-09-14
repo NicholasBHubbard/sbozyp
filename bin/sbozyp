@@ -206,7 +206,7 @@ sub pkg {
         REQUIRES        => [grep { $_ ne '%README%' } split(' ', $info{REQUIRES})],
         HAS_EXTRA_DEPS  => scalar(grep { $_ eq '%README%' } split(' ', $info{REQUIRES})),
         ARCH_UNSUPPORTED  => do {
-            my @urls = split ' ', arch() eq 'x86_64' ? $info{DOWNLOAD_x86_64} : $info{DOWNLOAD};
+            my @urls = split(' ', arch()) eq 'x86_64' ? $info{DOWNLOAD_x86_64} : $info{DOWNLOAD};
             if    (grep { $_ eq 'UNSUPPORTED' } @urls) { 'unsupported' }
             elsif (grep { $_ eq 'UNTESTED'    } @urls) { 'untested'    }
             else                                       { 0             }
