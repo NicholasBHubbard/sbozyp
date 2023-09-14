@@ -1,8 +1,8 @@
 #!/usr/bin/perl
 
-# PKG     = sbozyp's internal representation of a SBo package (represented by a hash)
+# PKG     = sbozyp's internal representation of a SBo package
 # PKGNAME = the name of a SBo package. Has the form CATEGORY/PRGNAM
-# PRGNAM  = the name of a program that is packaged by SBo
+# PRGNAM  = just PRGNAM name portion of a PKGNAME: system/yabsm -> yabsm
 # SLACKWARE_PKG = the path to a built SBo package
 
 use strict;
@@ -231,7 +231,7 @@ sub query_pkg { # TODO: test query_pkg()
     };
     @pkg_files = sort { $score->($a) <=> $score->($b) } @pkg_files;
     while (1) {
-        print 'sbozyp: query ', $pkg->{PKGNAME}, ': select a file to view in your pager (q to quit):', "\n";
+        print "sbozyp: query $pkg->{PKGNAME}: select a file to view in your pager (q to quit):\n";
         for (my $i = 0; $i < @pkg_files; $i++) {
             printf "  %2d  %s\n", $i+1, $pkg_files[$i] =~ s/^$pkgdir\///r;
         }
