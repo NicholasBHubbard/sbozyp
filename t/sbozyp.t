@@ -1,5 +1,9 @@
 #!/usr/bin/perl
 
+# TODO: test remove_main()
+# Given a package X with P dependencies and set of N packages, after removing
+# X the set of packages should contain N - (P - 1) packages.
+
 use strict;
 use warnings;
 use v5.34.0;
