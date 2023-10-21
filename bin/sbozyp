@@ -105,7 +105,7 @@ END_HELP
         print 'sbozyp: pkgs to install:', "\n";
         print '  ', $_->{PKGNAME}, "\n" for @queue;
       PROMPT_USER:
-        print '  do you want to proceed? y/n', "\n";
+        print 'do you want to proceed? y/n', "\n";
         print '  -> ';
         chomp(my $decision = <STDIN>);
         if    ($decision eq 'y') { ; } # do nothing
