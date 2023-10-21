@@ -48,6 +48,7 @@ sub main { # NOT TESTED
     elsif ($cmd eq 'se') { $cmd = 'search'  }
     elsif ($cmd eq 'sy') { $cmd = 'sync'    }
     elsif ($cmd eq 'up') { $cmd = 'upgrade' }
+    sbozyp_mkdir($CONFIG{TMPDIR});
     # run the command
     if    ($cmd =~ /^(?:--help|-h)$/)    { print help_string()  }
     elsif ($cmd =~ /^(?:--version|-v)$/) { print $VERSION, "\n" }
