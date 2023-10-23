@@ -13,7 +13,7 @@ package Sbozyp;
 
 our $VERSION = '1.0.0';
 
-use File::Basename;
+use File::Basename qw(basename dirname);
 use File::Temp;
 use File::stat;
 use File::Copy qw(mv);
