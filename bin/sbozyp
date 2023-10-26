@@ -19,6 +19,7 @@ use File::stat;
 use File::Copy qw(mv);
 use File::Path qw(make_path remove_tree);
 use Getopt::Long qw(GetOptionsFromArray :config no_ignore_case bundling);
+use Carp qw(carp confess);
 
 $SIG{INT} = sub { die "sbozyp: got a SIGINT ... going down!\n" };
 
@@ -27,20 +28,25 @@ our %CONFIG = (
     TMPDIR => '/tmp/sbozyp',
     CLEANUP => 1,
     REPO_ROOT => '/var/lib/sbozyp/SBo',
+    REPO_NAME => '15.0',
     REPO_GIT_URL => 'git://git.slackbuilds.org/slackbuilds.git',
     REPO_GIT_BRANCH => '15.0'
 );
 
-main(@ARGV) unless caller;
+main() unless caller;
 
 sub die_usage {
     die 'usage: sbozyp COMMAND <..ARGS>', "\n";
 }
 
 sub main { # NOT TESTED
-    my @argv = @_;
-    my $cmd = shift(@argv) or die_usage();
-    parse_config_file(); # mutates the global %CONFIG
+    parse_config_file();    # mutates the global %CONFIG
+    parse_global_options(); # mutates the global %CONFIG
+    sbozyp_chdir('/');
+    sbozyp_mkdir($CONFIG{TMPDIR});
+    sbozyp_mkdir("$CONFIG{REPO_ROOT}/$CONFIG{REPO_NAME}");
+    sync_repo() unless -d "$CONFIG{REPO_ROOT}/$CONFIG{REPO_NAME}/.git";
+    my $cmd = shift(@ARGV) or die_usage();
     # provide command abbreviations
     if    ($cmd eq 'in') { $cmd = 'install' }
     elsif ($cmd eq 'qr') { $cmd = 'query'   }
@@ -48,16 +54,15 @@ sub main { # NOT TESTED
     elsif ($cmd eq 'se') { $cmd = 'search'  }
     elsif ($cmd eq 'sy') { $cmd = 'sync'    }
     elsif ($cmd eq 'up') { $cmd = 'upgrade' }
-    sbozyp_mkdir($CONFIG{TMPDIR});
     # run the command
     if    ($cmd =~ /^(?:--help|-h)$/)    { print help_string()  }
     elsif ($cmd =~ /^(?:--version|-v)$/) { print $VERSION, "\n" }
-    elsif ($cmd eq 'install')            { install_main(@argv)  }
-    elsif ($cmd eq 'query')              { query_main(@argv)    }
-    elsif ($cmd eq 'remove')             { remove_main(@argv)   }
-    elsif ($cmd eq 'search')             { search_main(@argv)   }
-    elsif ($cmd eq 'upgrade')            { upgrade_main(@argv)  }
-    elsif ($cmd eq 'sync')               { sync_main(@argv)     }
+    elsif ($cmd eq 'install')            { install_main(@ARGV)  }
+    elsif ($cmd eq 'query')              { query_main(@ARGV)    }
+    elsif ($cmd eq 'remove')             { remove_main(@ARGV)   }
+    elsif ($cmd eq 'search')             { search_main(@ARGV)   }
+    elsif ($cmd eq 'upgrade')            { upgrade_main(@ARGV)  }
+    elsif ($cmd eq 'sync')               { sync_main(@ARGV)     }
     else                                 { die_usage()          }
     # all good
     exit 0;
@@ -121,7 +126,7 @@ END_HELP
 
 sub remove_main { # NOT TESTED
     i_am_root_or_die();
-    'TODO';
+    ;
 }
 
 sub search_main { # NOT TESTED
@@ -186,15 +191,15 @@ sub sync_main { # NOT TESTED
 sub pkg {
     my ($prgnam) = @_;
     my $pkgname = find_pkgname($prgnam) // sbozyp_die("could not find a package named '$prgnam'");
-    my $info_file = "$CONFIG{REPO_ROOT}/$pkgname/@{[basename($pkgname)]}.info";
+    my $info_file = "$CONFIG{REPO_ROOT}/$CONFIG{REPO_NAME}/$pkgname/@{[basename($pkgname)]}.info";
     my %info = parse_info_file($info_file);
     my $pkg = {
         PKGNAME         => $pkgname,
-        PKGDIR          => "$CONFIG{REPO_ROOT}/$pkgname",
+        PKGDIR          => "$CONFIG{REPO_ROOT}/$CONFIG{REPO_NAME}/$pkgname",
         INFO_FILE       => $info_file,
-        SLACKBUILD_FILE => "$CONFIG{REPO_ROOT}/$pkgname/".basename($pkgname).'.SlackBuild',
-        DESC_FILE       => "$CONFIG{REPO_ROOT}/$pkgname/slack-desc",
-        README_FILE     => "$CONFIG{REPO_ROOT}/$pkgname/README",
+        SLACKBUILD_FILE => "$CONFIG{REPO_ROOT}/$CONFIG{REPO_NAME}/$pkgname/".basename($pkgname).'.SlackBuild',
+        DESC_FILE       => "$CONFIG{REPO_ROOT}/$CONFIG{REPO_NAME}/$pkgname/slack-desc",
+        README_FILE     => "$CONFIG{REPO_ROOT}/$CONFIG{REPO_NAME}/$pkgname/README",
         PRGNAM          => $info{PRGNAM},
         VERSION         => $info{VERSION},
         HOMEPAGE        => $info{HOMEPAGE},
@@ -216,7 +221,7 @@ sub pkg {
     return wantarray ? %$pkg : $pkg;
 }
 
-sub query_pkg { # TODO: test query_pkg()
+sub query_pkg { # NOT TESTED
     my ($pkg) = @_;
     my $pkgdir = $pkg->{PKGDIR};
     my @pkg_files = sbozyp_find_files_recursive($pkgdir);
@@ -251,24 +256,24 @@ sub query_pkg { # TODO: test query_pkg()
 sub all_categories {
     my @categories = sort map {
         basename($_);
-    } sbozyp_qx("find '$CONFIG{REPO_ROOT}' -not -path '*/.git' -type d -mindepth 1 -maxdepth 1");
+    } sbozyp_qx("find '$CONFIG{REPO_ROOT}/$CONFIG{REPO_NAME}' -not -path '*/.git' -type d -mindepth 1 -maxdepth 1");
     return @categories
 }
 
 sub all_pkgnames {
     my @pkgnames = sort map {
         my ($pkgname) = $_ =~ m,/([^/]+/[^/]+)$,;
-    } sbozyp_qx("find '$CONFIG{REPO_ROOT}' -not -path '*/.git/*' -type d -mindepth 2 -maxdepth 2");
+    } sbozyp_qx("find '$CONFIG{REPO_ROOT}/$CONFIG{REPO_NAME}' -not -path '*/.git/*' -type d -mindepth 2 -maxdepth 2");
     return @pkgnames;
 }
 
 sub find_pkgname { # if $prgnam is a pkgname then just return it back
     my ($prgnam) = @_;
     $prgnam or return;
-    return $prgnam if $prgnam =~ m,^[^/]+/[^/]+$, && -d "$CONFIG{REPO_ROOT}/$prgnam";
+    return $prgnam if $prgnam =~ m,^[^/]+/[^/]+$, && -d "$CONFIG{REPO_ROOT}/$CONFIG{REPO_NAME}/$prgnam";
     my $pkgname;
     for my $category (all_categories()) {
-        $pkgname = "$category/$prgnam" if -d "$CONFIG{REPO_ROOT}/$category/$prgnam";
+        $pkgname = "$category/$prgnam" if -d "$CONFIG{REPO_ROOT}/$CONFIG{REPO_NAME}/$category/$prgnam";
     }
     return $pkgname;
 }
@@ -304,6 +309,16 @@ my @array = (1,2,3);
 sub sbozyp_die {
     my ($msg) = @_;
     die "sbozyp: error: $msg\n";
+}
+
+sub sbozyp_confess {
+    my ($msg) = @_;
+    confess "sbozyp: error: $msg\n";
+}
+
+sub sbozyp_carp {
+    my ($msg) = @_;
+    carp "sbozyp: error: $msg\n";
 }
 
 sub sbozyp_system {
@@ -415,6 +430,22 @@ sub i_am_root_or_die {
     sbozyp_die('must be root') unless 0 == $>;
 }
 
+sub parse_global_options { # This function should be called after parse_config_file()
+    sbozyp_getopts(
+        \@ARGV,
+        'r=s' => \my $repo_name,
+    );
+    if ($repo_name) {
+        my $repo_num = repo_name_repo_num($repo_name);
+        my $repo_git_branch = repo_num_git_branch($repo_num);
+        my $repo_git_url = repo_num_git_url($repo_num);
+        $CONFIG{REPO_NAME} = $repo_name;
+        $CONFIG{REPO_GIT_BRANCH} = $repo_git_branch;
+        $CONFIG{REPO_GIT_URL} = $repo_git_url;
+    }
+    # TODO: what other global config options do we need
+}
+
 sub parse_config_file {
     # $config_file should only be parameterized in test code
     my $config_file = $_[0] // '/etc/sbozyp.conf';
@@ -429,14 +460,39 @@ sub parse_config_file {
         next unless length; # is there anything left?
         my ($k, $v) = split /\s*=\s*/, $_, 2;
         $k !~ /^\s*$/ && $v !~ /^\s*$/ or sbozyp_die("could not parse line $. '$line_copy': '$config_file'");
-        exists $CONFIG{$k} or sbozyp_die("invalid setting on line $. '$k': '$config_file'");
+        # TODO: doesnt work with multi-repo: exists $CONFIG{$k} or sbozyp_die("invalid setting on line $. '$k': '$config_file'");
         $CONFIG{$k} = $v;
     }
 }
 
+sub repo_name_repo_num { # NOT TESTED
+    my ($repo_name) = @_;
+    my $repo_num;
+    for my $k (grep /^REPO_.+_NAME/, sort keys %CONFIG) {
+        my $v = $CONFIG{$k};
+        if ($v eq $repo_name) {
+            ($repo_num) = $k =~ /^REPO_(\d+)_NAME/;
+        }
+    }
+    return $repo_num;
+}
+
+sub repo_num_git_branch { # NOT TESTED
+    my ($repo_num) = @_;
+    for my $k (sort keys %CONFIG) {
+        return $CONFIG{$&} if $k =~ /^REPO_\Q$repo_num\E_GIT_BRANCH$/;
+    }
+}
+
+sub repo_num_git_url { # NOT TESTED
+    my ($repo_num) = @_;
+    for my $k (sort keys %CONFIG) {
+        return $CONFIG{$&} if $k =~ /^REPO_\Q$repo_num\E_GIT_URL$/;
+    }
+}
+
 sub sync_repo {
-    sbozyp_mkdir_empty($CONFIG{REPO_ROOT});
-    sbozyp_system('git', 'clone', '-b', $CONFIG{REPO_GIT_BRANCH}, $CONFIG{REPO_GIT_URL}, $CONFIG{REPO_ROOT});
+    sbozyp_system('git', 'clone', '-b', $CONFIG{REPO_GIT_BRANCH}, $CONFIG{REPO_GIT_URL}, "$CONFIG{REPO_ROOT}/$CONFIG{REPO_NAME}");
 }
 
 sub pkg_queue {
