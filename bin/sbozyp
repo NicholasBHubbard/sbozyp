@@ -126,7 +126,6 @@ END_HELP
 
 sub remove_main { # NOT TESTED
     i_am_root_or_die();
-    ;
 }
 
 sub search_main { # NOT TESTED
