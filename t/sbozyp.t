@@ -9,7 +9,7 @@ use warnings;
 use v5.34.0;
 
 use Test2::V0 -no_srand => 1;
-use Test2::Plugin::BailOnFail; # bail out of testing on the first failure
+# use Test2::Plugin::BailOnFail; # bail out of testing on the first failure
 
 use Capture::Tiny qw(capture);
 use File::Temp;
