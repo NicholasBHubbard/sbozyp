@@ -124,10 +124,6 @@ END_HELP
     }
 }
 
-sub remove_main { # NOT TESTED
-    i_am_root_or_die();
-}
-
 sub search_main { # NOT TESTED
     my $usage = 'usage: sbozyp search [-hcn] <regex>';
     my $help_msg = <<"END_HELP";
@@ -211,7 +207,7 @@ sub pkg {
         REQUIRES        => [grep { $_ ne '%README%' } split(' ', $info{REQUIRES})],
         HAS_EXTRA_DEPS  => scalar(grep { $_ eq '%README%' } split(' ', $info{REQUIRES})),
         ARCH_UNSUPPORTED  => do {
-            my @urls = split(' ', arch()) eq 'x86_64' ? $info{DOWNLOAD_x86_64} : $info{DOWNLOAD};
+            my @urls = split(' ', arch() eq 'x86_64' ? $info{DOWNLOAD_x86_64} : $info{DOWNLOAD});
             if    (grep { $_ eq 'UNSUPPORTED' } @urls) { 'unsupported' }
             elsif (grep { $_ eq 'UNTESTED'    } @urls) { 'untested'    }
             else                                       { 0             }
@@ -413,6 +409,19 @@ sub sbozyp_mkdir {
 
 sub sbozyp_mkdir_empty {
     my ($dir) = @_;
+    sbozyp_rmdir_rec($dir);
+    return sbozyp_mkdir($dir);
+}
+
+sub sbozyp_rmdir {
+    my ($dir) = @_;
+    if (-d $dir) {
+        rmdir $dir or sbozyp_die("could not rmdir '$dir': $!");
+    }
+}
+
+sub sbozyp_rmdir_rec {
+    my ($dir) = @_;
     if (-d $dir) {
         remove_tree($dir, {error => \my $err});
         if ($err) {
@@ -422,7 +431,6 @@ sub sbozyp_mkdir_empty {
             }
         }
     }
-    return sbozyp_mkdir($dir);
 }
 
 sub i_am_root_or_die {
@@ -491,6 +499,9 @@ sub repo_num_git_url { # NOT TESTED
 }
 
 sub sync_repo {
+    if (-d "$CONFIG{REPO_ROOT}/$CONFIG{REPO_NAME}") {
+        sbozyp_rmdir_rec("$CONFIG{REPO_ROOT}/$CONFIG{REPO_NAME}")
+    }
     sbozyp_system('git', 'clone', '-b', $CONFIG{REPO_GIT_BRANCH}, $CONFIG{REPO_GIT_URL}, "$CONFIG{REPO_ROOT}/$CONFIG{REPO_NAME}");
 }
 

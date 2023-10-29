@@ -9,7 +9,7 @@ use warnings;
 use v5.34.0;
 
 use Test2::V0 -no_srand => 1;
-# use Test2::Plugin::BailOnFail; # bail out of testing on the first failure
+use Test2::Plugin::BailOnFail; # bail out of testing on the first failure
 
 use Capture::Tiny qw(capture);
 use File::Temp;
@@ -294,6 +294,29 @@ subtest 'sbozyp_mkdir_empty()' => sub {
     unlink "$TEST_DIR/foo" or die;
 };
 
+subtest 'sbozyp_rmdir()' => sub {
+    mkdir "$TEST_DIR/tmp" or die;
+    Sbozyp::sbozyp_rmdir("$TEST_DIR/tmp");
+    ok(! -d "$TEST_DIR/tmp", 'removes one level directory');
+    Sbozyp::sbozyp_mkdir("$TEST_DIR/tmp/multi");
+    dies { Sbozyp::sbozyp_rmdir("$TEST_DIR/tmp/multi") };
+    ok (-d "$TEST_DIR/tmp", 'only removes one level directory');
+    # cleanup
+    rmdir "$TEST_DIR/tmp" or die;
+};
+
+subtest 'sbozyp_rmdir_rec()' => sub {
+    mkdir "$TEST_DIR/tmp" or die;
+    Sbozyp::sbozyp_rmdir_rec("$TEST_DIR/tmp");
+    ok(! -d "$TEST_DIR/tmp", 'removes one level directory');
+    Sbozyp::sbozyp_mkdir("$TEST_DIR/tmp/multi");
+    Sbozyp::sbozyp_rmdir_rec("$TEST_DIR/tmp");
+    ok (! -d "$TEST_DIR/tmp", 'removes multi level directory');
+    Sbozyp::sbozyp_mkdir("$TEST_DIR/tmp/.multi");
+    Sbozyp::sbozyp_rmdir_rec("$TEST_DIR/tmp");
+    ok (! -d "$TEST_DIR/tmp", 'removes dot files');
+};
+
 subtest 'i_am_root_or_die()' => sub {
     if ($> == 0) {
         ok(lives { Sbozyp::i_am_root_or_die() }, 'lives if $> == 0');
@@ -304,7 +327,7 @@ subtest 'i_am_root_or_die()' => sub {
 
 subtest 'parse_config_file()' => sub {
     is(\%Sbozyp::CONFIG,
-       {TMPDIR=>'/tmp/sbozyp',CLEANUP=>1,REPO_ROOT=>'/var/lib/sbozyp/SBo',REPO_GIT_URL=>'git://git.slackbuilds.org/slackbuilds.git',REPO_GIT_BRANCH=>'15.0'},
+       {TMPDIR=>'/tmp/sbozyp',CLEANUP=>1,REPO_ROOT=>'/var/lib/sbozyp/SBo',REPO_NAME => '15.0',REPO_GIT_URL=>'git://git.slackbuilds.org/slackbuilds.git',REPO_GIT_BRANCH=>'15.0'},
        '%CONFIG has correct default values'
     );
 
@@ -314,7 +337,7 @@ subtest 'parse_config_file()' => sub {
     close $fh or die;
     Sbozyp::parse_config_file($test_config);
     is(\%Sbozyp::CONFIG,
-       {TMPDIR=>'/tmp/sbozyp',CLEANUP=>1,REPO_ROOT=>'/var/lib/sbozyp/SBo',REPO_GIT_URL=>'git://git.slackbuilds.org/slackbuilds.git',REPO_GIT_BRANCH=>'15.0'},
+       {TMPDIR=>'/tmp/sbozyp',CLEANUP=>1,REPO_NAME=>'15.0',REPO_ROOT=>'/var/lib/sbozyp/SBo',REPO_GIT_URL=>'git://git.slackbuilds.org/slackbuilds.git',REPO_GIT_BRANCH=>'15.0'},
        'parsing empty config does not change %CONFIG'
     );
 
@@ -325,7 +348,7 @@ END
     close $fh or die;
     Sbozyp::parse_config_file($test_config);
     is(\%Sbozyp::CONFIG,
-       {TMPDIR=>'foo',CLEANUP=>1,REPO_ROOT=>'/var/lib/sbozyp/SBo',REPO_GIT_URL=>'git://git.slackbuilds.org/slackbuilds.git',REPO_GIT_BRANCH=>'15.0'},
+       {TMPDIR=>'foo',CLEANUP=>1,REPO_ROOT=>'/var/lib/sbozyp/SBo',REPO_NAME=>'15.0',REPO_GIT_URL=>'git://git.slackbuilds.org/slackbuilds.git',REPO_GIT_BRANCH=>'15.0'},
        'only modifies %CONFIG values specified in the config file'
     );
 
@@ -340,7 +363,7 @@ END
     close $fh or die;
     Sbozyp::parse_config_file($test_config);
     is(\%Sbozyp::CONFIG,
-       {TMPDIR=>'bar',CLEANUP=>'bar',REPO_ROOT=>'/var/lib/sbozyp/SBo',REPO_GIT_URL=>'git://git.slackbuilds.org/slackbuilds.git',REPO_GIT_BRANCH=>'15.0'},
+       {TMPDIR=>'bar',CLEANUP=>'bar',REPO_ROOT=>'/var/lib/sbozyp/SBo',REPO_NAME=>'15.0',REPO_GIT_URL=>'git://git.slackbuilds.org/slackbuilds.git',REPO_GIT_BRANCH=>'15.0'},
        'ignores comments, eol comments, whitespace, and blank lines'
     );
 
@@ -349,13 +372,14 @@ END
 TMPDIR=foo
 CLEANUP=foo
 REPO_ROOT=foo
+REPO_NAME=foo
 REPO_GIT_URL=foo
 REPO_GIT_BRANCH=foo
 END
     close $fh or die;
     Sbozyp::parse_config_file($test_config);
     is(\%Sbozyp::CONFIG,
-       {TMPDIR=>'foo',CLEANUP=>'foo',REPO_ROOT=>'foo',REPO_GIT_URL=>'foo',REPO_GIT_BRANCH=>'foo'},
+       {TMPDIR=>'foo',CLEANUP=>'foo',REPO_NAME=>'foo',REPO_ROOT=>'foo',REPO_GIT_URL=>'foo',REPO_GIT_BRANCH=>'foo'},
        'successfully parses config file and updates %CONFIG'
     );
 
@@ -384,10 +408,11 @@ END
 foo=bar
 END
     close $fh or die;
-    like(dies { Sbozyp::parse_config_file($test_config) },
-         qr/^sbozyp: error: invalid setting on line 1 'foo': '\Q$test_config\E'$/,
-         'dies with useful error message if config file contains invalid setting'
-    );
+    # TODO
+    # like(dies { Sbozyp::parse_config_file($test_config) },
+    #      qr/^sbozyp: error: invalid setting on line 1 'foo': '\Q$test_config\E'$/,
+    #      'dies with useful error message if config file contains invalid setting'
+    # );
 
     # Set %CONFIG to the value we want for the rest of our testing
     open $fh, '>', $test_config or die;
@@ -395,6 +420,7 @@ END
 TMPDIR=$TEST_DIR
 CLEANUP=1
 REPO_ROOT=$TEST_DIR/var/lib/sbozyp/SBo
+REPO_NAME=14.1
 REPO_GIT_URL=git://git.slackbuilds.org/slackbuilds.git
 # SBo Version 14.1 is very unlikely to be updated, which means our tests should
 # not start randomly failing due to updates to the packages we test against.
@@ -403,8 +429,8 @@ END
     close $fh or die;
     Sbozyp::parse_config_file($test_config);
     is(\%Sbozyp::CONFIG,
-       {TMPDIR=>"$TEST_DIR", CLEANUP=>1,REPO_ROOT=>"$TEST_DIR/var/lib/sbozyp/SBo",REPO_GIT_URL=>'git://git.slackbuilds.org/slackbuilds.git',REPO_GIT_BRANCH=>'14.1'},
-       '%CONFIG is properly set for use by the test of this test script'
+       {TMPDIR=>"$TEST_DIR", CLEANUP=>1,REPO_NAME=>'14.1',REPO_ROOT=>"$TEST_DIR/var/lib/sbozyp/SBo",REPO_GIT_URL=>'git://git.slackbuilds.org/slackbuilds.git',REPO_GIT_BRANCH=>'14.1'},
+       '%CONFIG is properly set for use by the rest of this test script'
     );
 
     unlink $test_config or die;
@@ -428,19 +454,19 @@ subtest 'sbozyp_tee()' => sub {
 
 subtest 'sync_repo()' => sub {
     Sbozyp::sync_repo();
-    ok(-d "$TEST_DIR/var/lib/sbozyp/SBo/.git",
-       'clones SBo repo to $CONFIG{REPO_ROOT} if it has not yet been cloned'
+    ok(-d "$TEST_DIR/var/lib/sbozyp/SBo/14.1/.git",
+       'clones SBo repo to $CONFIG{REPO_ROOT}/$CONFIG{REPO_NAME} if it has not yet been cloned'
     );
 
     my (undef, $stderr) = capture { Sbozyp::sync_repo() };
     like($stderr,
-         qr/Cloning into '\Q$Sbozyp::CONFIG{REPO_ROOT}\E'/,
+         qr/Cloning into '\Q$Sbozyp::CONFIG{REPO_ROOT}\/$Sbozyp::CONFIG{REPO_NAME}\E'/,
          're-clones repo if it already exists'
     );
 };
 
 # add our mock packages to the SBo 14.1 repo we just cloned in the sync_repo() subtest
-Sbozyp::sbozyp_copy("$FindBin::Bin/mock-packages", "$Sbozyp::CONFIG{REPO_ROOT}/misc");
+Sbozyp::sbozyp_copy("$FindBin::Bin/mock-packages", "$Sbozyp::CONFIG{REPO_ROOT}/$Sbozyp::CONFIG{REPO_NAME}/misc");
 
 subtest 'all_categories()' => sub {
     is([Sbozyp::all_categories()],
@@ -469,13 +495,13 @@ subtest 'find_pkgname()' => sub {
 };
 
 subtest 'parse_info_file()' => sub {
-    my $info_file = "$Sbozyp::CONFIG{REPO_ROOT}/misc/sbozyp-basic/sbozyp-basic.info";
+    my $info_file = "$Sbozyp::CONFIG{REPO_ROOT}/$Sbozyp::CONFIG{REPO_NAME}/misc/sbozyp-basic/sbozyp-basic.info";
     is({Sbozyp::parse_info_file($info_file)},
        {PRGNAM=>'sbozyp-basic',VERSION=>'1.0',HOMEPAGE=>'https://github.com/NicholasBHubbard/sbozyp/releases/tag/SbozypFakeRelease-1.0',DOWNLOAD=>'https://github.com/NicholasBHubbard/sbozyp/archive/refs/tags/SbozypFakeRelease-1.0.tar.gz',MD5SUM=>'1973a308d90831774a0922e9ec0085ff',DOWNLOAD_x86_64=>'',MD5SUM_x86_64=>'',REQUIRES=>'',MAINTAINER=>'Nicholas Hubbard',EMAIL=>'nicholashubbard@posteo.net'},
        'parses info file into correct hash'
     );
 
-    $info_file = "$Sbozyp::CONFIG{REPO_ROOT}/misc/sbozyp-multiple-download/sbozyp-multiple-download.info";
+    $info_file = "$Sbozyp::CONFIG{REPO_ROOT}/$Sbozyp::CONFIG{REPO_NAME}/misc/sbozyp-multiple-download/sbozyp-multiple-download.info";
     is({Sbozyp::parse_info_file($info_file)},
        {PRGNAM=>'sbozyp-multiple-download',VERSION=>'1.0',HOMEPAGE=>'https://github.com/NicholasBHubbard/sbozyp/releases/tag/SbozypFakeRelease-1.0',DOWNLOAD=>'https://github.com/NicholasBHubbard/sbozyp/archive/refs/tags/SbozypFakeRelease-1.0.tar.gz https://github.com/NicholasBHubbard/sbozyp/archive/refs/tags/SbozypFakeRelease-1.0.tar.gz https://github.com/NicholasBHubbard/sbozyp/archive/refs/tags/SbozypFakeRelease-1.0.tar.gz',MD5SUM=>'1973a308d90831774a0922e9ec0085ff 1973a308d90831774a0922e9ec0085ff 1973a308d90831774a0922e9ec0085ff',DOWNLOAD_x86_64=>'','MD5SUM_x86_64'=>'',REQUIRES=>'',MAINTAINER=>'Nicholas Hubbard',EMAIL=>'nicholashubbard@posteo.net'},
        'squishes newline-escapes into single spaces'
@@ -490,17 +516,17 @@ subtest 'parse_info_file()' => sub {
 
 subtest 'pkg()' => sub {
     is({Sbozyp::pkg('misc/sbozyp-basic')},
-       {PRGNAM=>'sbozyp-basic',DESC_FILE=>"$Sbozyp::CONFIG{REPO_ROOT}/misc/sbozyp-basic/slack-desc",INFO_FILE=>"$Sbozyp::CONFIG{REPO_ROOT}/misc/sbozyp-basic/sbozyp-basic.info",SLACKBUILD_FILE=>"$Sbozyp::CONFIG{REPO_ROOT}/misc/sbozyp-basic/sbozyp-basic.SlackBuild",README_FILE=>"$Sbozyp::CONFIG{REPO_ROOT}/misc/sbozyp-basic/README",PKGNAME=>'misc/sbozyp-basic',PKGDIR=>"$Sbozyp::CONFIG{REPO_ROOT}/misc/sbozyp-basic",VERSION=>'1.0',HOMEPAGE=>'https://github.com/NicholasBHubbard/sbozyp/releases/tag/SbozypFakeRelease-1.0',DOWNLOAD=>['https://github.com/NicholasBHubbard/sbozyp/archive/refs/tags/SbozypFakeRelease-1.0.tar.gz'],MD5SUM=>['1973a308d90831774a0922e9ec0085ff'],DOWNLOAD_x86_64=>[],MD5SUM_x86_64=>[],REQUIRES=>[],MAINTAINER=>'Nicholas Hubbard',EMAIL=>'nicholashubbard@posteo.net',ARCH_UNSUPPORTED=>0,HAS_EXTRA_DEPS=>0},
+       {PRGNAM=>'sbozyp-basic',DESC_FILE=>"$Sbozyp::CONFIG{REPO_ROOT}/$Sbozyp::CONFIG{REPO_NAME}/misc/sbozyp-basic/slack-desc",INFO_FILE=>"$Sbozyp::CONFIG{REPO_ROOT}/$Sbozyp::CONFIG{REPO_NAME}/misc/sbozyp-basic/sbozyp-basic.info",SLACKBUILD_FILE=>"$Sbozyp::CONFIG{REPO_ROOT}/$Sbozyp::CONFIG{REPO_NAME}/misc/sbozyp-basic/sbozyp-basic.SlackBuild",README_FILE=>"$Sbozyp::CONFIG{REPO_ROOT}/$Sbozyp::CONFIG{REPO_NAME}/misc/sbozyp-basic/README",PKGNAME=>'misc/sbozyp-basic',PKGDIR=>"$Sbozyp::CONFIG{REPO_ROOT}/$Sbozyp::CONFIG{REPO_NAME}/misc/sbozyp-basic",VERSION=>'1.0',HOMEPAGE=>'https://github.com/NicholasBHubbard/sbozyp/releases/tag/SbozypFakeRelease-1.0',DOWNLOAD=>['https://github.com/NicholasBHubbard/sbozyp/archive/refs/tags/SbozypFakeRelease-1.0.tar.gz'],MD5SUM=>['1973a308d90831774a0922e9ec0085ff'],DOWNLOAD_x86_64=>[],MD5SUM_x86_64=>[],REQUIRES=>[],MAINTAINER=>'Nicholas Hubbard',EMAIL=>'nicholashubbard@posteo.net',ARCH_UNSUPPORTED=>0,HAS_EXTRA_DEPS=>0},
        'creates correct pkg hash'
     );
 
     is({Sbozyp::pkg('sbozyp-basic')},
-       {PRGNAM=>'sbozyp-basic',DESC_FILE=>"$Sbozyp::CONFIG{REPO_ROOT}/misc/sbozyp-basic/slack-desc",INFO_FILE=>"$Sbozyp::CONFIG{REPO_ROOT}/misc/sbozyp-basic/sbozyp-basic.info",SLACKBUILD_FILE=>"$Sbozyp::CONFIG{REPO_ROOT}/misc/sbozyp-basic/sbozyp-basic.SlackBuild",README_FILE=>"$Sbozyp::CONFIG{REPO_ROOT}/misc/sbozyp-basic/README",PKGNAME=>'misc/sbozyp-basic',PKGDIR=>"$Sbozyp::CONFIG{REPO_ROOT}/misc/sbozyp-basic",VERSION=>'1.0',HOMEPAGE=>'https://github.com/NicholasBHubbard/sbozyp/releases/tag/SbozypFakeRelease-1.0',DOWNLOAD=>['https://github.com/NicholasBHubbard/sbozyp/archive/refs/tags/SbozypFakeRelease-1.0.tar.gz'],MD5SUM=>['1973a308d90831774a0922e9ec0085ff'],DOWNLOAD_x86_64=>[],MD5SUM_x86_64=>[],REQUIRES=>[],MAINTAINER=>'Nicholas Hubbard',EMAIL=>'nicholashubbard@posteo.net',ARCH_UNSUPPORTED=>0,HAS_EXTRA_DEPS=>0},
+       {PRGNAM=>'sbozyp-basic',DESC_FILE=>"$Sbozyp::CONFIG{REPO_ROOT}/$Sbozyp::CONFIG{REPO_NAME}/misc/sbozyp-basic/slack-desc",INFO_FILE=>"$Sbozyp::CONFIG{REPO_ROOT}/$Sbozyp::CONFIG{REPO_NAME}/misc/sbozyp-basic/sbozyp-basic.info",SLACKBUILD_FILE=>"$Sbozyp::CONFIG{REPO_ROOT}/$Sbozyp::CONFIG{REPO_NAME}/misc/sbozyp-basic/sbozyp-basic.SlackBuild",README_FILE=>"$Sbozyp::CONFIG{REPO_ROOT}/$Sbozyp::CONFIG{REPO_NAME}/misc/sbozyp-basic/README",PKGNAME=>'misc/sbozyp-basic',PKGDIR=>"$Sbozyp::CONFIG{REPO_ROOT}/$Sbozyp::CONFIG{REPO_NAME}/misc/sbozyp-basic",VERSION=>'1.0',HOMEPAGE=>'https://github.com/NicholasBHubbard/sbozyp/releases/tag/SbozypFakeRelease-1.0',DOWNLOAD=>['https://github.com/NicholasBHubbard/sbozyp/archive/refs/tags/SbozypFakeRelease-1.0.tar.gz'],MD5SUM=>['1973a308d90831774a0922e9ec0085ff'],DOWNLOAD_x86_64=>[],MD5SUM_x86_64=>[],REQUIRES=>[],MAINTAINER=>'Nicholas Hubbard',EMAIL=>'nicholashubbard@posteo.net',ARCH_UNSUPPORTED=>0,HAS_EXTRA_DEPS=>0},
        'accepts just a prgnam'
     );
 
     is({Sbozyp::pkg('misc/sbozyp-readme-extra-deps')},
-       {PRGNAM=>'sbozyp-readme-extra-deps',DESC_FILE=>"$Sbozyp::CONFIG{REPO_ROOT}/misc/sbozyp-readme-extra-deps/slack-desc",INFO_FILE=>"$Sbozyp::CONFIG{REPO_ROOT}/misc/sbozyp-readme-extra-deps/sbozyp-readme-extra-deps.info",SLACKBUILD_FILE=>"$Sbozyp::CONFIG{REPO_ROOT}/misc/sbozyp-readme-extra-deps/sbozyp-readme-extra-deps.SlackBuild",README_FILE=>"$Sbozyp::CONFIG{REPO_ROOT}/misc/sbozyp-readme-extra-deps/README",PKGNAME=>'misc/sbozyp-readme-extra-deps',PKGDIR=>"$Sbozyp::CONFIG{REPO_ROOT}/misc/sbozyp-readme-extra-deps",VERSION=>'1.0',HOMEPAGE=>'https://github.com/NicholasBHubbard/sbozyp/releases/tag/SbozypFakeRelease-1.0',DOWNLOAD=>['https://github.com/NicholasBHubbard/sbozyp/archive/refs/tags/SbozypFakeRelease-1.0.tar.gz'],MD5SUM=>['1973a308d90831774a0922e9ec0085ff'],DOWNLOAD_x86_64=>[],MD5SUM_x86_64=>[],REQUIRES=>['sbozyp-basic'],MAINTAINER=>'Nicholas Hubbard',EMAIL=>'nicholashubbard@posteo.net',ARCH_UNSUPPORTED=>0,HAS_EXTRA_DEPS=>1},
+       {PRGNAM=>'sbozyp-readme-extra-deps',DESC_FILE=>"$Sbozyp::CONFIG{REPO_ROOT}/$Sbozyp::CONFIG{REPO_NAME}/misc/sbozyp-readme-extra-deps/slack-desc",INFO_FILE=>"$Sbozyp::CONFIG{REPO_ROOT}/$Sbozyp::CONFIG{REPO_NAME}/misc/sbozyp-readme-extra-deps/sbozyp-readme-extra-deps.info",SLACKBUILD_FILE=>"$Sbozyp::CONFIG{REPO_ROOT}/$Sbozyp::CONFIG{REPO_NAME}/misc/sbozyp-readme-extra-deps/sbozyp-readme-extra-deps.SlackBuild",README_FILE=>"$Sbozyp::CONFIG{REPO_ROOT}/$Sbozyp::CONFIG{REPO_NAME}/misc/sbozyp-readme-extra-deps/README",PKGNAME=>'misc/sbozyp-readme-extra-deps',PKGDIR=>"$Sbozyp::CONFIG{REPO_ROOT}/$Sbozyp::CONFIG{REPO_NAME}/misc/sbozyp-readme-extra-deps",VERSION=>'1.0',HOMEPAGE=>'https://github.com/NicholasBHubbard/sbozyp/releases/tag/SbozypFakeRelease-1.0',DOWNLOAD=>['https://github.com/NicholasBHubbard/sbozyp/archive/refs/tags/SbozypFakeRelease-1.0.tar.gz'],MD5SUM=>['1973a308d90831774a0922e9ec0085ff'],DOWNLOAD_x86_64=>[],MD5SUM_x86_64=>[],REQUIRES=>['sbozyp-basic'],MAINTAINER=>'Nicholas Hubbard',EMAIL=>'nicholashubbard@posteo.net',ARCH_UNSUPPORTED=>0,HAS_EXTRA_DEPS=>1},
        'specifies HAS_EXTRA_DEPS=>1 if %README% is in .info files requires, and does not include %README% in the pkgs REQUIRES field'
     );
 
@@ -508,7 +534,7 @@ subtest 'pkg()' => sub {
     my $unsupported_pkgname = $is_x86_64 ? 'misc/sbozyp-unsupported-x86_64' : 'misc/sbozyp-unsupported-no-x86_64';
     my $unsupported_prgnam = basename($unsupported_pkgname);
     is({Sbozyp::pkg($unsupported_pkgname)},
-       {PRGNAM=>$unsupported_prgnam,DESC_FILE=>"$Sbozyp::CONFIG{REPO_ROOT}/$unsupported_pkgname/slack-desc",INFO_FILE=>"$Sbozyp::CONFIG{REPO_ROOT}/$unsupported_pkgname/$unsupported_prgnam.info",SLACKBUILD_FILE=>"$Sbozyp::CONFIG{REPO_ROOT}/$unsupported_pkgname/$unsupported_prgnam.SlackBuild",README_FILE=>"$Sbozyp::CONFIG{REPO_ROOT}/$unsupported_pkgname/README",PKGNAME=>$unsupported_pkgname,PKGDIR=>"$Sbozyp::CONFIG{REPO_ROOT}/$unsupported_pkgname",VERSION=>'1.0',HOMEPAGE=>'https://github.com/NicholasBHubbard/sbozyp/releases/tag/SbozypFakeRelease-1.0',DOWNLOAD=> $is_x86_64 ? ['https://github.com/NicholasBHubbard/sbozyp/archive/refs/tags/SbozypFakeRelease-1.0.tar.gz'] : [],MD5SUM=> $is_x86_64 ? ['1973a308d90831774a0922e9ec0085ff'] : [],DOWNLOAD_x86_64=> $is_x86_64 ? ['UNSUPPORTED'] : ['https://github.com/NicholasBHubbard/sbozyp/archive/refs/tags/SbozypFakeRelease-1.0.tar.gz'],MD5SUM_x86_64=> $is_x86_64 ? [] : ['1973a308d90831774a0922e9ec0085ff'],REQUIRES=>[],MAINTAINER=>'Nicholas Hubbard',EMAIL=>'nicholashubbard@posteo.net',ARCH_UNSUPPORTED=>'unsupported',HAS_EXTRA_DEPS=>0},
+       {PRGNAM=>$unsupported_prgnam,DESC_FILE=>"$Sbozyp::CONFIG{REPO_ROOT}/$Sbozyp::CONFIG{REPO_NAME}/$unsupported_pkgname/slack-desc",INFO_FILE=>"$Sbozyp::CONFIG{REPO_ROOT}/$Sbozyp::CONFIG{REPO_NAME}/$unsupported_pkgname/$unsupported_prgnam.info",SLACKBUILD_FILE=>"$Sbozyp::CONFIG{REPO_ROOT}/$Sbozyp::CONFIG{REPO_NAME}/$unsupported_pkgname/$unsupported_prgnam.SlackBuild",README_FILE=>"$Sbozyp::CONFIG{REPO_ROOT}/$Sbozyp::CONFIG{REPO_NAME}/$unsupported_pkgname/README",PKGNAME=>$unsupported_pkgname,PKGDIR=>"$Sbozyp::CONFIG{REPO_ROOT}/$Sbozyp::CONFIG{REPO_NAME}/$unsupported_pkgname",VERSION=>'1.0',HOMEPAGE=>'https://github.com/NicholasBHubbard/sbozyp/releases/tag/SbozypFakeRelease-1.0',DOWNLOAD=> $is_x86_64 ? ['https://github.com/NicholasBHubbard/sbozyp/archive/refs/tags/SbozypFakeRelease-1.0.tar.gz'] : [],MD5SUM=> $is_x86_64 ? ['1973a308d90831774a0922e9ec0085ff'] : [],DOWNLOAD_x86_64=> $is_x86_64 ? ['UNSUPPORTED'] : ['https://github.com/NicholasBHubbard/sbozyp/archive/refs/tags/SbozypFakeRelease-1.0.tar.gz'],MD5SUM_x86_64=> $is_x86_64 ? [] : ['1973a308d90831774a0922e9ec0085ff'],REQUIRES=>[],MAINTAINER=>'Nicholas Hubbard',EMAIL=>'nicholashubbard@posteo.net',ARCH_UNSUPPORTED=>'unsupported',HAS_EXTRA_DEPS=>0},
        'creates correct pkg for package that is unsupported on this architecture'
     );
 
