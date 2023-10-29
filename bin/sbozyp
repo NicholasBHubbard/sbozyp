@@ -25,7 +25,7 @@ $SIG{INT} = sub { die "sbozyp: got a SIGINT ... going down!\n" };
 
 our %CONFIG = (
     # defaults
-    TMPDIR => '/tmp/sbozyp',
+    TMPDIR => '/tmp',
     CLEANUP => 1,
     REPO_ROOT => '/var/lib/sbozyp/SBo',
     REPO_NAME => '15.0',
