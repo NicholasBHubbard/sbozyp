@@ -28,7 +28,7 @@ our %CONFIG = (
     TMPDIR => '/tmp',
     CLEANUP => 1,
     REPO_ROOT => '/var/lib/sbozyp/SBo',
-    #REPO_NAME = REPO_PRIMARY
+    #REPO_NAME => REPO_PRIMARY
 );
 
 main() unless caller;
