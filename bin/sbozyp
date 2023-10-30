@@ -28,9 +28,7 @@ our %CONFIG = (
     TMPDIR => '/tmp',
     CLEANUP => 1,
     REPO_ROOT => '/var/lib/sbozyp/SBo',
-    REPO_NAME => '15.0',
-    REPO_GIT_URL => 'git://git.slackbuilds.org/slackbuilds.git',
-    REPO_GIT_BRANCH => '15.0'
+    #REPO_NAME = REPO_PRIMARY
 );
 
 main() unless caller;
