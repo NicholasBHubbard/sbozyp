@@ -327,7 +327,7 @@ subtest 'i_am_root_or_die()' => sub {
 
 subtest 'parse_config_file()' => sub {
     is(\%Sbozyp::CONFIG,
-       {TMPDIR=>'/tmp/sbozyp',CLEANUP=>1,REPO_ROOT=>'/var/lib/sbozyp/SBo',REPO_NAME => '15.0',REPO_GIT_URL=>'git://git.slackbuilds.org/slackbuilds.git',REPO_GIT_BRANCH=>'15.0'},
+       {TMPDIR=>'/tmp',CLEANUP=>1,REPO_ROOT=>'/var/lib/sbozyp/SBo',REPO_NAME => '15.0',REPO_GIT_URL=>'git://git.slackbuilds.org/slackbuilds.git',REPO_GIT_BRANCH=>'15.0'},
        '%CONFIG has correct default values'
     );
 
@@ -337,7 +337,7 @@ subtest 'parse_config_file()' => sub {
     close $fh or die;
     Sbozyp::parse_config_file($test_config);
     is(\%Sbozyp::CONFIG,
-       {TMPDIR=>'/tmp/sbozyp',CLEANUP=>1,REPO_NAME=>'15.0',REPO_ROOT=>'/var/lib/sbozyp/SBo',REPO_GIT_URL=>'git://git.slackbuilds.org/slackbuilds.git',REPO_GIT_BRANCH=>'15.0'},
+       {TMPDIR=>'/tmp',CLEANUP=>1,REPO_NAME=>'15.0',REPO_ROOT=>'/var/lib/sbozyp/SBo',REPO_GIT_URL=>'git://git.slackbuilds.org/slackbuilds.git',REPO_GIT_BRANCH=>'15.0'},
        'parsing empty config does not change %CONFIG'
     );
 
