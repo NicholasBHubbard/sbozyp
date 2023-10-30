@@ -327,7 +327,7 @@ subtest 'i_am_root_or_die()' => sub {
 
 subtest 'parse_config_file()' => sub {
     is(\%Sbozyp::CONFIG,
-       {TMPDIR=>'/tmp',CLEANUP=>1,REPO_ROOT=>'/var/lib/sbozyp/SBo',REPO_NAME => '15.0',REPO_GIT_URL=>'git://git.slackbuilds.org/slackbuilds.git',REPO_GIT_BRANCH=>'15.0'},
+       {TMPDIR=>'/tmp',CLEANUP=>1,REPO_ROOT=>'/var/lib/sbozyp/SBo'},
        '%CONFIG has correct default values'
     );
 
@@ -337,8 +337,8 @@ subtest 'parse_config_file()' => sub {
     close $fh or die;
     Sbozyp::parse_config_file($test_config);
     is(\%Sbozyp::CONFIG,
-       {TMPDIR=>'/tmp',CLEANUP=>1,REPO_NAME=>'15.0',REPO_ROOT=>'/var/lib/sbozyp/SBo',REPO_GIT_URL=>'git://git.slackbuilds.org/slackbuilds.git',REPO_GIT_BRANCH=>'15.0'},
-       'parsing empty config does not change %CONFIG'
+       {TMPDIR=>'/tmp',CLEANUP=>1,REPO_ROOT=>'/var/lib/sbozyp/SBo',REPO_NAME=>undef},
+       'parsing empty config sets REPO_NAME to the undefined REPO_PRIMARY'
     );
 
     open $fh, '>', $test_config or die;
@@ -348,7 +348,7 @@ END
     close $fh or die;
     Sbozyp::parse_config_file($test_config);
     is(\%Sbozyp::CONFIG,
-       {TMPDIR=>'foo',CLEANUP=>1,REPO_ROOT=>'/var/lib/sbozyp/SBo',REPO_NAME=>'15.0',REPO_GIT_URL=>'git://git.slackbuilds.org/slackbuilds.git',REPO_GIT_BRANCH=>'15.0'},
+       {TMPDIR=>'foo',CLEANUP=>1,REPO_ROOT=>'/var/lib/sbozyp/SBo',REPO_NAME=>undef},
        'only modifies %CONFIG values specified in the config file'
     );
 
@@ -363,7 +363,7 @@ END
     close $fh or die;
     Sbozyp::parse_config_file($test_config);
     is(\%Sbozyp::CONFIG,
-       {TMPDIR=>'bar',CLEANUP=>'bar',REPO_ROOT=>'/var/lib/sbozyp/SBo',REPO_NAME=>'15.0',REPO_GIT_URL=>'git://git.slackbuilds.org/slackbuilds.git',REPO_GIT_BRANCH=>'15.0'},
+       {TMPDIR=>'bar',CLEANUP=>'bar',REPO_ROOT=>'/var/lib/sbozyp/SBo',REPO_NAME=>undef},
        'ignores comments, eol comments, whitespace, and blank lines'
     );
 
@@ -372,15 +372,16 @@ END
 TMPDIR=foo
 CLEANUP=foo
 REPO_ROOT=foo
-REPO_NAME=foo
-REPO_GIT_URL=foo
-REPO_GIT_BRANCH=foo
+REPO_PRIMARY=foo
+REPO_0_NAME=foo
+REPO_0_GIT_BRANCH=foo
+REPO_0_GIT_URL=foo
 END
     close $fh or die;
     Sbozyp::parse_config_file($test_config);
     is(\%Sbozyp::CONFIG,
-       {TMPDIR=>'foo',CLEANUP=>'foo',REPO_NAME=>'foo',REPO_ROOT=>'foo',REPO_GIT_URL=>'foo',REPO_GIT_BRANCH=>'foo'},
-       'successfully parses config file and updates %CONFIG'
+       {TMPDIR=>'foo',CLEANUP=>'foo',REPO_ROOT=>'foo',REPO_0_GIT_URL=>'foo',REPO_0_NAME=>'foo',REPO_PRIMARY=>'foo',REPO_NAME=>'foo',REPO_0_GIT_BRANCH=>'foo'},
+       'successfully parses config file and updates %CONFIG. Also sets REPO_NAME to REPO_PRIMARY.'
     );
 
     open $fh, '>', $test_config or die;
@@ -420,16 +421,24 @@ END
 TMPDIR=$TEST_DIR
 CLEANUP=1
 REPO_ROOT=$TEST_DIR/var/lib/sbozyp/SBo
-REPO_NAME=14.1
-REPO_GIT_URL=git://git.slackbuilds.org/slackbuilds.git
-# SBo Version 14.1 is very unlikely to be updated, which means our tests should
-# not start randomly failing due to updates to the packages we test against.
-REPO_GIT_BRANCH=14.1
+REPO_PRIMARY=14.1
+
+REPO_0_NAME=14.1
+REPO_0_GIT_URL=git://git.slackbuilds.org/slackbuilds.git
+REPO_0_GIT_BRANCH=14.1
+
+REPO_1_NAME=14.2
+REPO_1_GIT_URL=git://git.slackbuilds.org/slackbuilds.git
+REPO_1_GIT_BRANCH=14.2
+
+REPO_2_NAME=15.0
+REPO_2_GIT_URL=git://git.slackbuilds.org/slackbuilds.git
+REPO_2_GIT_BRANCH=15.0
 END
     close $fh or die;
     Sbozyp::parse_config_file($test_config);
     is(\%Sbozyp::CONFIG,
-       {TMPDIR=>"$TEST_DIR", CLEANUP=>1,REPO_NAME=>'14.1',REPO_ROOT=>"$TEST_DIR/var/lib/sbozyp/SBo",REPO_GIT_URL=>'git://git.slackbuilds.org/slackbuilds.git',REPO_GIT_BRANCH=>'14.1'},
+       {TMPDIR=>"$TEST_DIR", CLEANUP=>1,REPO_NAME=>'14.1',REPO_ROOT=>"$TEST_DIR/var/lib/sbozyp/SBo",REPO_0_GIT_URL=>'git://git.slackbuilds.org/slackbuilds.git',REPO_1_GIT_URL=>'git://git.slackbuilds.org/slackbuilds.git',REPO_1_GIT_URL=>'git://git.slackbuilds.org/slackbuilds.git',REPO_2_GIT_URL=>'git://git.slackbuilds.org/slackbuilds.git',REPO_0_GIT_BRANCH=>'14.1',REPO_1_GIT_BRANCH=>'14.2',REPO_2_GIT_BRANCH=>'15.0',REPO_0_NAME=>'14.1',REPO_1_NAME=>'14.2',REPO_2_NAME=>'15.0',REPO_PRIMARY=>'14.1'},
        '%CONFIG is properly set for use by the rest of this test script'
     );
 
@@ -775,13 +784,17 @@ subtest 'installed_sbo_pkgs()' => sub {
 # };
 
 subtest 'repo_name_repo_num()'  => sub {
-    #TODO
-    ok(1);
+    my $repo_num_0 = repo_name_repo_num('14.1');
+    my $repo_num_1 = repo_name_repo_num('14.2');
+    my $repo_num_2 = repo_name_repo_num('15.0');
+    ok($repo_num_0 == 0 && $repo_num_1 == 1 && $repo_num_2 == 2, 'returns correct repo numbers');
 };
 
 subtest 'repo_num_git_branch()'  => sub {
-    #TODO
-    ok(1);
+    my $git_branch_0 = repo_num_git_branch(0);
+    my $git_branch_1 = repo_num_git_branch(1);
+    my $git_branch_2 = repo_num_git_branch(2);
+    ok($git_branch_0 eq '14.1' && $git_branch_1 eq '14.2' && $git_branch_2 eq '15.0', 'returns correct git branches');
 };
 
 subtest 'repo_num_git_url()'  => sub {

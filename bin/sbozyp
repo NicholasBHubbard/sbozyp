@@ -497,11 +497,34 @@ sub repo_num_git_url { # NOT TESTED
     }
 }
 
+sub repo_name { # NOT TESTED
+    return $CONFIG{REPO_NAME};
+}
+
+sub repo_num { # NOT TESTED
+    my $repo_num = repo_name_repo_num($CONFIG{REPO_NAME});
+    return $repo_num;
+}
+
+sub repo_git_branch { # NOT TESTED
+    my $repo_num = repo_name_repo_num($CONFIG{REPO_NAME});
+    my $repo_git_branch = repo_num_git_branch($repo_num);
+    return $repo_git_branch;
+}
+
+sub repo_git_url { # NOT TESTED
+    my $repo_num = repo_name_repo_num($CONFIG{REPO_NAME});
+    my $repo_git_url = repo_num_git_url($repo_num);
+    return $repo_git_url;
+}
+
 sub sync_repo {
     if (-d "$CONFIG{REPO_ROOT}/$CONFIG{REPO_NAME}") {
         sbozyp_rmdir_rec("$CONFIG{REPO_ROOT}/$CONFIG{REPO_NAME}")
     }
-    sbozyp_system('git', 'clone', '-b', $CONFIG{REPO_GIT_BRANCH}, $CONFIG{REPO_GIT_URL}, "$CONFIG{REPO_ROOT}/$CONFIG{REPO_NAME}");
+    my $repo_git_branch = repo_git_branch();
+    my $repo_git_url = repo_git_url();
+    sbozyp_system('git', 'clone', '-b', $repo_git_branch, $repo_git_url, "$CONFIG{REPO_ROOT}/$CONFIG{REPO_NAME}");
 }
 
 sub pkg_queue {
