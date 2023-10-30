@@ -218,7 +218,7 @@ sub query_pkg { # NOT TESTED
     my ($pkg) = @_;
     my $pkgdir = $pkg->{PKGDIR};
     my @pkg_files = sbozyp_find_files_recursive($pkgdir);
-    my $score = sub {
+    my $score = sub { # for a consistently sorted UI across all SBO packages
         my ($file) = @_;
         my $bn = basename($file);
         $bn =~ /^README$/      and return 0;
