@@ -773,16 +773,6 @@ subtest 'installed_sbo_pkgs()' => sub {
     remove_tree("$TEST_DIR/tmp_root") or die;
 };
 
-# subtest 'remove_main()' => sub {
-#     # TODO: test remove_main()
-#     # Given a package X with P dependencies and set of N packages, after removing
-#     # X the set of packages should contain N - (P - 1) packages.
-#     my @installed_pkgs = Sbozyp::installed_sbo_pkgs();
-
-#     my $pkg = 'yabsm';
-#     is('', '3.11.2');
-# };
-
 subtest 'repo_name_repo_num()'  => sub {
     my $repo_num_0 = repo_name_repo_num('14.1');
     my $repo_num_1 = repo_name_repo_num('14.2');
