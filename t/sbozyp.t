@@ -80,7 +80,7 @@ subtest 'sbozyp_qx()' => sub {
 
     is(Sbozyp::sbozyp_qx('echo foo'), 'foo', 'returns stdout with chomped newline when called in scalar context');
 
-    is([Sbozyp::sbozyp_qx('echo -e "foo\nbar"')],
+    is([Sbozyp::sbozyp_qx('/bin/echo -e "foo\nbar"')],
        ['foo', 'bar'],
        'returns list of chomped lines when called in list context'
     );
