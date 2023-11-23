@@ -249,14 +249,14 @@ sub query_pkg { # NOT TESTED
 sub all_categories {
     my @categories = sort map {
         basename($_);
-    } sbozyp_qx("find '$CONFIG{REPO_ROOT}/$CONFIG{REPO_NAME}' -not -path '*/.git' -type d -mindepth 1 -maxdepth 1");
+    } sbozyp_qx("find '$CONFIG{REPO_ROOT}/$CONFIG{REPO_NAME}' -mindepth 1 -maxdepth 1 -type d -not -path '*/.git'");
     return @categories
 }
 
 sub all_pkgnames {
     my @pkgnames = sort map {
         my ($pkgname) = $_ =~ m,/([^/]+/[^/]+)$,;
-    } sbozyp_qx("find '$CONFIG{REPO_ROOT}/$CONFIG{REPO_NAME}' -not -path '*/.git/*' -type d -mindepth 2 -maxdepth 2");
+    } sbozyp_qx("find '$CONFIG{REPO_ROOT}/$CONFIG{REPO_NAME}' -mindepth 2 -maxdepth 2 -type d -not -path '*/.git/*'");
     return @pkgnames;
 }
 
@@ -471,7 +471,7 @@ sub parse_config_file {
     $CONFIG{REPO_NAME} = $CONFIG{REPO_PRIMARY};
 }
 
-sub repo_name_repo_num { # NOT TESTED
+sub repo_name_repo_num {
     my ($repo_name) = @_;
     my $repo_num;
     for my $k (grep /^REPO_.+_NAME/, sort keys %CONFIG) {
@@ -483,42 +483,33 @@ sub repo_name_repo_num { # NOT TESTED
     return $repo_num;
 }
 
-sub repo_num_git_branch { # NOT TESTED
+sub repo_num_git_branch {
     my ($repo_num) = @_;
     for my $k (sort keys %CONFIG) {
         return $CONFIG{$&} if $k =~ /^REPO_\Q$repo_num\E_GIT_BRANCH$/;
     }
 }
 
-sub repo_num_git_url { # NOT TESTED
+sub repo_num_git_url {
     my ($repo_num) = @_;
     for my $k (sort keys %CONFIG) {
         return $CONFIG{$&} if $k =~ /^REPO_\Q$repo_num\E_GIT_URL$/;
     }
 }
 
-sub repo_name { # NOT TESTED
-    return $CONFIG{REPO_NAME};
-}
-
-sub repo_num { # NOT TESTED
-    my $repo_num = repo_name_repo_num($CONFIG{REPO_NAME});
-    return $repo_num;
-}
-
-sub repo_git_branch { # NOT TESTED
+sub repo_git_branch {
     my $repo_num = repo_name_repo_num($CONFIG{REPO_NAME});
     my $repo_git_branch = repo_num_git_branch($repo_num);
     return $repo_git_branch;
 }
 
-sub repo_git_url { # NOT TESTED
+sub repo_git_url {
     my $repo_num = repo_name_repo_num($CONFIG{REPO_NAME});
     my $repo_git_url = repo_num_git_url($repo_num);
     return $repo_git_url;
 }
 
-sub sync_repo {
+sub sync_repo { # TODO: can we update incrementally instead of full recloning?
     if (-d "$CONFIG{REPO_ROOT}/$CONFIG{REPO_NAME}") {
         sbozyp_rmdir_rec("$CONFIG{REPO_ROOT}/$CONFIG{REPO_NAME}")
     }

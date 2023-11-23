@@ -1,9 +1,5 @@
 #!/usr/bin/perl
 
-# TODO: test remove_main()
-# Given a package X with P dependencies and set of N packages, after removing
-# X the set of packages should contain N - (P - 1) packages.
-
 use strict;
 use warnings;
 use v5.34.0;
@@ -774,22 +770,25 @@ subtest 'installed_sbo_pkgs()' => sub {
 };
 
 subtest 'repo_name_repo_num()'  => sub {
-    my $repo_num_0 = repo_name_repo_num('14.1');
-    my $repo_num_1 = repo_name_repo_num('14.2');
-    my $repo_num_2 = repo_name_repo_num('15.0');
+    my $repo_num_0 = Sbozyp::repo_name_repo_num('14.1');
+    my $repo_num_1 = Sbozyp::repo_name_repo_num('14.2');
+    my $repo_num_2 = Sbozyp::repo_name_repo_num('15.0');
     ok($repo_num_0 == 0 && $repo_num_1 == 1 && $repo_num_2 == 2, 'returns correct repo numbers');
 };
 
 subtest 'repo_num_git_branch()'  => sub {
-    my $git_branch_0 = repo_num_git_branch(0);
-    my $git_branch_1 = repo_num_git_branch(1);
-    my $git_branch_2 = repo_num_git_branch(2);
+    my $git_branch_0 = Sbozyp::repo_num_git_branch(0);
+    my $git_branch_1 = Sbozyp::repo_num_git_branch(1);
+    my $git_branch_2 = Sbozyp::repo_num_git_branch(2);
     ok($git_branch_0 eq '14.1' && $git_branch_1 eq '14.2' && $git_branch_2 eq '15.0', 'returns correct git branches');
 };
 
 subtest 'repo_num_git_url()'  => sub {
-    #TODO
-    ok(1);
+    my $url = 'git://git.slackbuilds.org/slackbuilds.git';
+    my $git_url_0 = Sbozyp::repo_num_git_url(0);
+    my $git_url_1 = Sbozyp::repo_num_git_url(1);
+    my $git_url_2 = Sbozyp::repo_num_git_url(2);
+    ok($git_url_0 eq $url && $git_url_1 eq $url && $git_url_2 eq $url, 'returns correct git urls');
 };
 
 done_testing;
