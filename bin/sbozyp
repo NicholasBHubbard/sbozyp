@@ -18,7 +18,7 @@ use File::Temp;
 use File::stat;
 use File::Copy qw(mv);
 use File::Path qw(make_path remove_tree);
-use Getopt::Long qw(GetOptionsFromArray :config no_ignore_case bundling);
+use Getopt::Long qw(GetOptionsFromArray :config no_ignore_case bundling pass_through);
 use Carp qw(carp confess);
 
 $SIG{INT} = sub { die "sbozyp: got a SIGINT ... going down!\n" };
