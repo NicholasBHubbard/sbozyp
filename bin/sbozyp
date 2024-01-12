@@ -297,8 +297,6 @@ sub sbozyp_getopts {
     GetOptionsFromArray(@_) or sbozyp_die($error);
 }
 
-my @array = (1,2,3);
-
 sub sbozyp_die {
     my ($msg) = @_;
     die "sbozyp: error: $msg\n";
