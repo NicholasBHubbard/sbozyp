@@ -791,4 +791,8 @@ subtest 'repo_num_git_url()'  => sub {
     ok($git_url_0 eq $url && $git_url_1 eq $url && $git_url_2 eq $url, 'returns correct git urls');
 };
 
+# subtest 'manage_install_queue_ui()' => sub {
+
+# };
+
 done_testing;

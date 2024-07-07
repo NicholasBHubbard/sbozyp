@@ -63,15 +63,13 @@ find -L . \
   -o -perm 440 -o -perm 400 \) -exec chmod 644 {} \;
 
 perl Makefile.PL \
+  INSTALL_BASE='' \
   PREFIX=/usr \
   INSTALLDIRS=vendor \
   INSTALLVENDORMAN1DIR=/usr/man/man1 \
   INSTALLVENDORMAN3DIR=/usr/man/man3
 make
 make install DESTDIR=$PKG
-
-find $PKG/usr/man -type f -exec gzip -9 {} \;
-for i in $( find $PKG/usr/man -type l ) ; do ln -s $( readlink $i ).gz $i.gz ; rm $i ; done
 
 find $PKG -name perllocal.pod -o -name ".packlist" -o -name "*.bs" | xargs rm -f || true
 

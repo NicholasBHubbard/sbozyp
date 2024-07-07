@@ -18,7 +18,7 @@ use File::Temp;
 use File::stat;
 use File::Copy qw(mv);
 use File::Path qw(make_path remove_tree);
-use Getopt::Long qw(GetOptionsFromArray :config no_ignore_case bundling pass_through);
+use Getopt::Long qw(GetOptionsFromArray :config no_ignore_case bundling);
 use Carp qw(carp confess);
 
 $SIG{INT} = sub { die "sbozyp: got a SIGINT ... going down!\n" };
@@ -93,29 +93,7 @@ END_HELP
     my $pkg = pkg($_[0] // die "$usage\n");
     sync_repo() if $sync;
     my @queue = $no_deps ? ($pkg) : pkg_queue($pkg);
-    unless ($non_interactive) {
-        for my $pkg (@queue) {
-            if ($pkg->{HAS_EXTRA_DEPS}) {
-                print "sbozyp: pkg '$pkg->{PKGNAME}' has optional dependencies\n";
-              PROMPT_USER:
-                print '  would you like to view ', $pkg->{PKGNAME}, '\'s README file? y/n', "\n";
-                print '  -> ';
-                chomp(my $decision = <STDIN>);
-                if ($decision eq 'y') { sbozyp_system($ENV{PAGER} // 'less', $pkg->{README_FILE}) }
-                elsif ($decision eq 'n') { ; }  # do nothing
-                else  { print "  '$decision' is not a valid option\n" ; goto PROMPT_USER }
-            }
-        }
-        print 'sbozyp: pkgs to install:', "\n";
-        print '  ', $_->{PKGNAME}, "\n" for @queue;
-      PROMPT_USER:
-        print 'do you want to proceed? y/n', "\n";
-        print '  -> ';
-        chomp(my $decision = <STDIN>);
-        if    ($decision eq 'y') { ; } # do nothing
-        elsif ($decision eq 'n') { exit 0 }
-        else  { print "  '$decision' is not a valid option\n" ; goto PROMPT_USER }
-    }
+    @queue = manage_install_queue_ui(@queue) unless $non_interactive;
     for my $pkg (@queue) {
         my $slackware_pkg = build_slackware_pkg($pkg);
         install_slackware_pkg($slackware_pkg);
@@ -230,6 +208,7 @@ sub query_pkg { # NOT TESTED
     };
     @pkg_files = sort { $score->($a) <=> $score->($b) } @pkg_files;
     while (1) {
+        clear_terminal();
         print "sbozyp: query $pkg->{PKGNAME}: select a file to view in your pager (q to quit):\n";
         for (my $i = 0; $i < @pkg_files; $i++) {
             printf "  %2d  %s\n", $i+1, $pkg_files[$i] =~ s/^$pkgdir\///r;
@@ -318,6 +297,12 @@ sub sbozyp_system {
     unless (0 == $exit_status) {
         sbozyp_die("system command '@cmd' exited with status $exit_status");
     }
+}
+
+sub clear_terminal { # NOT TESTED
+    print "\033[2J";    # clear the screen
+    # print "\033[3J";    # clear the scrollback
+    print "\033[0;0H";  # jump to 0,0
 }
 
 sub sbozyp_qx {
@@ -433,11 +418,13 @@ sub i_am_root_or_die {
     sbozyp_die('must be root') unless 0 == $>;
 }
 
-sub parse_global_options { # This function should be called after parse_config_file()
+sub parse_global_options { # NOT TESTED This function should be called after parse_config_file()
+    Getopt::Long::Configure('pass_through');
     sbozyp_getopts(
         \@ARGV,
         'r=s' => \my $repo_name,
     );
+    Getopt::Long::Configure('nopass_through');
     if ($repo_name) {
         my $repo_num = repo_name_repo_num($repo_name);
         my $repo_git_branch = repo_num_git_branch($repo_num);
@@ -585,6 +572,53 @@ sub prepare_pkg {
     }
     return $staging_dir;
 }
+
+sub manage_install_queue_ui { # NOT TESTED
+    my @pkg_queue = @_;
+    my $error_msg = '';
+    while (1) {
+        clear_terminal();
+        if ($error_msg) { print "$error_msg\n"; $error_msg = '' };
+        for (my $i = 0; $i < @pkg_queue; $i++) {
+            printf "  %2d  %s\n", $i+1, $pkg_queue[$i]->{PKGNAME};
+        }
+        print '(c)onfirm; (s)wap IDX IDX; (d)elete IDX; (a)dd IDX PKG; (q)uit;', "\n", '  -> ';
+        my $input = <STDIN>;
+        $input =~ s/^\s+|\s+$//g; # remove leading and trailing whitespace
+        if ($input =~ /^(?:q|quit)$/) {
+            exit 0;
+        } elsif ($input =~ /^(?:c|confirm)$/) {
+            last;
+        } elsif ($input =~ /^(?:s|swap)\s+(\d+)\s+(\d+)$/) {
+            my $index1 = $1 - 1;
+            my $index2 = $2 - 1;
+            if ($index1 < @pkg_queue && $index2 < @pkg_queue) {
+                @pkg_queue[$index1,$index2] = @pkg_queue[$index2,$index1];
+            } else {
+                $error_msg = "index '$index1' '$index2' is out of range";
+            }
+        } elsif ($input =~ /^(?:d|delete)\s+(\d+)\s*$/) {
+            my $index = $1 - 1;
+            if ($index < @pkg_queue) {
+                splice @pkg_queue, $index, 1;
+            } else {
+                $error_msg = "index '$index' is out of range"
+            }
+        } elsif ($input =~ /^(?:a|add)\s+(\d+)\s+(.+)$/) {
+            my $index = $1 - 1;
+            my $pkg = $2;
+            if ($index < @pkg_queue) {
+                splice @pkg_queue, $index, 0, $pkg
+            } else {
+                $error_msg = "index '$index' is out of range"
+            }
+        } else {
+            $error_msg = "invalid input: '$input'";
+        }
+    }
+    return wantarray ? @pkg_queue : \@pkg_queue;
+}
+
 
 sub build_slackware_pkg {
     my ($pkg) = @_;
