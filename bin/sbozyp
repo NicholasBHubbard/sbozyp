@@ -108,7 +108,7 @@ $usage
 options are:
   -h    print this help message
   -c    match case sensitive
-  -n    match against CATEGORY/PKGNAM insteed of just PKGNAM
+  -n    match against CATEGORY/PKGNAM instead of just PKGNAM
 END_HELP
     sbozyp_getopts(
         \@_,
