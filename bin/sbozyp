@@ -543,7 +543,7 @@ sub installed_sbo_pkgs {
     my %installed_sbo_pkgs = map {
         my ($pkgname, $version) = parse_slackware_pkgname(basename($_));
     } grep /_SBo$/, sbozyp_readdir("$root/var/lib/pkgtools/packages");
-    return %installed_sbo_pkgs;
+    return wantarray ? %installed_sbo_pkgs : \%installed_sbo_pkgs;
 }
 
 sub prepare_pkg {
