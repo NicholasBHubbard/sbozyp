@@ -580,11 +580,11 @@ sub manage_install_queue_ui { # NOT TESTED
     my $error_msg = '';
     while (1) {
         clear_terminal();
-        if ($error_msg) { print "$error_msg\n"; $error_msg = '' };
+        if ($error_msg) { print "$error_msg\n\n"; $error_msg = '' };
         for (my $i = 0; $i < @pkg_queue; $i++) {
-            printf "  %2d  %s\n", $i+1, $pkg_queue[$i]->{PKGNAME};
+            printf "  %2d  %s\n", $i, $pkg_queue[$i]->{PKGNAME};
         }
-        print '(c)onfirm; (s)wap IDX IDX; (d)elete IDX; (a)dd IDX PKG; (q)uit;', "\n", '  -> ';
+        print '(c)onfirm; (s)wap IDX IDX; (d)elete IDX; (a)dd IDX? PKG; (q)uit;', "\n", '  -> ';
         my $input = <STDIN>;
         $input =~ s/^\s+|\s+$//g; # remove leading and trailing whitespace
         if ($input =~ /^(?:q|quit)$/) {
@@ -592,27 +592,32 @@ sub manage_install_queue_ui { # NOT TESTED
         } elsif ($input =~ /^(?:c|confirm)$/) {
             last;
         } elsif ($input =~ /^(?:s|swap)\s+(\d+)\s+(\d+)$/) {
-            my $index1 = $1 - 1;
-            my $index2 = $2 - 1;
+            my $index1 = $1;
+            my $index2 = $2;
             if ($index1 < @pkg_queue && $index2 < @pkg_queue) {
                 @pkg_queue[$index1,$index2] = @pkg_queue[$index2,$index1];
             } else {
-                $error_msg = "index '$index1' '$index2' is out of range";
+                $error_msg = "index '$index1' or '$index2' is out of range (0 - @{[@pkg_queue - 1]})";
             }
         } elsif ($input =~ /^(?:d|delete)\s+(\d+)\s*$/) {
-            my $index = $1 - 1;
+            my $index = $1;
             if ($index < @pkg_queue) {
                 splice @pkg_queue, $index, 1;
             } else {
-                $error_msg = "index '$index' is out of range"
+                $error_msg = "index '$index' is out of range (0 - @{[@pkg_queue - 1]})"
             }
-        } elsif ($input =~ /^(?:a|add)\s+(\d+)\s+(.+)$/) {
-            my $index = $1 - 1;
-            my $pkg = $2;
-            if ($index < @pkg_queue) {
-                splice @pkg_queue, $index, 0, $pkg
+        } elsif ($input =~ /^(?:a|add)(?:\s+(\d+))?\s+(.+)$/) {
+            my $index = $1 // 0;
+            my $pkgname = find_pkgname($2);
+            if (!$pkgname) {
+                $error_msg = "could not find a package named '$2'"
+            } elsif (grep { $pkgname eq $_->{PKGNAME} } @pkg_queue) {
+                $error_msg = "package '$pkgname' is already in the queue"
+            } elsif ($index < 0 || $index > @pkg_queue) {
+                $error_msg = "index '$index' is out of range (0 - @{[scalar @pkg_queue]})"
             } else {
-                $error_msg = "index '$index' is out of range"
+                my $pkg = pkg($pkgname);
+                splice @pkg_queue, $index, 0, $pkg;
             }
         } else {
             $error_msg = "invalid input: '$input'";
