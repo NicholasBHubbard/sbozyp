@@ -769,6 +769,25 @@ subtest 'installed_sbo_pkgs()' => sub {
     remove_tree("$TEST_DIR/tmp_root") or die;
 };
 
+subtest 'pkg_installed()' => sub {
+    skip_all('test for pkg_installed() requires root') unless $> == 0;
+
+    # change the install destination
+    local $ENV{ROOT} = "$TEST_DIR/tmp_root";
+    mkdir $ENV{ROOT} or die;
+
+    my $pkg1 = Sbozyp::pkg('sbozyp-basic');
+    my $pkg2 = Sbozyp::pkg('sbozyp-nested-dir'); # not installed
+
+    Sbozyp::install_slackware_pkg(Sbozyp::build_slackware_pkg($pkg1));
+
+    is('1.0', Sbozyp::pkg_installed($pkg1), 'returns version of installed package if it is installed');
+    is(undef, Sbozyp::pkg_installed($pkg2), 'returns undef in pkg is not installed');
+
+    remove_tree("$TEST_DIR/tmp_root") or die;
+};
+
+
 subtest 'repo_name_repo_num()'  => sub {
     my $repo_num_0 = Sbozyp::repo_name_repo_num('14.1');
     my $repo_num_1 = Sbozyp::repo_name_repo_num('14.2');
