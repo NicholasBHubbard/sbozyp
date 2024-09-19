@@ -83,17 +83,17 @@ options are:
 END_HELP
     sbozyp_getopts(
         \@_,
-        'h' => \my $help,
-        'n' => \my $no_deps,
-        's' => \my $sync,
-        'i' => \my $non_interactive
+        'h' => \my $opt_help,
+        'n' => \my $opt_nodeps,
+        's' => \my $opt_sync,
+        'i' => \my $opt_noninteractive
     );
-    if ($help) { print $help_msg ; return }
+    if ($opt_help) { print $help_msg ; return }
     i_am_root_or_die();
     my $pkg = pkg($_[0] // die "$usage\n");
-    sync_repo() if $sync;
-    my @queue = $no_deps ? ($pkg) : pkg_queue($pkg);
-    @queue = manage_install_queue_ui(@queue) unless $non_interactive;
+    sync_repo() if $opt_sync;
+    my @queue = $opt_nodeps ? ($pkg) : pkg_queue($pkg);
+    @queue = manage_install_queue_ui(@queue) unless $opt_noninteractive;
     for my $pkg (@queue) {
         my $slackware_pkg = build_slackware_pkg($pkg);
         install_slackware_pkg($slackware_pkg);
@@ -112,15 +112,15 @@ options are:
 END_HELP
     sbozyp_getopts(
         \@_,
-        'h' => \my $help,
-        'c' => \my $case_sensitive,
-        'n' => \my $match_category
+        'h' => \my $opt_help,
+        'c' => \my $opt_casesensitive,
+        'n' => \my $opt_matchcategory
     );
-    if ($help) { print $help_msg ; return }
+    if ($opt_help) { print $help_msg ; return }
     my $regex_arg = $_[0] // die "$usage\n";
-    my $regex = $case_sensitive ? qr/$regex_arg/ : qr/$regex_arg/i;
+    my $regex = $opt_casesensitive ? qr/$regex_arg/ : qr/$regex_arg/i;
     my @matches = map { $_ = pkg($_) } grep {
-        $match_category ? $_ =~ $regex : basename($_) =~ $regex;
+        $opt_matchcategory ? $_ =~ $regex : basename($_) =~ $regex;
     } all_pkgnames();
     if (@matches) {
         print "sbozyp: the following packages match the regex '$regex_arg'\n";
@@ -143,8 +143,8 @@ files in your pager.
 options are:
   -h    print this help message
 END_HELP
-    sbozyp_getopts(\@_, 'h' => \my $help);
-    if ($help) { print $help_msg ; return }
+    sbozyp_getopts(\@_, 'h' => \my $opt_help);
+    if ($opt_help) { print $help_msg ; return }
     my $pkg = pkg($_[0] // die "$usage\n");
     query_pkg($pkg);
 }
