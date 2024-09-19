@@ -606,7 +606,7 @@ sub manage_install_queue_ui { # NOT TESTED
             } else {
                 $error_msg = "index '$index' is out of range (0 - @{[@pkg_queue - 1]})"
             }
-        } elsif ($input =~ /^(?:a|add)(?:\s+(\d+))?\s+(.+)$/) {
+        } elsif ($input =~ /^(?:a|add)\s+(?:(?:(\d+)\s+(.+))|([^\s]+))$/) {
             my $index = $1 // 0;
             my $pkgname = find_pkgname($2);
             if (!$pkgname) {
