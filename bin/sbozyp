@@ -83,7 +83,7 @@ options are:
 END_HELP
     sbozyp_getopts(
         \@_,
-        'h' => \my $opt_help,
+        'h|help' => \my $opt_help,
         'n' => \my $opt_nodeps,
         's' => \my $opt_sync,
         'i' => \my $opt_noninteractive
@@ -112,7 +112,7 @@ options are:
 END_HELP
     sbozyp_getopts(
         \@_,
-        'h' => \my $opt_help,
+        'h|help' => \my $opt_help,
         'c' => \my $opt_casesensitive,
         'n' => \my $opt_matchcategory
     );
@@ -143,7 +143,7 @@ files in your pager.
 options are:
   -h    print this help message
 END_HELP
-    sbozyp_getopts(\@_, 'h' => \my $opt_help);
+    sbozyp_getopts(\@_, 'h|help' => \my $opt_help);
     if ($opt_help) { print $help_msg ; return }
     my $pkg = pkg($_[0] // die "$usage\n");
     query_pkg($pkg);
