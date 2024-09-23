@@ -463,10 +463,10 @@ subtest 'sync_repo()' => sub {
        'clones SBo repo to $CONFIG{REPO_ROOT}/$CONFIG{REPO_NAME} if it has not yet been cloned'
     );
 
-    my (undef, $stderr) = capture { Sbozyp::sync_repo() };
-    like($stderr,
-         qr/Cloning into '\Q$Sbozyp::CONFIG{REPO_ROOT}\/$Sbozyp::CONFIG{REPO_NAME}\E'/,
-         're-clones repo if it already exists'
+    my ($stdout) = capture { Sbozyp::sync_repo() };
+    like($stdout,
+         qr/already up to date/i,
+         'uses git pull if repo has already been cloned'
     );
 };
 
