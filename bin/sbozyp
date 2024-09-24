@@ -588,7 +588,8 @@ sub manage_install_queue_ui { # NOT TESTED
         my $input = <STDIN>;
         $input =~ s/^\s+|\s+$//g; # remove leading and trailing whitespace
         if ($input =~ /^(?:q|quit)$/) {
-            exit 0;
+            @pkg_queue = ();
+            last;
         } elsif ($input =~ /^(?:c|confirm)$/) {
             last;
         } elsif ($input =~ /^(?:s|swap)\s+(\d+)\s+(\d+)$/) {
