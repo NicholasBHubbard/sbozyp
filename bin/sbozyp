@@ -59,8 +59,8 @@ sub main { # NOT TESTED
     elsif ($cmd eq 'query')              { query_main(@ARGV)    }
     elsif ($cmd eq 'remove')             { remove_main(@ARGV)   }
     elsif ($cmd eq 'search')             { search_main(@ARGV)   }
-    elsif ($cmd eq 'upgrade')            { upgrade_main(@ARGV)  }
     elsif ($cmd eq 'sync')               { sync_main(@ARGV)     }
+    elsif ($cmd eq 'upgrade')            { upgrade_main(@ARGV)  }
     else                                 { die_usage()          }
     # all good
     exit 0;
