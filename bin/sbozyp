@@ -575,7 +575,7 @@ sub prepare_pkg {
     return $staging_dir;
 }
 
-sub manage_install_queue_ui { # NOT TESTED
+sub manage_install_queue_ui {
     my @pkg_queue = @_;
     my $error_msg = '';
     while (1) {
@@ -584,7 +584,7 @@ sub manage_install_queue_ui { # NOT TESTED
         for (my $i = 0; $i < @pkg_queue; $i++) {
             printf "  %2d  %s\n", $i, $pkg_queue[$i]->{PKGNAME};
         }
-        print '(c)onfirm; (s)wap IDX IDX; (d)elete IDX; (a)dd IDX? PKG; (q)uit;', "\n", '  -> ';
+        print '(c)onfirm; (q)uit; (a)dd IDX? PKG; (d)elete IDX; (s)wap IDX IDX;', "\n", '  -> ';
         my $input = <STDIN>;
         $input =~ s/^\s+|\s+$//g; # remove leading and trailing whitespace
         if ($input =~ /^(?:q|quit)$/) {
@@ -607,7 +607,7 @@ sub manage_install_queue_ui { # NOT TESTED
             } else {
                 $error_msg = "index '$index' is out of range (0 - @{[@pkg_queue - 1]})"
             }
-        } elsif ($input =~ /^(?:a|add)\s+(?:(?:(\d+)\s+([^\s]+))|([^\s]+))$/) {
+        } elsif ($input =~ /^(?:a|add)\s+(?:(\d+)\s+)?([^\s]+)$/) {
             my $index = $1 // @pkg_queue;
             my $pkgname = find_pkgname($2);
             if (!$pkgname) {

@@ -810,8 +810,131 @@ subtest 'repo_num_git_url()'  => sub {
     ok($git_url_0 eq $url && $git_url_1 eq $url && $git_url_2 eq $url, 'returns correct git urls');
 };
 
-# subtest 'manage_install_queue_ui()' => sub {
+subtest 'manage_install_queue_ui()' => sub {
+    # the pkgs picked here are arbitrary ...
+    my $pkg1 = Sbozyp::pkg('sbozyp-basic');
+    my $pkg2 = Sbozyp::pkg('sbozyp-nested-dir');
+    my $pkg3 = Sbozyp::pkg('sbozyp-readme-extra-deps');
+    my @queue = ($pkg1, $pkg2, $pkg3);
 
-# };
+    my $stdin; # were gonna mock STDIN for the following tests.
+    my $stdout; # some tests capture STDOUT into this variable
+
+    open $stdin, '<', \"confirm\n" or die;
+    local *STDIN = $stdin;
+    is(\@queue, [Sbozyp::manage_install_queue_ui(@queue)], q('confirm' returns queue as is));
+    close $stdin or die;
+
+    open $stdin, '<', \"c\n" or die;
+    local *STDIN = $stdin;
+    is(\@queue, [Sbozyp::manage_install_queue_ui(@queue)], q(accepts 'c' as abbreviation for 'confirm'));
+    close $stdin or die;
+
+    open $stdin, '<', \"INVALID\nc\n" or die;
+    local *STDIN = $stdin;
+    ($stdout) = capture { Sbozyp::manage_install_queue_ui(@queue) };
+    like($stdout, qr/invalid input/, 'rejects invalid input');
+    close $stdin or die;
+
+    open $stdin, '<', \"quit\n" or die;
+    local *STDIN = $stdin;
+    is([], [Sbozyp::manage_install_queue_ui(@queue)], q('quit' returns empty list));
+    close $stdin or die;
+
+    open $stdin, '<', \"q\n" or die;
+    local *STDIN = $stdin;
+    is([], [Sbozyp::manage_install_queue_ui(@queue)], q(accepts 'q' as abbreviation for 'quit'));
+    close $stdin or die;
+
+    open $stdin, '<', \"swap 0 2\nc\n" or die;
+    local *STDIN = $stdin;
+    is([$pkg3,$pkg2,$pkg1], [Sbozyp::manage_install_queue_ui(@queue)], q(accepts 'swap' as well as just s));
+    close $stdin or die;
+
+    open $stdin, '<', \"s 0 1\nc\n" or die;
+    local *STDIN = $stdin;
+    is([$pkg2,$pkg1,$pkg3], [Sbozyp::manage_install_queue_ui(@queue)], q(accepts 's' as abbreviation for 'swap'));
+    close $stdin or die;
+
+    open $stdin, '<', \"swap 2 0\nc\n" or die;
+    local *STDIN = $stdin;
+    is([$pkg3,$pkg2,$pkg1], [Sbozyp::manage_install_queue_ui(@queue)], q('swap' doesnt care about order of indices));
+    close $stdin or die;
+
+    open $stdin, '<', \"swap 0 3\nc\n" or die;
+    local *STDIN = $stdin;
+    ($stdout) = capture { Sbozyp::manage_install_queue_ui(@queue) };
+    like($stdout, qr/index.*out of range/, 'swap gives error message for index out of range');
+    close $stdin or die;
+
+    open $stdin, '<', \"swap 0 -1\nc\n" or die;
+    local *STDIN = $stdin;
+    ($stdout) = capture { Sbozyp::manage_install_queue_ui(@queue) };
+    like($stdout, qr/invalid input/, 'rejects negative numbers as invalid input');
+    close $stdin or die;
+
+    open $stdin, '<', \"delete 1\nc\n" or die;
+    local *STDIN = $stdin;
+    is([$pkg1,$pkg3], [Sbozyp::manage_install_queue_ui(@queue)], q('delete' deletes pkg at given index));
+    close $stdin or die;
+
+    open $stdin, '<', \"d 1\nc\n" or die;
+    local *STDIN = $stdin;
+    is([$pkg1,$pkg3], [Sbozyp::manage_install_queue_ui(@queue)], q(accepts 'd' as abbreviation for 'delete'));
+    close $stdin or die;
+
+    open $stdin, '<', \"d\nc\n" or die;
+    local *STDIN = $stdin;
+    ($stdout) = capture { Sbozyp::manage_install_queue_ui(@queue) };
+    like($stdout, qr/invalid input/, q('delete' requires arg or else it rejects input));
+    close $stdin or die;
+
+    open $stdin, '<', \"d FOO\nc\n" or die;
+    local *STDIN = $stdin;
+    ($stdout) = capture { Sbozyp::manage_install_queue_ui(@queue) };
+    like($stdout, qr/invalid input/, q('delete' requires arg to be numeric or else it rejects input));
+    close $stdin or die;
+
+    my $pkg4_prgnam = 'sbozyp-recursive-dep-B';
+    my $pkg4_pkgname = 'misc/sbozyp-recursive-dep-B';
+    my $pkg4 = Sbozyp::pkg($pkg4_prgnam); # $pkg4 is used in tests for 'add'
+
+    open $stdin, '<', \"add 1 $pkg4_prgnam\nc\n" or die;
+    local *STDIN = $stdin;
+    is([$pkg1,$pkg4,$pkg2,$pkg3], [Sbozyp::manage_install_queue_ui(@queue)], q('add' adds a pkg named PRGNAM to the queue at INDEX));
+    close $stdin or die;
+
+    open $stdin, '<', \"a 1 $pkg4_prgnam\nc\n" or die;
+    local *STDIN = $stdin;
+    is([$pkg1,$pkg4,$pkg2,$pkg3], [Sbozyp::manage_install_queue_ui(@queue)], q(accepts 'a' as abbreviation for 'add'));
+    close $stdin or die;
+
+    open $stdin, '<', \"a 1 $pkg4_pkgname\nc\n" or die;
+    local *STDIN = $stdin;
+    is([$pkg1,$pkg4,$pkg2,$pkg3], [Sbozyp::manage_install_queue_ui(@queue)], q('add' accepts PKGNAME as well as PRGNAM));
+    close $stdin or die;
+
+    open $stdin, '<', \"a 3 $pkg4_prgnam\nc\n" or die;
+    local *STDIN = $stdin;
+    is([$pkg1,$pkg2,$pkg3,$pkg4], [Sbozyp::manage_install_queue_ui(@queue)], q('add' adds to end of queue when specifying one more than last IDX));
+    close $stdin or die;
+
+    open $stdin, '<', \"a 4 $pkg4_prgnam\nc\n" or die;
+    local *STDIN = $stdin;
+    ($stdout) = capture { Sbozyp::manage_install_queue_ui(@queue) };
+    like($stdout, qr/index '4' is out of range \(0 - 3\)/, q('add' rejects IDX out of range));
+    close $stdin or die;
+
+    open $stdin, '<', \"a 3 NOTAREALPACKAGE\nc\n" or die;
+    local *STDIN = $stdin;
+    ($stdout) = capture { Sbozyp::manage_install_queue_ui(@queue) };
+    like($stdout, qr/could not find a package named 'NOTAREALPACKAGE'/, q('add' rejects non-existent package));
+    close $stdin or die;
+
+    open $stdin, '<', \"a $pkg4_prgnam\nc\n" or die;
+    local *STDIN = $stdin;
+    is([$pkg1,$pkg2,$pkg3,$pkg4], [Sbozyp::manage_install_queue_ui(@queue)], q('add' allows IDX to be left out and defaults to adding to end of the queue));
+    close $stdin or die;
+};
 
 done_testing;
