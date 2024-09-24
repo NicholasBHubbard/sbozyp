@@ -581,6 +581,7 @@ sub manage_install_queue_ui {
     while (1) {
         clear_terminal();
         if ($error_msg) { print "$error_msg\n\n"; $error_msg = '' };
+        print 'INSTALL QUEUE', "\n";
         for (my $i = 0; $i < @pkg_queue; $i++) {
             printf "  %2d  %s\n", $i, $pkg_queue[$i]->{PKGNAME};
         }
