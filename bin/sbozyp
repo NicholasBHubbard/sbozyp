@@ -497,11 +497,11 @@ sub repo_git_url {
 sub sync_repo { # TODO: can we update incrementally instead of full recloning?
     my $git_repo = "$CONFIG{REPO_ROOT}/$CONFIG{REPO_NAME}";
     if (-d $git_repo) {
-        sbozyp_system('git', '-C', $git_repo, 'pull', '-p');
+        sbozyp_system('git', '-C', $git_repo, 'pull', '--prune');
     } else {
         my $repo_git_branch = repo_git_branch();
         my $repo_git_url = repo_git_url();
-        sbozyp_system('git', 'clone', '-b', $repo_git_branch, $repo_git_url, $git_repo);
+        sbozyp_system('git', 'clone', '--branch', $repo_git_branch, $repo_git_url, $git_repo);
     }
 }
 
