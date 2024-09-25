@@ -456,6 +456,16 @@ sub parse_config_file {
     $CONFIG{REPO_NAME} = $CONFIG{REPO_PRIMARY};
 }
 
+sub set_repo_name_or_die { # NOT TESTED
+    my ($repo_name) = @_;
+    my $repo_num = repo_name_repo_num($repo_name);
+    if (defined $repo_num) {
+        $CONFIG{REPO_NAME} = $repo_name;
+    } else {
+        sbozyp_die("no repo named '$repo_name'");
+    }
+}
+
 sub repo_name_repo_num {
     my ($repo_name) = @_;
     my $repo_num;

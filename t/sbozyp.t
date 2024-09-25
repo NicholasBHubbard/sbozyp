@@ -937,4 +937,22 @@ subtest 'manage_install_queue_ui()' => sub {
     close $stdin or die;
 };
 
+subtest 'set_repo_name_or_die()' => sub {
+    my $valid_repo_name = '14.1';
+    my $invalid_repo_name = 'NOTAREPO';
+
+    my $original_repo_name = $Sbozyp::CONFIG{REPO_NAME}; # we dont want to overwrite the REPO_NAME for the rest of the tests. Gonna set it back at the end.
+
+    Sbozyp::set_repo_name_or_die($valid_repo_name);
+    is($Sbozyp::CONFIG{REPO_NAME}, $valid_repo_name, 'sets $CONFIG{REPO_NAME} if passed valid repo name');
+
+    like(dies { Sbozyp::set_repo_name_or_die($invalid_repo_name) },
+         qr/^sbozyp: error: no repo named '\Q$invalid_repo_name\E'$/,
+         'dies with useful error message if given invalid repo name'
+    );
+
+    # cleanup
+    Sbozyp::set_repo_name_or_die($original_repo_name);
+};
+
 done_testing;
