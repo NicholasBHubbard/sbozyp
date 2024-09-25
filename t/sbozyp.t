@@ -938,7 +938,7 @@ subtest 'manage_install_queue_ui()' => sub {
 };
 
 subtest 'set_repo_name_or_die()' => sub {
-    my $valid_repo_name = '14.1';
+    my $valid_repo_name = '15.0';
     my $invalid_repo_name = 'NOTAREPO';
 
     my $original_repo_name = $Sbozyp::CONFIG{REPO_NAME}; # we dont want to overwrite the REPO_NAME for the rest of the tests. Gonna set it back at the end.
