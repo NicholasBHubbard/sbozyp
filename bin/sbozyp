@@ -31,7 +31,7 @@ our %CONFIG = (
     #REPO_NAME => REPO_PRIMARY
 );
 
-main() unless caller;
+main() unless caller; # 'unless caller' allows us to require this file from test code without executing main()
 
 sub die_usage {
     die 'usage: sbozyp COMMAND <..ARGS>', "\n";
