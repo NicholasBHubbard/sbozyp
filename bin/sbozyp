@@ -192,7 +192,7 @@ sub pkg {
     return wantarray ? %$pkg : $pkg;
 }
 
-sub query_pkg_ui { # NOT TESTED
+sub query_pkg_ui {
     my ($pkg) = @_;
     my $pkgdir = $pkg->{PKGDIR};
     my @pkg_files = sbozyp_find_files_recursive($pkgdir);
@@ -209,7 +209,7 @@ sub query_pkg_ui { # NOT TESTED
     @pkg_files = sort { $score->($a) <=> $score->($b) } @pkg_files;
     while (1) {
         clear_terminal();
-        print "sbozyp: query $pkg->{PKGNAME}: select a file to view in your pager (q to quit):\n";
+        print "sbozyp: query package '$pkg->{PKGNAME}': select a file to view in your pager (q to quit):\n";
         for (my $i = 0; $i < @pkg_files; $i++) {
             printf "  %2d  %s\n", $i+1, $pkg_files[$i] =~ s/^$pkgdir\///r;
         }

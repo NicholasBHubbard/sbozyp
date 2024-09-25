@@ -937,6 +937,39 @@ subtest 'manage_install_queue_ui()' => sub {
     close $stdin or die;
 };
 
+subtest 'query_pkg_ui()' => sub {
+    my $stdin; # were gonna mock STDIN for the following tests.
+    my $stdout; # some tests capture STDOUT into this variable
+
+    my $pkg = Sbozyp::pkg('sbozyp-basic');
+
+    open $stdin, '<', \"q\n" or die;
+    local *STDIN = $stdin;
+    ($stdout) = capture { Sbozyp::query_pkg_ui($pkg) };
+    like($stdout, qr/README.+\.info.+\.SlackBuild.+slack-desc/s,'lists pkg files in consistent order');
+    close $stdin or die;
+
+    local $ENV{PAGER} = 'cat'; # so we can actually capture STDOUT
+
+    open $stdin, '<', \"1\nq\n" or die;
+    local *STDIN = $stdin;
+    ($stdout) = capture { Sbozyp::query_pkg_ui($pkg) };
+    like($stdout, qr/There is nothing special about this package/, 'prints README file if it is selected');
+    close $stdin or die;
+
+    open $stdin, '<', \"3\nq\n" or die;
+    local *STDIN = $stdin;
+    ($stdout) = capture { Sbozyp::query_pkg_ui($pkg) };
+    like($stdout, qr/makepkg/, 'prints .SlackBuild file if it is selected');
+    close $stdin or die;
+
+    open $stdin, '<', \"6\nq\n" or die;
+    local *STDIN = $stdin;
+    ($stdout) = capture { Sbozyp::query_pkg_ui($pkg) };
+    like($stdout, qr/'6' is not a valid option/, 'rejects invalid input with useful message');
+    close $stdin or die;
+};
+
 subtest 'set_repo_name_or_die()' => sub {
     my $valid_repo_name = '15.0';
     my $invalid_repo_name = 'NOTAREPO';
