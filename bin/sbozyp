@@ -21,7 +21,7 @@ use File::Path qw(make_path remove_tree);
 use Getopt::Long qw(GetOptionsFromArray :config no_ignore_case bundling);
 use Carp qw(carp confess);
 
-$SIG{INT} = sub { die "sbozyp: got a SIGINT ... going down!\n" };
+$SIG{INT} = sub { die "\nsbozyp: got a SIGINT ... going down!\n" };
 
 our %CONFIG = (
     # defaults
