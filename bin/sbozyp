@@ -146,7 +146,7 @@ END_HELP
     sbozyp_getopts(\@_, 'h|help' => \my $opt_help);
     if ($opt_help) { print $help_msg ; return }
     my $pkg = pkg($_[0] // die "$usage\n");
-    query_pkg($pkg);
+    query_pkg_ui($pkg);
 }
 
 sub sync_main { # NOT TESTED
@@ -192,7 +192,7 @@ sub pkg {
     return wantarray ? %$pkg : $pkg;
 }
 
-sub query_pkg { # NOT TESTED
+sub query_pkg_ui { # NOT TESTED
     my ($pkg) = @_;
     my $pkgdir = $pkg->{PKGDIR};
     my @pkg_files = sbozyp_find_files_recursive($pkgdir);
