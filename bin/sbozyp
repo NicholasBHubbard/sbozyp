@@ -156,7 +156,7 @@ sub sync_main { # NOT TESTED
 }
 
             ####################################################
-            #                    SUBROUTINES                   #
+            #        COMMAND IMPLEMENTATION SUBROUTINES        #
             ####################################################
 
 sub pkg {
