@@ -18,7 +18,7 @@ use Cwd qw(getcwd);
 use FindBin;
 require "$FindBin::Bin/../bin/sbozyp";
 
-$SIG{INT} = sub { die "sbozyp.t: got a SIGINT ... going down!\n" };
+$SIG{INT} = sub { die "\nsbozyp.t: got a SIGINT ... going down!\n" };
 
             ####################################################
             #                       TESTS                      #
