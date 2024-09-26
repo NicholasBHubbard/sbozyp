@@ -465,8 +465,8 @@ subtest 'sync_repo()' => sub {
 
     my ($stdout) = capture { Sbozyp::sync_repo() };
     like($stdout,
-         qr/already up to date/i,
-         'uses git pull if repo has already been cloned'
+         qr/HEAD is now at/i,
+         'uses git fetch and git reset if repo has already been cloned'
     );
 };
 
