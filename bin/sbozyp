@@ -453,7 +453,6 @@ sub parse_config_file {
         # TODO: doesnt work with multi-repo: exists $CONFIG{$k} or sbozyp_die("invalid setting on line $. '$k': '$config_file'");
         $CONFIG{$k} = $v;
     }
-    $CONFIG{REPO_NAME} = $CONFIG{REPO_PRIMARY};
 }
 
 sub set_repo_name_or_die { # NOT TESTED
