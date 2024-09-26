@@ -114,6 +114,16 @@ subtest 'sbozyp_open()' => sub {
      );
 };
 
+subtest 'sbozyp_print_file()' => sub {
+    my $file = '/etc/slackware-version';
+    my ($stdout) = capture { Sbozyp::sbozyp_print_file($file) };
+    like($stdout, qr/^Slackware/, 'prints file contents to STDOUT');
+    like(dies { Sbozyp::sbozyp_print_file('/NOT/A/FILE') },
+         qr/^sbozyp: error: could not open file '\/NOT\/A\/FILE': No such file or directory$/,
+         'dies with useful message if the file cannot be opened'
+    );
+};
+
 subtest 'sbozyp_unlink()' => sub {
     open my $fh, '>', "$TEST_DIR/foo" or die;
     close $fh or die;

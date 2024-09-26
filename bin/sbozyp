@@ -325,6 +325,12 @@ sub sbozyp_tee {
     return $stdout;
 }
 
+sub sbozyp_print_file {
+    my ($file) = @_;
+    my $fh = sbozyp_open('<', $file);
+    print while <$fh>;
+}
+
 sub sbozyp_open {
     my ($mode, $path) = @_;
     open(my $fh, $mode, $path) or sbozyp_die("could not open file '$path': $!");
