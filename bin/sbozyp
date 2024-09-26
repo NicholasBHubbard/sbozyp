@@ -225,6 +225,13 @@ sub query_pkg_ui {
     }
 }
 
+sub pkg_installed {
+    my ($pkg) = @_;
+    my $installed_sbo_pkgs = installed_sbo_pkgs(); # hash from PKGNAME to version
+    my $version = $installed_sbo_pkgs->{$pkg->{PKGNAME}};
+    return $version;
+}
+
 sub all_categories {
     my @categories = sort map {
         basename($_);
