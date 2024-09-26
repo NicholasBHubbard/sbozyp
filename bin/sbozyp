@@ -461,7 +461,7 @@ sub parse_config_file {
     }
 }
 
-sub set_repo_name_or_die { # NOT TESTED
+sub set_repo_name_or_die {
     my ($repo_name) = @_;
     my $repo_num = repo_name_repo_num($repo_name);
     if (defined $repo_num) {
