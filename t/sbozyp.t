@@ -996,6 +996,11 @@ subtest 'query_pkg_ui()' => sub {
     close $stdin or die;
 };
 
+subtest 'path_to_pkgname()' => sub {
+    my $path = "$Sbozyp::CONFIG{REPO_ROOT}/$Sbozyp::CONFIG{REPO_NAME}/office/mu";
+    is(Sbozyp::path_to_pkgname($path), 'office/mu', 'returns correct pkgname');
+};
+
 subtest 'set_repo_name_or_die()' => sub {
     my $valid_repo_name = '15.0';
     my $invalid_repo_name = 'NOTAREPO';

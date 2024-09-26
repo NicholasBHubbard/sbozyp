@@ -463,6 +463,12 @@ sub parse_config_file {
     }
 }
 
+sub path_to_pkgname {
+    my ($path) = @_;
+    my $pkgname = basename(dirname($path)) . '/' . basename($path);
+    return $pkgname;
+}
+
 sub set_repo_name_or_die {
     my ($repo_name) = @_;
     my $repo_num = repo_name_repo_num($repo_name);
