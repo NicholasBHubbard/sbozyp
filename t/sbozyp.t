@@ -457,10 +457,15 @@ subtest 'sbozyp_tee()' => sub {
     is([Sbozyp::sbozyp_readdir($Sbozyp::CONFIG{TMPDIR})], [], 'cleans up tmp file from $CONFIG{TMPDIR} after a failed system command');
 };
 
+subtest 'repo_local_name()' => sub {
+    is(Sbozyp::repo_local_name(), "$TEST_DIR/var/lib/sbozyp/SBo/14.1-14.1", 'returns name of local repo. Local repo name includes the branch.')
+};
+
 subtest 'sync_repo()' => sub {
+    my $repo_local_name = Sbozyp::repo_local_name();
     Sbozyp::sync_repo();
-    ok(-d "$TEST_DIR/var/lib/sbozyp/SBo/14.1/.git",
-       'clones SBo repo to $CONFIG{REPO_ROOT}/$CONFIG{REPO_NAME} if it has not yet been cloned'
+    ok(-d "$repo_local_name/.git",
+       'clones SBo repo to $CONFIG{REPO_ROOT}/$CONFIG{REPO_NAME}-$git_branch if it has not yet been cloned'
     );
 
     my ($stdout) = capture { Sbozyp::sync_repo() };
@@ -471,7 +476,7 @@ subtest 'sync_repo()' => sub {
 };
 
 # add our mock packages to the SBo 14.1 repo we just cloned in the sync_repo() subtest
-Sbozyp::sbozyp_copy("$FindBin::Bin/mock-packages", "$Sbozyp::CONFIG{REPO_ROOT}/$Sbozyp::CONFIG{REPO_NAME}/misc");
+Sbozyp::sbozyp_copy("$FindBin::Bin/mock-packages", Sbozyp::repo_local_name().'/misc');
 
 subtest 'all_categories()' => sub {
     is([Sbozyp::all_categories()],
