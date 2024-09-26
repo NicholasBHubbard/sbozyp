@@ -815,6 +815,14 @@ subtest 'repo_num_git_url()'  => sub {
     ok($git_url_0 eq $url && $git_url_1 eq $url && $git_url_2 eq $url, 'returns correct git urls');
 };
 
+subtest 'repo_git_branch()' => sub {
+    is(Sbozyp::repo_git_branch(), '14.1', 'returns name of current repos branch');
+};
+
+subtest 'repo_git_url()' => sub {
+    is(Sbozyp::repo_git_url(), 'git://git.slackbuilds.org/slackbuilds.git', 'returns name of current repos url');
+};
+
 subtest 'manage_install_queue_ui()' => sub {
     # the pkgs picked here are arbitrary ...
     my $pkg1 = Sbozyp::pkg('sbozyp-basic');
