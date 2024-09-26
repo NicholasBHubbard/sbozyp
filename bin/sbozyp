@@ -202,7 +202,7 @@ sub query_pkg_ui {
         $bn =~ /^README$/      and return 0;
         $bn =~ /\.info$/       and return 1;
         $bn =~ /\.SlackBuild$/ and return 2;
-        $bn =~ /^doinst\.sh$/  and return 3;
+        $bn =~ /^doinst\.sh/   and return 3;
         $bn =~ /^slack-desc$/  and return 4;
         return 5;
     };
