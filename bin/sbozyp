@@ -388,23 +388,19 @@ sub sbozyp_chdir {
 }
 
 sub sbozyp_mkdir {
-    my ($dir) = @_;
-    unless (-d $dir) {
-        make_path($dir, {error => \my $err});
-        if ($err) {
-            for my $diag (@$err) {
-                my (undef, $err_msg) = %$diag;
-                sbozyp_die("could not mkdir '$dir': $err_msg");
+    my @dirs = @_;
+    for my $dir (@dirs) {
+        unless (-d $dir) {
+            make_path($dir, {error => \my $err});
+            if ($err) {
+                for my $diag (@$err) {
+                    my (undef, $err_msg) = %$diag;
+                    sbozyp_die("could not mkdir '$dir': $err_msg");
+                }
             }
         }
     }
-    return $dir;
-}
-
-sub sbozyp_mkdir_empty {
-    my ($dir) = @_;
-    sbozyp_rmdir_rec($dir);
-    return sbozyp_mkdir($dir);
+    return @dirs;
 }
 
 sub sbozyp_rmdir {

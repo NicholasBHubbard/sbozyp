@@ -261,9 +261,9 @@ subtest 'sbozyp_chdir()' => sub {
 };
 
 subtest 'sbozyp_mkdir()' => sub {
-    my $dir = Sbozyp::sbozyp_mkdir("$TEST_DIR/foo/bar/baz");
-    ok(-d "$TEST_DIR/foo/bar/baz", 'creates entire path');
-    is($dir, "$TEST_DIR/foo/bar/baz", 'returns created path');
+    my @dirs = Sbozyp::sbozyp_mkdir("$TEST_DIR/foo/bar/baz","$TEST_DIR/foo/quux");
+    ok(-d "$TEST_DIR/foo/bar/baz" && -d "$TEST_DIR/foo/quux", 'creates entire path for all args');
+    is([@dirs], ["$TEST_DIR/foo/bar/baz", "$TEST_DIR/foo/quux"], 'returns created paths');
 
     remove_tree("$TEST_DIR/foo") or die;
 
@@ -271,28 +271,6 @@ subtest 'sbozyp_mkdir()' => sub {
     close $fh or die;
 
     like(dies { Sbozyp::sbozyp_mkdir("$TEST_DIR/foo") },
-         qr/^sbozyp: error: could not mkdir '\Q$TEST_DIR\E\/foo': File exists$/,
-         'dies with useful error message if cannot make_path()'
-    );
-
-    unlink "$TEST_DIR/foo" or die;
-};
-
-subtest 'sbozyp_mkdir_empty()' => sub {
-    my $dir = Sbozyp::sbozyp_mkdir_empty("$TEST_DIR/foo/bar");
-    ok(-d "$TEST_DIR/foo/bar", 'creates entire path');
-    is($dir, "$TEST_DIR/foo/bar", 'returns created path');
-
-    Sbozyp::sbozyp_mkdir_empty("$TEST_DIR/foo");
-    ok(! -d "$TEST_DIR/foo/bar", 'removes directory contents');
-    ok(-d "$TEST_DIR/foo", 'leaves input dir');
-
-    remove_tree("$TEST_DIR/foo") or die;
-
-    open my $fh, '>', "$TEST_DIR/foo" or die;
-    close $fh or die;
-
-    like(dies { Sbozyp::sbozyp_mkdir_empty("$TEST_DIR/foo") },
          qr/^sbozyp: error: could not mkdir '\Q$TEST_DIR\E\/foo': File exists$/,
          'dies with useful error message if cannot make_path()'
     );
