@@ -97,7 +97,7 @@ subtest 'sbozyp_getopts()' => sub {
     ok(($foo and $bar eq 'foo'), 'parses options with Getopt::Long::GetOptionsFromArray()');
     is([@args], ['quux'], 'mutates input array to remove options');
     like(dies { Sbozyp::sbozyp_getopts(['-b'], 'f' => \my $blah) },
-         qr/^sbozyp: error: Unknown option: b$/,
+         qr/^sbozyp: error: unknown option: b$/,
          'dies with useful error message if option parsing fails'
     );
 };
