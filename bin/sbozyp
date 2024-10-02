@@ -143,7 +143,7 @@ END_HELP
         elsif ($opt_readme)       { sbozyp_print_file("$pkg->{PKGDIR}/README")                          }
         elsif ($opt_slackbuild)   { sbozyp_print_file("$pkg->{PKGDIR}/$pkg->{PRGNAM}.SlackBuild")       }
     }
-    else { sbozyp_die("can only set 1 of opts '-d', '-i', '-p', -q', -r', '-s' but $file_opts_set were set") }
+    else { sbozyp_die("can only set 1 of options '-d', '-i', '-p', -q', -r', '-s' but $file_opts_set were set") }
 }
 
 sub search_command_main { # NOT TESTED
