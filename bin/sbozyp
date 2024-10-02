@@ -109,8 +109,8 @@ $usage
 Query for information about a package
 
 If no options are provided, this command will drop you into an interactive
-prompt for viewing package files. Only one of the '-d', '-i', '-q', '-r', '-s'
-options can be used.
+prompt for viewing package files. Only one of the '-d', '-i', '-p', '-q', '-r',
+'-s' options can be used.
 
 Options are:
   -h                  Print this help message
