@@ -5,7 +5,7 @@ use warnings;
 use v5.34.0;
 
 use Test2::V0 -no_srand => 1;
-# use Test2::Plugin::BailOnFail; # bail out of testing on the first failure
+use Test2::Plugin::BailOnFail; # bail out of testing on the first failure
 
 use Capture::Tiny qw(capture);
 use File::Temp;
@@ -448,15 +448,10 @@ subtest 'sbozyp_tee()' => sub {
     is([Sbozyp::sbozyp_readdir($Sbozyp::CONFIG{TMPDIR})], [], 'cleans up tmp file from $CONFIG{TMPDIR} after a failed system command');
 };
 
-subtest 'repo_local_name()' => sub {
-    is(Sbozyp::repo_local_name(), "$TEST_DIR/var/lib/sbozyp/SBo/14.1-14.1", 'returns name of local repo. Local repo name includes the branch.')
-};
-
 subtest 'sync_repo()' => sub {
-    my $repo_local_name = Sbozyp::repo_local_name();
     Sbozyp::sync_repo();
-    ok(-d "$repo_local_name/.git",
-       'clones SBo repo to $CONFIG{REPO_ROOT}/$CONFIG{REPO_NAME}-$git_branch if it has not yet been cloned'
+    ok(-d "$Sbozyp::CONFIG{REPO_ROOT}/$Sbozyp::CONFIG{REPO_NAME}/.git",
+       'clones SBo repo to $CONFIG{REPO_ROOT}/$CONFIG{REPO_NAME} if it has not yet been cloned'
     );
 
     my ($stdout) = capture { Sbozyp::sync_repo() };
@@ -467,7 +462,7 @@ subtest 'sync_repo()' => sub {
 };
 
 # add our mock packages to the SBo 14.1 repo we just cloned in the sync_repo() subtest
-Sbozyp::sbozyp_copy("$FindBin::Bin/mock-packages", Sbozyp::repo_local_name().'/misc');
+Sbozyp::sbozyp_copy("$FindBin::Bin/mock-packages", "$Sbozyp::CONFIG{REPO_ROOT}/$Sbozyp::CONFIG{REPO_NAME}/misc");
 
 subtest 'all_categories()' => sub {
     is([Sbozyp::all_categories()],
@@ -546,21 +541,6 @@ subtest 'pkg()' => sub {
          'dies with useful error message if passed invalid prgnam'
     );
 };
-
-# subtest 'pkg_query()' => sub {
-#     # used to mock STDIN
-#     local *STDIN;
-#     my $stdin;
-
-#     open my $stdin, '<', \"1\n";
-
-#     my ($stdout) = capture { Sbozyp::pkg_query(scalar(Sbozyp::pkg('office/mu'))) };
-
-#     say "HERE:";
-#     say "$stdout";
-
-#     pass();
-# };
 
 subtest 'pkg_queue()' => sub {
     is([Sbozyp::pkg_queue(scalar(Sbozyp::pkg('misc/sbozyp-recursive-dep-E')))],
@@ -783,12 +763,12 @@ subtest 'pkg_installed()' => sub {
     remove_tree("$TEST_DIR/tmp_root") or die;
 };
 
-
 subtest 'repo_name_repo_num()'  => sub {
     my $repo_num_0 = Sbozyp::repo_name_repo_num('14.1');
     my $repo_num_1 = Sbozyp::repo_name_repo_num('14.2');
     my $repo_num_2 = Sbozyp::repo_name_repo_num('15.0');
     ok($repo_num_0 == 0 && $repo_num_1 == 1 && $repo_num_2 == 2, 'returns correct repo numbers');
+    is(undef, Sbozyp::repo_name_repo_num('NOTAREPONAME'), 'returns undef if given invalid repo name');
 };
 
 subtest 'repo_num_git_branch()'  => sub {
@@ -1066,6 +1046,10 @@ subtest 'install_command_main()' => sub {
     local $Sbozyp::CONFIG{CLEANUP} = 1;
     ($stdout) = capture { Sbozyp::install_command_main('-i', 'sbozyp-basic') };
     like($stdout, qr/Installing package sbozyp-basic-1.0-noarch-1_SBo\.tgz/, 're-installs package if it is already installed')
+};
+
+subtest 'query_command_main()' => sub {
+
 };
 
 done_testing;

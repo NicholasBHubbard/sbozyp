@@ -1,10 +1,5 @@
 #!/usr/bin/perl
 
-# PKG     = sbozyp's internal representation of a SBo package
-# PKGNAME = the name of a SBo package. Has the form CATEGORY/PRGNAM
-# PRGNAM  = just PRGNAM name portion of a PKGNAME: system/yabsm -> yabsm
-# SLACKWARE_PKG = the path to a built SBo package
-
 use strict;
 use warnings FATAL => 'all';
 use v5.34.0; # The Perl version on Slackware 15.0 (sbozyp's min version)
@@ -20,6 +15,7 @@ use File::Copy qw(mv);
 use File::Path qw(make_path remove_tree);
 use Getopt::Long qw(GetOptionsFromArray :config no_ignore_case bundling);
 use Carp qw(carp confess);
+use version;
 
 $SIG{INT} = sub { die "\nsbozyp: got a SIGINT ... going down!\n" };
 
@@ -31,20 +27,25 @@ our %CONFIG = (
     #REPO_NAME => REPO_PRIMARY
 );
 
-main() unless caller; # 'unless caller' allows us to require this file from test code without executing main()
-
-sub die_usage {
-    die 'usage: sbozyp COMMAND <..ARGS>', "\n";
-}
+main(@ARGV) unless caller; # 'unless caller' allows us to require this file from test code without executing main()
 
 sub main { # NOT TESTED
-    parse_config_file();    # mutates the global %CONFIG
-    parse_global_options(); # mutates the global %CONFIG
-    sbozyp_chdir('/');
-    sbozyp_mkdir($CONFIG{TMPDIR});
-    sbozyp_mkdir("$CONFIG{REPO_ROOT}/$CONFIG{REPO_NAME}");
-    sync_repo() unless -d "$CONFIG{REPO_ROOT}/$CONFIG{REPO_NAME}/.git";
-    my $cmd = shift(@ARGV) or die_usage();
+    my @argv = @_;
+    my $usage = 'Usage: sbozyp [-F <config>] [-R <repo>] [-S] <command> [<command_args>]';
+    # Process global options
+    Getopt::Long::Configure('pass_through');
+    sbozyp_getopts( # global options use uppercase while command options use lowercase
+        \@argv,
+        '-F=s' => \my $opt_configfile,
+        '-R=s' => \my $opt_reponame,
+        '-S'   => \my $opt_sync
+    );
+    Getopt::Long::Configure('nopass_through');
+    parse_config_file($opt_configfile); # mutates the global %CONFIG
+    set_repo_name_or_die($opt_reponame // $CONFIG{REPO_PRIMARY});
+    sbozyp_mkdir("$CONFIG{REPO_ROOT}/$CONFIG{REPO_NAME}", $CONFIG{TMPDIR});
+    my $cmd = shift(@argv) or die "$usage\n";
+    if ($opt_sync) { i_am_root_or_die(); sync_repo() };
     # provide command abbreviations
     if    ($cmd eq 'in') { $cmd = 'install' }
     elsif ($cmd eq 'qr') { $cmd = 'query'   }
@@ -53,16 +54,16 @@ sub main { # NOT TESTED
     elsif ($cmd eq 'sy') { $cmd = 'sync'    }
     elsif ($cmd eq 'up') { $cmd = 'upgrade' }
     # run the command
-    if    ($cmd =~ /^(?:--help|-h)$/)    { print help_string()  }
-    elsif ($cmd =~ /^(?:--version|-v)$/) { print $VERSION, "\n" }
-    elsif ($cmd eq 'install')            { install_main(@ARGV)  }
-    elsif ($cmd eq 'query')              { query_main(@ARGV)    }
-    elsif ($cmd eq 'remove')             { remove_main(@ARGV)   }
-    elsif ($cmd eq 'search')             { search_main(@ARGV)   }
-    elsif ($cmd eq 'sync')               { sync_main(@ARGV)     }
-    elsif ($cmd eq 'upgrade')            { upgrade_main(@ARGV)  }
-    else                                 { die_usage()          }
-    # all good
+    if    ($cmd =~ /^(?:--help|-h)$/)    { print help_string()          }
+    elsif ($cmd =~ /^(?:--version|-v)$/) { print $VERSION, "\n"         }
+    elsif ($cmd eq 'install')            { install_command_main(@argv)  }
+    elsif ($cmd eq 'query')              { query_command_main(@argv)    }
+    elsif ($cmd eq 'remove')             { remove_command_main(@argv)   }
+    elsif ($cmd eq 'search')             { search_command_main(@argv)   }
+    elsif ($cmd eq 'sync')               { sync_command_main(@argv)     }
+    elsif ($cmd eq 'upgrade')            { upgrade_command_main(@argv)  }
+    else                                 { die "$usage\n"               }
+    # all good if we made it here
     exit 0;
 }
 
@@ -70,88 +71,167 @@ sub main { # NOT TESTED
             #                     COMMANDS                     #
             ####################################################
 
-sub install_main { # NOT TESTED
-    my $usage = 'usage: sbozyp install [-hnsi] <pkgname>';
+sub install_command_main {
+    my $usage = 'Usage: sbozyp install [-h] [-i] [-n] <pkgname>';
     my $help_msg = <<"END_HELP";
 $usage
 
-options are:
-  -h    print this help message
-  -n    do not install package dependencies
-  -s    sync repository before installation
-  -i    non-interactive (DANGEROUS)
+Install a package
+
+Options are:
+  -h                  Print this help message
+  -i                  Non-interactive (DANGEROUS)
+  -n                  Do not install package dependencies
 END_HELP
     sbozyp_getopts(
         \@_,
         'h|help' => \my $opt_help,
-        'n' => \my $opt_nodeps,
-        's' => \my $opt_sync,
-        'i' => \my $opt_noninteractive
+        'i'      => \my $opt_noninteractive,
+        'n'      => \my $opt_nodeps,
     );
     if ($opt_help) { print $help_msg ; return }
     i_am_root_or_die();
     my $pkg = pkg($_[0] // die "$usage\n");
-    sync_repo() if $opt_sync;
     my @queue = $opt_nodeps ? ($pkg) : pkg_queue($pkg);
     @queue = manage_install_queue_ui(@queue) unless $opt_noninteractive;
     for my $pkg (@queue) {
         my $slackware_pkg = build_slackware_pkg($pkg);
         install_slackware_pkg($slackware_pkg);
+        if ($CONFIG{CLEANUP}) { sbozyp_unlink($slackware_pkg) }
     }
 }
 
-sub search_main { # NOT TESTED
-    my $usage = 'usage: sbozyp search [-hcn] <regex>';
+sub query_command_main { # NOT TESTED
+    my $usage = 'Usage: sbozyp query [-h] [-d] [-i] [-q] [-r] [-s] <pkgname>';
     my $help_msg = <<"END_HELP";
 $usage
 
-options are:
-  -h    print this help message
-  -c    match case sensitive
-  -n    match against CATEGORY/PKGNAM instead of just PKGNAM
+Query for information about a package
+
+If no options are provided, this command will drop you into an interactive
+prompt for viewing package files. Only one of the '-d', '-i', '-q', '-r', '-s'
+options can be used.
+
+Options are:
+  -h                  Print this help message
+  -d                  Print the packages slack-desc file
+  -i                  Print the packages .info file
+  -q                  Print the packages dependencies (recursively and in order)
+  -r                  Print the packages README file
+  -s                  Print the packages .SlackBuild file
 END_HELP
     sbozyp_getopts(
         \@_,
         'h|help' => \my $opt_help,
-        'c' => \my $opt_casesensitive,
-        'n' => \my $opt_matchcategory
+        '-d'     => \my $opt_slackdesc,
+        '-i'     => \my $opt_info,
+        '-q'     => \my $opt_printqueue,
+        '-r'     => \my $opt_readme,
+        '-s'     => \my $opt_slackbuild
+    );
+    if ($opt_help) { print $help_msg ; return }
+    my $pkg = pkg($_[0] // die "$usage\n");
+    my $file_opts_set = 0; for ($opt_slackdesc,$opt_info,$opt_printqueue,$opt_readme,$opt_slackbuild) { $file_opts_set++ if defined }
+    if    ($file_opts_set == 0) { query_pkg_ui($pkg) }
+    elsif ($file_opts_set == 1) {
+        if    ($opt_slackdesc)  { sbozyp_print_file("$pkg->{PKGDIR}/slack-desc")                }
+        elsif ($opt_info)       { sbozyp_print_file("$pkg->{PKGDIR}/$pkg->{PRGNAM}.info")       }
+        elsif ($opt_printqueue) { print "$_->{PKGNAME}\n" for pkg_queue($pkg)                   }
+        elsif ($opt_readme)     { sbozyp_print_file("$pkg->{PKGDIR}/README")                    }
+        elsif ($opt_slackbuild) { sbozyp_print_file("$pkg->{PKGDIR}/$pkg->{PRGNAM}.SlackBuild") }
+    }
+    else { sbozyp_die("can only set 1 of opts '-d', '-i', '-q', -r', '-s' but $file_opts_set were set") }
+}
+
+sub search_command_main { # NOT TESTED
+    my $usage = 'Usage: sbozyp search [-h] [-c] [-n] <regex>';
+    my $help_msg = <<"END_HELP";
+$usage
+
+Search for a package using a Perl regex
+
+Options are:
+  -h                  Print this help message
+  -c                  Match case sensitive
+  -n                  Match against CATEGORY/PRGNAM instead of just PRGNAM
+END_HELP
+    sbozyp_getopts(
+        \@_,
+        'h|help' => \my $opt_help,
+        'c'      => \my $opt_casesensitive,
+        'n'      => \my $opt_matchcategory,
     );
     if ($opt_help) { print $help_msg ; return }
     my $regex_arg = $_[0] // die "$usage\n";
     my $regex = $opt_casesensitive ? qr/$regex_arg/ : qr/$regex_arg/i;
-    my @matches = map { $_ = pkg($_) } grep {
+    my @matches = grep {
         $opt_matchcategory ? $_ =~ $regex : basename($_) =~ $regex;
     } all_pkgnames();
     if (@matches) {
-        print "sbozyp: the following packages match the regex '$regex_arg'\n";
-        print '  ', $_->{PKGNAME}, "\n" for @matches;
+        print "sbozyp: the following packages match the regex '$regex_arg':\n";
+        print "  $_\n" for @matches;
     } else {
-        sbozyp_die("no packages match the regex '$regex_arg'");
+        sbozyp_die('no packages matched the regex');
     }
 }
 
-sub query_main { # NOT TESTED
-    my $usage = 'usage: sbozyp query [-h] <pkgname>';
+sub upgrade_command_main { # NOT TESTED
+    my $usage = 'Usage: sbozyp upgrade [-hf] <pkgname>';
     my $help_msg = <<"END_HELP";
 $usage
 
-Query package named 'pkgname'.
+Upgrade a package
 
-This command will drop you into an interactive prompt for viewing 'pkgname's
-files in your pager.
-
-options are:
-  -h    print this help message
+Options are:
+  -h                  Print this help message
+  -i                  Non-interactive (DANGEROUS)
+  -n                  Do not upgrade packages dependencies
 END_HELP
-    sbozyp_getopts(\@_, 'h|help' => \my $opt_help);
+    sbozyp_getopts(
+        \@_,
+        'h|help' => \my $opt_help,
+        'i'      => \my $opt_noninteractive,
+        'n'      => \my $opt_nodeps,
+    );
     if ($opt_help) { print $help_msg ; return }
+    i_am_root_or_die();
     my $pkg = pkg($_[0] // die "$usage\n");
-    query_pkg_ui($pkg);
+    my @queue; for my $dep ($opt_nodeps ? ($pkg) : pkg_queue($pkg)) {
+        if (defined(my $installed_version = pkg_installed($dep))) {
+            my $installed_version = version->parse($installed_version);
+            my $new_version = version->parse($dep->{VERSION});
+            if (version->parse($new_version) > version->parse($installed_version)) {
+                push @queue, $dep;
+            }
+        }
+    }
+    if (@queue) {
+        @queue = manage_install_queue_ui(@queue) unless $opt_noninteractive;
+        for my $pkg (@queue) {
+            my $slackware_pkg = build_slackware_pkg($pkg);
+            install_slackware_pkg($slackware_pkg);
+        }
+    } else {
+        print "sbozyp: package '$pkg->{PKGNAME}' is already up to date.\n"
+    }
 }
 
-sub sync_main { # NOT TESTED
+sub sync_command_main { # NOT TESTED
+    my $usage = 'Usage: sbozyp sync <TODO>';
+    my $help_msg = <<"END_HELP";
+$usage
+
+Sync a local SBo repository. Use the global -R option to sync a repo other than
+REPO_PRIMARY.
+
+Options are:
+  -h                  Print this help message
+END_HELP
+    sbozyp_getopts(
+        \@_,
+        'h|help' => \my $opt_help,
+    );
     i_am_root_or_die();
-    my $usage = 'usage: sbozyp sync <TODO>';
     sync_repo();
 }
 
@@ -427,24 +507,6 @@ sub i_am_root_or_die {
     sbozyp_die('must be root') unless 0 == $>;
 }
 
-sub parse_global_options { # NOT TESTED This function should be called after parse_config_file()
-    Getopt::Long::Configure('pass_through');
-    sbozyp_getopts(
-        \@ARGV,
-        'r=s' => \my $repo_name,
-    );
-    Getopt::Long::Configure('nopass_through');
-    if ($repo_name) {
-        my $repo_num = repo_name_repo_num($repo_name);
-        my $repo_git_branch = repo_num_git_branch($repo_num);
-        my $repo_git_url = repo_num_git_url($repo_num);
-        $CONFIG{REPO_NAME} = $repo_name;
-        $CONFIG{REPO_GIT_BRANCH} = $repo_git_branch;
-        $CONFIG{REPO_GIT_URL} = $repo_git_url;
-    }
-    # TODO: what other global config options do we need
-}
-
 sub parse_config_file {
     my ($config_file) = @_;
     if (not defined $config_file) {
@@ -520,8 +582,8 @@ sub repo_git_url {
     return $repo_git_url;
 }
 
-sub sync_repo { # TODO: can we update incrementally instead of full recloning?
-    my $local_git_repo = repo_local_name();
+sub sync_repo {
+    my $local_git_repo = "$CONFIG{REPO_ROOT}/$CONFIG{REPO_NAME}";
     if (-d $local_git_repo) {
         my $repo_git_branch = repo_git_branch();
         sbozyp_system('git', '-C', $local_git_repo, 'fetch');
@@ -656,10 +718,9 @@ sub manage_install_queue_ui {
     return wantarray ? @pkg_queue : \@pkg_queue;
 }
 
-
 sub build_slackware_pkg {
     my ($pkg) = @_;
-    local $ENV{OUTPUT} = $CONFIG{TMPDIR};
+    local $ENV{OUTPUT} = $CONFIG{TMPDIR}; # all SlackBuilds use the $OUTPUT env var to determine output pkg location
     my $staging_dir = prepare_pkg($pkg);
     my $slackbuild = $pkg->{PRGNAM} . '.SlackBuild';
     my $slackbuild_stdout = sbozyp_tee("cd '$staging_dir' && chmod +x ./$slackbuild && ./$slackbuild");
@@ -687,17 +748,25 @@ __END__
 
 =pod
 
-=head1 Name
+=head1 NAME
 
 sbozyp - A package manager for Slackware's SlackBuilds.org
 
-=head1 TODO: write the manual
+=head1 SYNOPSIS
 
-=head1 Copyright
+sbozyp <command> [<args>]
 
-Copyright (c) 2023 by Nicholas Hubbard (nicholashubbard@posteo.net)
+=head1 DESCRIPTION
 
-=head1 License
+Sbozyp is a package manager for the SlackBuilds.org package repository.
+SlackBuilds.org is a collection of third-party SlackBuild scripts used to build
+Slackware packages.
+
+=head1 COPYRIGHT
+
+Copyright (c) 2023-2024 by Nicholas Hubbard (nicholashubbard@posteo.net)
+
+=head1 LICENSE
 
 This program is free software: you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free Software
