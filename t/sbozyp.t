@@ -997,4 +997,75 @@ subtest 'set_repo_name_or_die()' => sub {
     Sbozyp::set_repo_name_or_die($original_repo_name);
 };
 
+            ####################################################
+            #                   MAIN TESTS                     #
+            ####################################################
+
+subtest 'install_command_main()' => sub {
+    skip_all('install_command_main() requires root') unless $> == 0;
+
+    local $ENV{ROOT} = "$TEST_DIR/tmp_root"; # were gonna install some packages
+
+    my ($stdout, $stderr); # were gonna capture STDOUT and STDERR into these for some tests
+
+    ($stdout) = capture { Sbozyp::install_command_main('-h') };
+    like($stdout, qr/Usage.+Install a package.+\-h.+Print this help message/s, 'prints help message if given -h option');
+
+    ($stdout) = capture { Sbozyp::install_command_main('--help') };
+    like($stdout, qr/Usage.+Install a package.+\-h.+Print this help message/s, 'prints help message if given --help option');
+
+    ($stdout) = capture { Sbozyp::install_command_main('-i', '--help', 'mu') };
+    like($stdout, qr/Usage.+Install a package.+\-h.+Print this help message/s, 'prints help message if given --help option regardless of other options');
+
+    like(dies { Sbozyp::install_command_main('-H', 'mu') },
+         qr/unknown option: H/,
+         'dies with useful message if given invalid option'
+    );
+
+    like(dies { Sbozyp::install_command_main() },
+         qr/^Usage/,
+         'dies with usage if not given a package name'
+    );
+
+    like(dies { Sbozyp::install_command_main('NOTAPACKAGE') },
+         qr/could not find a package named 'NOTAPACKAGE'/,
+         'dies with useful message if the package does not exist'
+    );
+
+    local $Sbozyp::CONFIG{CLEANUP} = 1;
+
+    Sbozyp::install_command_main('-i', 'sbozyp-basic');
+    ok(Sbozyp::pkg_installed({Sbozyp::pkg('sbozyp-basic')}), 'installs a package');
+    ok(! -f "$TEST_DIR/sbozyp-basic-1.0-noarch-1_SBo.tgz", 'removes slackware package after installing it if $ONFIG{CLEANUP} = 1');
+
+    Sbozyp::install_command_main('-i', 'sbozyp-recursive-dep-A');
+    ok(   Sbozyp::pkg_installed({Sbozyp::pkg('sbozyp-recursive-dep-A')})
+       && Sbozyp::pkg_installed({Sbozyp::pkg('sbozyp-recursive-dep-B')})
+       && Sbozyp::pkg_installed({Sbozyp::pkg('sbozyp-recursive-dep-C')})
+       && Sbozyp::pkg_installed({Sbozyp::pkg('sbozyp-recursive-dep-D')})
+       && Sbozyp::pkg_installed({Sbozyp::pkg('sbozyp-recursive-dep-E')}),
+       'installs a package along with its dependencies'
+    );
+    remove_tree "$TEST_DIR/tmp_root" or die; # cleanup for the next test
+
+    Sbozyp::install_command_main('-i', '-n', 'sbozyp-recursive-dep-A');
+    ok(   Sbozyp::pkg_installed({Sbozyp::pkg('sbozyp-recursive-dep-A')})
+       && not(Sbozyp::pkg_installed({Sbozyp::pkg('sbozyp-recursive-dep-B')}))
+       && not(Sbozyp::pkg_installed({Sbozyp::pkg('sbozyp-recursive-dep-C')}))
+       && not(Sbozyp::pkg_installed({Sbozyp::pkg('sbozyp-recursive-dep-D')}))
+       && not(Sbozyp::pkg_installed({Sbozyp::pkg('sbozyp-recursive-dep-E')})),
+       'only installs package, not dependencies, when given -n option'
+    );
+
+    remove_tree "$TEST_DIR/tmp_root" or die;
+
+    local $Sbozyp::CONFIG{CLEANUP} = 0;
+    Sbozyp::install_command_main('-i', 'sbozyp-basic');
+    ok(-f "$TEST_DIR/sbozyp-basic-1.0-noarch-1_SBo.tgz", 'does not remove slackware package after installing it if $ONFIG{CLEANUP} = 0');
+
+    local $Sbozyp::CONFIG{CLEANUP} = 1;
+    ($stdout) = capture { Sbozyp::install_command_main('-i', 'sbozyp-basic') };
+    like($stdout, qr/Installing package sbozyp-basic-1.0-noarch-1_SBo\.tgz/, 're-installs package if it is already installed')
+};
+
 done_testing;
