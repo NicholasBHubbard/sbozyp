@@ -116,7 +116,7 @@ Options are:
   -h                  Print this help message
   -d                  Print the packages slack-desc file
   -i                  Print the packages .info file
-  -p                  Output 1 and exit 0 if package is installed, otherwise output 0 and exit 1
+  -p                  Print 1 and exit 0 if package is installed, otherwise print 0 and exit 1
   -q                  Print the packages dependencies (recursively and in order)
   -r                  Print the packages README file
   -s                  Print the packages .SlackBuild file
