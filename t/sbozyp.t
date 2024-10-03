@@ -1045,11 +1045,70 @@ subtest 'install_command_main()' => sub {
 
     local $Sbozyp::CONFIG{CLEANUP} = 1;
     ($stdout) = capture { Sbozyp::install_command_main('-i', 'sbozyp-basic') };
-    like($stdout, qr/Installing package sbozyp-basic-1.0-noarch-1_SBo\.tgz/, 're-installs package if it is already installed')
+    like($stdout, qr/Installing package sbozyp-basic-1.0-noarch-1_SBo\.tgz/, 're-installs package if it is already installed');
+
+    remove_tree "$TEST_DIR/tmp_root" or die;
 };
 
 subtest 'query_command_main()' => sub {
+    local $ENV{ROOT} = "$TEST_DIR/tmp_root";
 
+    my ($stdout, $stderr); # were gonna capture STDOUT and STDERR into these for some tests
+
+    ($stdout) = capture { Sbozyp::query_command_main('-h', 'mu') };
+    like($stdout, qr/^Usage.+Query for information.+Options are/s, q(outputs help message if given '-h' option));
+
+    ($stdout) = capture { Sbozyp::query_command_main('--help', 'mu') };
+    like($stdout, qr/^Usage.+Query for information.+Options are/s, q(outputs help message if given '--help' option));
+
+    ($stdout) = capture { Sbozyp::query_command_main('--help') };
+    like($stdout, qr/^Usage.+Query for information.+Options are/s, q(--help options doesn't require a pkgname arg to be given));
+
+    like(dies { Sbozyp::query_command_main('-Z', 'mu') },
+         qr/sbozyp: error: unknown option: Z/,
+         'dies with useful error if given an invalid option'
+    );
+
+    like(dies { Sbozyp::query_command_main('-d', '-i', '-p', 'mu') },
+         qr/sbozyp: error: can only set 1 of options.+but 3 were set/,
+         'dies with useful error message if multiple mutually exclusive options are given'
+    );
+
+    like(dies { Sbozyp::query_command_main('-d') }, qr/^Usage:/, 'dies with usage if missing the pkgname arg');
+
+    ($stdout) = capture { Sbozyp::query_command_main('-d', 'sbozyp-basic') };
+    like($stdout, qr/HOW TO EDIT THIS FILE.+sbozyp-basic/s, 'prints packages slack-desc file if given -d option');
+
+    ($stdout) = capture { Sbozyp::query_command_main('sbozyp-basic', '-d') };
+    like($stdout, qr/HOW TO EDIT THIS FILE.+sbozyp-basic/s, 'option can come after pkgname arg');
+
+    ($stdout) = capture { Sbozyp::query_command_main('-i', 'sbozyp-basic') };
+    like($stdout, qr/PRGNAM="sbozyp-basic".+VERSION=.+REQUIRES/s, 'prints .info file if given -i option');
+
+    ($stdout) = capture { Sbozyp::query_command_main('-r', 'sbozyp-basic') };
+    like($stdout, qr/This is a mock package to be used in sbozyp test code.+There is nothing special/s, 'prints README file if given -r option');
+
+    ($stdout) = capture { Sbozyp::query_command_main('-s', 'sbozyp-basic') };
+    like($stdout, qr/Slackware build script for sbozyp-basic.+make/s, 'prints .SlackBuild file if given -s option');
+
+    ($stdout) = capture { Sbozyp::query_command_main('-q', 'sbozyp-recursive-dep-A') };
+    like($stdout, qr|^misc/sbozyp-recursive-dep-E\nmisc/sbozyp-recursive-dep-C\nmisc/sbozyp-recursive-dep-D\nmisc/sbozyp-recursive-dep-B\nmisc/sbozyp-recursive-dep-A\n$|s, 'prints packages dependencies (in order and recursively) if given -q option');
+
+    if ($> == 0) { # need to be root to install a package
+        local $ENV{ROOT} = "$TEST_DIR/tmp_root"; # were gonna install some packages
+        my $pkg = Sbozyp::pkg('sbozyp-basic');
+        Sbozyp::install_slackware_pkg(Sbozyp::build_slackware_pkg($pkg));
+
+        like(dies { Sbozyp::query_command_main('-p', 'sbozyp-nested-dir') },
+             qr/^0$/s,
+             'outputs 0 and dies if package is not installed with -p option'
+        );
+
+        ($stdout) = capture { Sbozyp::query_command_main('-p', 'sbozyp-basic') };
+        like($stdout, qr/^1$/s, 'outputs 1 and does not die if package is installed with -p option');
+
+        remove_tree "$TEST_DIR/tmp_root" or die;
+    }
 };
 
 done_testing;

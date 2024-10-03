@@ -101,7 +101,7 @@ END_HELP
     }
 }
 
-sub query_command_main { # NOT TESTED
+sub query_command_main {
     my $usage = 'Usage: sbozyp query [-h] [-d] [-i] [-q] [-r] [-s] <pkgname>';
     my $help_msg = <<"END_HELP";
 $usage
@@ -133,9 +133,9 @@ END_HELP
     );
     if ($opt_help) { print $help_msg ; return }
     my $pkg = pkg($_[0] // die "$usage\n");
-    my $file_opts_set = 0; for ($opt_slackdesc,$opt_info,$opt_pkginstalled,$opt_printqueue,$opt_readme,$opt_slackbuild) { $file_opts_set++ if defined }
-    if    ($file_opts_set == 0) { query_pkg_ui($pkg) }
-    elsif ($file_opts_set == 1) {
+    my $exclusive_opts_set = 0; for ($opt_slackdesc,$opt_info,$opt_pkginstalled,$opt_printqueue,$opt_readme,$opt_slackbuild) { $exclusive_opts_set++ if defined }
+    if    ($exclusive_opts_set == 0) { query_pkg_ui($pkg) }
+    elsif ($exclusive_opts_set == 1) {
         if    ($opt_slackdesc)    { sbozyp_print_file("$pkg->{PKGDIR}/slack-desc")                      }
         elsif ($opt_info)         { sbozyp_print_file("$pkg->{PKGDIR}/$pkg->{PRGNAM}.info")             }
         elsif ($opt_pkginstalled) { if (defined pkg_installed($pkg)) { print "1\n" } else { die "0\n" } }
@@ -143,7 +143,7 @@ END_HELP
         elsif ($opt_readme)       { sbozyp_print_file("$pkg->{PKGDIR}/README")                          }
         elsif ($opt_slackbuild)   { sbozyp_print_file("$pkg->{PKGDIR}/$pkg->{PRGNAM}.SlackBuild")       }
     }
-    else { sbozyp_die("can only set 1 of options '-d', '-i', '-p', -q', -r', '-s' but $file_opts_set were set") }
+    else { sbozyp_die("can only set 1 of options '-d', '-i', '-p', -q', -r', '-s' but $exclusive_opts_set were set") }
 }
 
 sub search_command_main { # NOT TESTED
