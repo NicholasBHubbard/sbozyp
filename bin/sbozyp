@@ -659,7 +659,7 @@ sub prepare_pkg {
     sbozyp_copy($pkg->{PKGDIR}, $staging_dir);
     for my $url (sort keys %url_md5) {
         my $md5 = $url_md5{$url};
-        sbozyp_system('wget', '-t', 3, '-P', $staging_dir, $url);
+        sbozyp_system('wget', '-P', $staging_dir, $url);
         my $file = basename($url);
         my $got_md5 = sbozyp_qx("md5sum '$staging_dir/$file' | cut -d' ' -f1");
         if ($md5 ne $got_md5) {
