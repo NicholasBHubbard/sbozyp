@@ -297,7 +297,7 @@ sub query_pkg_ui {
             printf "  %2d  %s\n", $i+1, $pkg_files[$i] =~ s/^$pkgdir\///r;
         }
         print '  -> ';
-        chomp(my $decision = <STDIN>);
+        my $decision = <STDIN>;
         $decision =~ s/^\s+|\s+$//g; # remove leading and trailing whitespace
         if ($decision =~ /^(?:q|quit)$/) {
             last;
