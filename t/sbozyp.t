@@ -721,6 +721,8 @@ subtest 'installed_sbo_pkgs()' => sub {
 
     local $ENV{ROOT} = "$TEST_DIR/tmp_root";
 
+    is(Sbozyp::installed_sbo_pkgs(), {}, 'returns empty hash if $root/var/lib/pkgtools/packages does not exist');
+
     my $pkg1 = Sbozyp::pkg('sbozyp-basic');
     my $pkg2 = Sbozyp::pkg('sbozyp-nested-dir');
     my $pkg3 = Sbozyp::pkg('sbozyp-readme-extra-deps');
