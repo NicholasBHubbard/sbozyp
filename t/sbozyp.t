@@ -681,7 +681,6 @@ subtest 'install_slackware_pkg()' => sub {
     local $ENV{ROOT} = "$TEST_DIR/tmp_root";
 
     my $pkg = Sbozyp::pkg('sbozyp-basic');
-    my $slackware_pkg = Sbozyp::build_slackware_pkg($pkg);
     Sbozyp::install_slackware_pkg(Sbozyp::build_slackware_pkg($pkg));
     ok(-f "$TEST_DIR/tmp_root/var/lib/pkgtools/packages/sbozyp-basic-1.0-noarch-1_SBo",
        'successfully installs slackware pkg'
