@@ -298,6 +298,7 @@ sub query_pkg_ui {
         }
         print '  -> ';
         chomp(my $decision = <STDIN>);
+        $decision =~ s/^\s+|\s+$//g; # remove leading and trailing whitespace
         if ($decision =~ /^(?:q|quit)$/) {
             last;
         } elsif ($decision =~ /^\d+$/ and $decision > 0 and my $file = $pkg_files[$decision-1]) {
