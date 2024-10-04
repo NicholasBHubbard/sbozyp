@@ -146,6 +146,49 @@ END_HELP
     else { sbozyp_die("can only set 1 of options '-d', '-i', '-p', -q', -r', '-s' but $exclusive_opts_set were set") }
 }
 
+sub remove_command_main {
+    my $usage = 'Usage: sbozyp remove [-h] <pkgname>';
+    my $help_msg = <<"END_HELP";
+$usage
+
+Remove a package
+
+Options are:
+  -h                  Print this help message
+  -i                  Non-interactive (DANGEROUS)
+END_HELP
+    sbozyp_getopts(
+        \@_,
+        'h|help' => \my $opt_help,
+        'i'      => \my $opt_noninteractive
+    );
+    if ($opt_help) { print $help_msg ; return }
+    i_am_root_or_die();
+    my $pkg = pkg($_[0] // die "$usage\n");
+    if (!defined pkg_installed($pkg)) {
+        sbozyp_die("the package '$pkg->{PKGNAME}' is not installed");
+    }
+    if (not $opt_noninteractive) {
+        my $error_msg = '';
+        while (1) {
+            clear_terminal();
+            if ($error_msg) { print "$error_msg\n\n"; $error_msg = '' };
+            print "sbozyp: are you sure you want to remove package '$pkg->{PKGNAME}'? y/n\n";
+            print '  -> ';
+            my $decision = <STDIN>;
+            $decision =~ s/^\s+|\s+$//g; # remove leading and trailing whitespace
+            if ($decision =~ /^y(?:es)?$/i) {
+                remove_slackware_pkg($pkg->{PRGNAM});
+                last;
+            } elsif ($decision =~ /^no?$/i) {
+                last;
+            } else {
+                $error_msg = "invalid input: '$decision'";
+            }
+        }
+    } else { remove_slackware_pkg($pkg->{PRGNAM}) }
+}
+
 sub search_command_main {
     my $usage = 'Usage: sbozyp search [-h] [-c] [-n] <regex>';
     my $help_msg = <<"END_HELP";

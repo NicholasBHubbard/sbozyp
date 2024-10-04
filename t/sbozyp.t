@@ -1112,6 +1112,62 @@ subtest 'query_command_main()' => sub {
     }
 };
 
+subtest 'remove_command_main()' => sub {
+    skip_all('remove_command_main() requires root') unless $> == 0;
+
+    local $ENV{ROOT} = "$TEST_DIR/tmp_root"; # were gonna install some packages
+
+    my $stdout; # were gonna capture STDOUT into this variable for some of these tests
+    my $stdin;  # were gonna mock user input in some of these tests.
+
+    ($stdout) = capture { Sbozyp::remove_command_main('-h') };
+    like($stdout, qr/^Usage: sbozyp remove.+Remove a package.+Options are/s, q('-h' option prints a help string to STDOUT));
+
+    ($stdout) = capture { Sbozyp::remove_command_main('--help') };
+    like($stdout, qr/^Usage: sbozyp remove.+Remove a package.+Options are/s, q(also accepts '--help' instead of '-h'));
+
+    ($stdout) = capture { Sbozyp::remove_command_main('--help', 'FOOBARBAZ') };
+    like($stdout, qr/^Usage: sbozyp remove.+Remove a package.+Options are/s, q(ignores other arg if given '--help' option));
+
+
+    like(dies { Sbozyp::remove_command_main() },
+         qr/^Usage:/,
+         'dies with usage if not give pkgname arg'
+    );
+
+    like(dies { Sbozyp::remove_command_main('NOTAPACKAGE') },
+         qr/^sbozyp: error: could not find a package named 'NOTAPACKAGE'$/,
+         'dies with useful error message if given a non-existent package'
+    );
+
+    like(dies { Sbozyp::remove_command_main('sbozyp-basic') },
+         qr/^sbozyp: error: the package 'misc\/sbozyp-basic' is not installed$/,
+         'dies with useful error message if attempting to remove a package that is not installed'
+     );
+
+    my $pkg = Sbozyp::pkg('sbozyp-basic');
+
+    Sbozyp::install_slackware_pkg(Sbozyp::build_slackware_pkg($pkg));
+    open $stdin, '<', \"no\n" or die;
+    local *STDIN = $stdin;
+    Sbozyp::remove_command_main('sbozyp-basic');
+    close $stdin;
+    ok(defined(Sbozyp::pkg_installed($pkg)), 'prompts user if the really want to remove the package, and if they say no then does not remove');
+
+    open $stdin, '<', \"yes\n" or die;
+    local *STDIN = $stdin;
+    Sbozyp::remove_command_main('sbozyp-basic');
+    close $stdin;
+    ok(!defined(Sbozyp::pkg_installed($pkg)), 'prompts user if the really want to remove the package, and if they say yes then removes the package');
+
+    # install it again ...
+    Sbozyp::install_slackware_pkg(Sbozyp::build_slackware_pkg($pkg));
+    Sbozyp::remove_command_main('-i', 'sbozyp-basic');
+    ok(!defined(Sbozyp::pkg_installed($pkg)), q(if given '-i' option then does not prompt user for confirmation and just goes ahead and removes the package));
+
+    remove_tree("$TEST_DIR/tmp_root") or die;
+};
+
 subtest 'search_command_main()' => sub {
     my $stdout; # were gonna capture STDOUT into this variable for some of these tests
 
