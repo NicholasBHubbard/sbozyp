@@ -146,7 +146,7 @@ END_HELP
     else { sbozyp_die("can only set 1 of options '-d', '-i', '-p', -q', -r', '-s' but $exclusive_opts_set were set") }
 }
 
-sub search_command_main { # NOT TESTED
+sub search_command_main {
     my $usage = 'Usage: sbozyp search [-h] [-c] [-n] <regex>';
     my $help_msg = <<"END_HELP";
 $usage
@@ -174,7 +174,7 @@ END_HELP
         print "sbozyp: the following packages match the regex '$regex_arg':\n";
         print "  $_\n" for @matches;
     } else {
-        sbozyp_die('no packages matched the regex');
+        sbozyp_die("no packages match the regex '$regex_arg'");
     }
 }
 

@@ -1111,4 +1111,39 @@ subtest 'query_command_main()' => sub {
     }
 };
 
+subtest 'search_command_main()' => sub {
+    my $stdout; # were gonna capture STDOUT into this variable for some of these tests
+
+    ($stdout) = capture { Sbozyp::search_command_main('--help') };
+    like($stdout, qr/^Usage.+Search for a package using a Perl regex.+Options are/s, q('-h' option prints a help string to STDOUT));
+
+    ($stdout) = capture { Sbozyp::search_command_main('--help') };
+    like($stdout, qr/^Usage.+Search for a package using a Perl regex.+Options are/s, q(also accepts '--help'));
+
+    ($stdout) = capture { Sbozyp::search_command_main('--help', 'fooregex') };
+    like($stdout, qr/^Usage.+Search for a package using a Perl regex.+Options are/s, q(prints help even if args are given afterwards));
+
+    ($stdout) = capture { Sbozyp::search_command_main('^mu$') };
+    like($stdout, qr/sbozyp: the following packages match the regex.+office\/mu\n$/s, 'returns matched package');
+
+    ($stdout) = capture { Sbozyp::search_command_main('^MU$') };
+    like($stdout, qr/sbozyp: the following packages match the regex.+office\/mu\n$/s, 'case-insensitive by default');
+
+    like(dies { Sbozyp::search_command_main('-c','^MU$') },
+         qr/^sbozyp: error: no packages match the regex '\^MU\$'$/,
+         q(matches case-sensitive when given '-c' option)
+    );
+
+    like(dies { Sbozyp::search_command_main('office/mu') },
+         qr/^sbozyp.+no packages match the regex/,
+         'by default does not match package categories'
+    );
+
+    ($stdout) = capture { Sbozyp::search_command_main('-n', 'office/mu') };
+    like($stdout, qr/the following packages match the regex.+office\/mu/s, q(matches against PKGNAME instead of just PRGNAM if given '-n' option));
+
+    ($stdout) = capture { Sbozyp::search_command_main('mu') };
+    ok(10 < split("\n",$stdout), 'returns all packages that match the regex');
+};
+
 done_testing;
