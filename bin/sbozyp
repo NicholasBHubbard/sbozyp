@@ -433,7 +433,7 @@ sub sbozyp_system {
     }
 }
 
-sub clear_terminal { # NOT TESTED
+sub clear_terminal { # NOT TESTED (not sure how to test this ... but it seems to work fine)
     print "\033[2J";    # clear the screen
     # print "\033[3J";    # clear the scrollback
     print "\033[0;0H";  # jump to 0,0
