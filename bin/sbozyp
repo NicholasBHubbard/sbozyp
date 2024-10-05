@@ -660,9 +660,10 @@ sub pkg_queue {
 }
 
 sub merge_pkg_queues {
+    my @queues = @_;
     my @queue;
     my %seen;
-    for my $pkg (@_) {
+    for my $pkg (@queues) {
         next if $seen{$pkg->{PKGNAME}};
         $seen{$pkg->{PKGNAME}} = 1;
         push @queue, $pkg;
