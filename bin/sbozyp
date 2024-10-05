@@ -722,11 +722,11 @@ sub manage_install_queue_ui {
     while (1) {
         clear_terminal();
         if ($error_msg) { print "$error_msg\n\n"; $error_msg = '' };
-        print 'INSTALL QUEUE', "\n";
+        print 'sbozyp: INSTALL QUEUE', "\n";
         for (my $i = 0; $i < @pkg_queue; $i++) {
             printf "  %2d  %s\n", $i, $pkg_queue[$i]->{PKGNAME};
         }
-        print '(c)onfirm; (q)uit; (a)dd IDX? PKG; (d)elete IDX; (s)wap IDX IDX;', "\n", '  -> ';
+        print '  (c)onfirm; (q)uit; (a)dd IDX? PKG; (d)elete IDX; (s)wap IDX IDX;', "\n", '  -> ';
         my $input = <STDIN>;
         $input =~ s/^\s+|\s+$//g; # remove leading and trailing whitespace
         if ($input =~ /^(?:q|quit)$/) {
