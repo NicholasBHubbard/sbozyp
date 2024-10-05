@@ -258,7 +258,7 @@ END_HELP
             install_slackware_pkg($slackware_pkg);
         }
     } else {
-        print "sbozyp: package '$pkg->{PKGNAME}' is already up to date.\n"
+        print "sbozyp: package '$pkg->{PKGNAME}' is already up to date\n"
     }
 }
 
