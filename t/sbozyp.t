@@ -16,7 +16,8 @@ use File::Basename qw(basename);
 use Getopt::Long qw(:config no_ignore_case bundling);
 use Cwd qw(getcwd);
 use FindBin;
-require "$FindBin::Bin/../bin/sbozyp";
+
+require "$FindBin::Bin/../bin/sbozyp"; # import sbozyp
 
 $SIG{INT} = sub { die "\nsbozyp.t: got a SIGINT ... going down!\n" };
 
