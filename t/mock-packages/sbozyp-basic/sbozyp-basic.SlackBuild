@@ -53,8 +53,8 @@ rm -rf $PKG
 mkdir -p $TMP $PKG $OUTPUT
 cd $TMP
 rm -rf $SRCNAM-$VERSION
-tar xvf $CWD/$SRCNAM-$VERSION.tar.gz
-cd sbozyp-$SRCNAM-$VERSION
+tar xvf $CWD/$SRCNAM-1.0.tar.gz
+cd sbozyp-$SRCNAM-1.0
 chown -R root:root .
 find -L . \
  \( -perm 777 -o -perm 775 -o -perm 750 -o -perm 711 -o -perm 555 \
