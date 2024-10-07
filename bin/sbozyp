@@ -225,7 +225,7 @@ END_HELP
     }
 }
 
-sub upgrade_command_main { # NOT TESTED
+sub upgrade_command_main {
     my $usage = 'Usage: sbozyp upgrade [-h] [-i] [-n] <pkgname>';
     my $help_msg = <<"END_HELP";
 $usage
@@ -244,22 +244,23 @@ END_HELP
         'n'      => \my $opt_nodeps,
     );
     if ($opt_help) { print $help_msg ; return }
+    @_ == 1 or die "$usage\n";
     i_am_root_or_die();
-    my $pkg = pkg($_[0] // die "$usage\n");
-    my @queue; for my $dep ($opt_nodeps ? ($pkg) : pkg_queue($pkg)) {
-        if (defined(my $installed_version = pkg_installed($dep))) {
+    my $pkg = pkg($_[0]);
+    my @queue;
+    for my $dep ($opt_nodeps ? ($pkg) : pkg_queue($pkg)) {
+        my $installed_version = pkg_installed($dep);
+        if (defined $installed_version) {
             my $installed_version = version->parse($installed_version);
             my $new_version = version->parse($dep->{VERSION});
-            if (version->parse($new_version) > version->parse($installed_version)) {
-                push @queue, $dep;
-            }
+            push @queue, $dep if $new_version > $installed_version
         }
     }
     if (@queue) {
         @queue = manage_install_queue_ui(@queue) unless $opt_noninteractive;
         for my $pkg (@queue) {
             my $slackware_pkg = build_slackware_pkg($pkg);
-            install_slackware_pkg($slackware_pkg);
+            install_slackware_pkg($slackware_pkg); # install_slackware_pkg invokes upgradepkg
         }
     } else {
         print "sbozyp: package '$pkg->{PKGNAME}' is already up to date\n"
@@ -267,7 +268,7 @@ END_HELP
 }
 
 sub sync_command_main { # NOT TESTED
-    my $usage = 'Usage: sbozyp sync <TODO>';
+    my $usage = 'Usage: sbozyp sync';
     my $help_msg = <<"END_HELP";
 $usage
 
