@@ -560,7 +560,7 @@ sub i_am_root_or_die {
 
 sub parse_config_file {
     my ($config_file) = @_;
-    if (not defined $config_file) {
+    if (!defined $config_file) {
         $config_file = -f "$ENV{HOME}/.sbozyp.conf" ? "$ENV{HOME}/.sbozyp.conf" : '/etc/sbozyp.conf';
     }
     my $fh = sbozyp_open('<', $config_file);
