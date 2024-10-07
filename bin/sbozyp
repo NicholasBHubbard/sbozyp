@@ -90,8 +90,9 @@ END_HELP
         'n'      => \my $opt_nodeps,
     );
     if ($opt_help) { print $help_msg ; return }
+    @_ == 1 or die "$usage\n";
     i_am_root_or_die();
-    my $pkg = pkg($_[0] // die "$usage\n");
+    my $pkg = pkg($_[0]);
     my @queue = $opt_nodeps ? ($pkg) : pkg_queue($pkg);
     @queue = manage_install_queue_ui(@queue) unless $opt_noninteractive;
     for my $pkg (@queue) {
@@ -132,7 +133,8 @@ END_HELP
         '-s'     => \my $opt_slackbuild
     );
     if ($opt_help) { print $help_msg ; return }
-    my $pkg = pkg($_[0] // die "$usage\n");
+    @_ == 1 or die "$usage\n";
+    my $pkg = pkg($_[0]);
     my $exclusive_opts_set = 0; for ($opt_slackdesc,$opt_info,$opt_pkginstalled,$opt_printqueue,$opt_readme,$opt_slackbuild) { $exclusive_opts_set++ if defined }
     if    ($exclusive_opts_set == 0) { query_pkg_ui($pkg) }
     elsif ($exclusive_opts_set == 1) {
@@ -163,8 +165,9 @@ END_HELP
         'i'      => \my $opt_noninteractive
     );
     if ($opt_help) { print $help_msg ; return }
+    @_ == 1 or die "$usage\n";
     i_am_root_or_die();
-    my $pkg = pkg($_[0] // die "$usage\n");
+    my $pkg = pkg($_[0]);
     if (!defined pkg_installed($pkg)) {
         sbozyp_die("the package '$pkg->{PKGNAME}' is not installed");
     }
@@ -208,7 +211,8 @@ END_HELP
         'n'      => \my $opt_matchcategory,
     );
     if ($opt_help) { print $help_msg ; return }
-    my $regex_arg = $_[0] // die "$usage\n";
+    @_ == 1 or die "$usage\n";
+    my $regex_arg = $_[0];
     my $regex = $opt_casesensitive ? qr/$regex_arg/ : qr/$regex_arg/i;
     my @matches = grep {
         $opt_matchcategory ? $_ =~ $regex : basename($_) =~ $regex;
@@ -222,7 +226,7 @@ END_HELP
 }
 
 sub upgrade_command_main { # NOT TESTED
-    my $usage = 'Usage: sbozyp upgrade [-hf] <pkgname>';
+    my $usage = 'Usage: sbozyp upgrade [-h] [-i] [-n] <pkgname>';
     my $help_msg = <<"END_HELP";
 $usage
 

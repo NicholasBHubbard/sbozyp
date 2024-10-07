@@ -1014,6 +1014,11 @@ subtest 'install_command_main()' => sub {
          'dies with useful message if the package does not exist'
     );
 
+    like(dies { Sbozyp::install_command_main('mu', 'sbozyp-basic') },
+         qr/^Usage:/,
+         'dies with usage if given more than 1 pkgname arg'
+    );
+
     local $Sbozyp::CONFIG{CLEANUP} = 1;
 
     Sbozyp::install_command_main('-i', 'sbozyp-basic');
@@ -1076,6 +1081,11 @@ subtest 'query_command_main()' => sub {
          'dies with useful error message if multiple mutually exclusive options are given'
     );
 
+    like(dies { Sbozyp::query_command_main('mu', 'sbozyp-basic') },
+         qr/^Usage:/,
+         'dies with usage if given more than 1 pkgname arg'
+    );
+
     like(dies { Sbozyp::query_command_main('-d') }, qr/^Usage:/, 'dies with usage if missing the pkgname arg');
 
     ($stdout) = capture { Sbozyp::query_command_main('-d', 'sbozyp-basic') };
@@ -1134,6 +1144,11 @@ subtest 'remove_command_main()' => sub {
     like(dies { Sbozyp::remove_command_main() },
          qr/^Usage:/,
          'dies with usage if not give pkgname arg'
+    );
+
+    like(dies { Sbozyp::remove_command_main('mu', 'sbozyp-basic') },
+         qr/^Usage:/,
+         'dies with usage if given more than 1 pkgname arg'
     );
 
     like(dies { Sbozyp::remove_command_main('NOTAPACKAGE') },
