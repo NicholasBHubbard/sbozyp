@@ -1207,6 +1207,11 @@ subtest 'search_command_main()' => sub {
          q(matches case-sensitive when given '-c' option)
     );
 
+    like(dies { Sbozyp::search_command_main('.+','^MU$') },
+         qr/^Usage:/,
+         'dies with usage if given multiple args'
+    );
+
     like(dies { Sbozyp::search_command_main('office/mu') },
          qr/^sbozyp.+no packages match the regex/,
          'by default does not match package categories'
