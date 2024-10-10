@@ -434,7 +434,7 @@ sub sbozyp_system {
     my @cmd = @_;
     my $exit_status = system(@cmd) >> 8;
     unless (0 == $exit_status) {
-        sbozyp_die("system command '@cmd' exited with status $exit_status");
+        sbozyp_die("the following system command exited with status $exit_status: @cmd");
     }
 }
 
@@ -449,7 +449,7 @@ sub sbozyp_qx {
     wantarray ? chomp(my @output = qx($cmd)) : chomp(my $output = qx($cmd));
     unless (0 == $?) {
         my $exit_status = $? >> 8;
-        sbozyp_die("system command '$cmd' exited with status $exit_status");
+        sbozyp_die("the following system command exited with status $exit_status: $cmd");
     }
     return wantarray ? @output : $output;
 }

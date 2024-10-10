@@ -67,8 +67,8 @@ subtest 'sbozyp_system()' => sub {
     ok(dies { Sbozyp::sbozyp_system('false') }, 'dies if system command fails');
 
     like(dies { Sbozyp::sbozyp_system('false') },
-         qr/^sbozyp: error: system command 'false' exited with status 1$/,
-         'dies with error message containing the exit status when system command fails'
+         qr/^sbozyp: error: the following system command exited with status 1: false$/,
+         'dies with error message containing the exit status and failing command when system command fails'
     );
 };
 
@@ -87,7 +87,7 @@ subtest 'sbozyp_qx()' => sub {
     );
 
     like(dies { Sbozyp::sbozyp_qx('false') },
-         qr/^sbozyp: error: system command 'false' exited with status 1$/,
+         qr/^sbozyp: error: the following system command exited with status 1: false$/,
          'dies with error message containing the exit status when system command fails'
      );
 };
@@ -168,7 +168,7 @@ subtest 'sbozyp_copy()' => sub {
     remove_tree("$TEST_DIR/dest") or die;
 
     like(dies { Sbozyp::sbozyp_copy("$TEST_DIR/foo", "$TEST_DIR/bar") },
-         qr/^sbozyp: error: system command 'cp -a \Q$TEST_DIR\E\/foo \Q$TEST_DIR\E\/bar' exited with status 1$/,
+         qr/^sbozyp: error: the following system command exited with status 1: cp -a \Q$TEST_DIR\E\/foo \Q$TEST_DIR\E\/bar$/,
          q(dies with error message about system command failure if 'cp' command fails)
     );
 };
@@ -443,7 +443,7 @@ subtest 'sbozyp_tee()' => sub {
     is($teed_stdout, $real_stdout, 'captures stdout of shell command with meta chars');
     is([Sbozyp::sbozyp_readdir($Sbozyp::CONFIG{TMPDIR})], [], 'cleans up tmp file from $CONFIG{TMPDIR}');
     like(dies { Sbozyp::sbozyp_tee('false') },
-         qr/^sbozyp: error: system command 'bash -c set -o pipefail && \( false \) \| tee '[^']+'' exited with status 1$/,
+         qr/^sbozyp: error: the following system command exited with status 1: bash -c set -o pipefail && \( false \) \| tee '[^']+'$/,
          'dies with useful error message is system command fails'
     );
     is([Sbozyp::sbozyp_readdir($Sbozyp::CONFIG{TMPDIR})], [], 'cleans up tmp file from $CONFIG{TMPDIR} after a failed system command');
