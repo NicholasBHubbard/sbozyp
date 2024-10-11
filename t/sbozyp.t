@@ -1224,60 +1224,31 @@ subtest 'search_command_main()' => sub {
     ok(10 < split("\n",$stdout), 'returns all packages that match the regex');
 };
 
-subtest 'upgrade_command_main()' => sub {
-    skip_all('upgrade_command_main() requires root') unless $> == 0;
+subtest 'sync_command_main()' => sub {
+    skip_all('sync_command_main() requires root') unless $> == 0;
 
     my ($stdin,$stdout,$stderr); # were gonna capture STDOUT/STDERR into these variables for some tests
 
-    ($stdout) = capture { Sbozyp::upgrade_command_main('-h') };
-    like($stdout, qr/^Usage.+Upgrade a package.+Options are/s, q('-h' option prints a help string to STDOUT));
+    ($stdout) = capture { Sbozyp::sync_command_main('-h') };
+    like($stdout, qr/^Usage.+Sync a local SBo repository.+Options are/s, q('-h' option prints a help string to STDOUT));
 
-    ($stdout) = capture { Sbozyp::upgrade_command_main('--help') };
-    like($stdout, qr/^Usage.+Upgrade a package.+Options are/s, q('--help' can be used instead of '-h'));
+    ($stdout) = capture { Sbozyp::sync_command_main('--help') };
+    like($stdout, qr/^Usage.+Sync a local SBo repository.+Options are/s, q('--help' can be used instead of '-h'));
 
-    like(dies { Sbozyp::upgrade_command_main('PACKAGETHATDOESNTEXIST') },
-         qr/^sbozyp: error: could not find a package named 'PACKAGETHATDOESNTEXIST'$/,
-         q(dies with useful error message if given non-existent package)
-    );
-
-    like(dies { Sbozyp::upgrade_command_main('mu', 'sbozyp-basic') },
+    like(dies { Sbozyp::sync_command_main('mu') },
          qr/^Usage:/,
-         'dies with usage if given more than 1 pkgname arg'
+         q(dies with usage if given an argument)
     );
 
-    like(dies { Sbozyp::upgrade_command_main() },
-         qr/^Usage:/,
-         q(dies with usage if package argument is omitted)
-    );
+    # test syncing
+    system "rm -rf '$Sbozyp::CONFIG{REPO_ROOT}/$Sbozyp::CONFIG{REPO_NAME}'" and die;
+    mkdir "$Sbozyp::CONFIG{REPO_ROOT}/$Sbozyp::CONFIG{REPO_NAME}" or die;
 
-    local $ENV{ROOT} = "$TEST_DIR/tmp_root"; # were gonna install some packages
+    (undef, $stderr) = capture { Sbozyp::sync_command_main() };
+    like($stderr, qr/Cloning into/i, 'clones git repo if it does not exist');
 
-    my $pkg = Sbozyp::pkg('sbozyp-basic');
-    Sbozyp::install_slackware_pkg(Sbozyp::build_slackware_pkg($pkg));
-
-    ($stdout) = capture { Sbozyp::upgrade_command_main('-i', 'sbozyp-basic') };
-    like($stdout, qr/^sbozyp: package 'misc\/sbozyp-basic' is already up to date$/, 'does not upgrade, and outputs useful message, if package is already up to date');
-
-    my $sbozyp_basic_path = "$Sbozyp::CONFIG{REPO_ROOT}/$Sbozyp::CONFIG{REPO_NAME}/misc/sbozyp-basic";
-
-    # this updates sbozyp-basic's version from 1.0 to 2.0
-    system('sed', '-i', 's/^VERSION=.*/VERSION="2.0"/', "$sbozyp_basic_path/sbozyp-basic.info") and die;
-    system('sed', '-i', 's/^VERSION=.*/VERSION=${VERSION:-2.0}/', "$sbozyp_basic_path/sbozyp-basic.SlackBuild") and die;
-
-    open $stdin, '<', \"c\n" or die;
-    local *STDIN = $stdin;
-    ($stdout) = capture { Sbozyp::upgrade_command_main('sbozyp-basic') };
-    like($stdout, qr/INSTALL QUEUE.+0.+misc\/sbozyp-basic.+Installing package.+upgraded with new package/s, 'upgrades package, and prompts user with manage_install_queue_ui(), if a upgrade is available');
-    close $stdin or die;
-
-    # version 2.0 back to 1.0
-    system('sed', '-i', 's/^VERSION=.*/VERSION="1.0"/', "$sbozyp_basic_path/sbozyp-basic.info") and die;
-    system('sed', '-i', 's/^VERSION=.*/VERSION=${VERSION:-1.0}/', "$sbozyp_basic_path/sbozyp-basic.SlackBuild") and die;
-
-    ($stdout) = capture { Sbozyp::upgrade_command_main('sbozyp-basic') };
-    like($stdout, qr/^sbozyp: package 'misc\/sbozyp-basic' is already up to date$/, 'does not upgrade if installed version is greater than version in repo');
-
-    remove_tree "$TEST_DIR/tmp_root" or die;
+    ($stdout) = capture { Sbozyp::sync_command_main() };
+    like($stdout, qr/HEAD is now at/i, 'git fetch and resets if git repo already exists');
 };
 
 done_testing;
