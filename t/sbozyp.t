@@ -450,6 +450,8 @@ subtest 'sbozyp_tee()' => sub {
 };
 
 subtest 'sync_repo()' => sub {
+    Sbozyp::sbozyp_mkdir( "$Sbozyp::CONFIG{REPO_ROOT}/$Sbozyp::CONFIG{REPO_NAME}");
+
     Sbozyp::sync_repo();
     ok(-d "$Sbozyp::CONFIG{REPO_ROOT}/$Sbozyp::CONFIG{REPO_NAME}/.git",
        'clones SBo repo to $CONFIG{REPO_ROOT}/$CONFIG{REPO_NAME} if it has not yet been cloned'
@@ -991,13 +993,13 @@ subtest 'install_command_main()' => sub {
     my ($stdout, $stderr); # were gonna capture STDOUT and STDERR into these for some tests
 
     ($stdout) = capture { Sbozyp::install_command_main('-h') };
-    like($stdout, qr/Usage.+Install a package.+\-h.+Print this help message/s, 'prints help message if given -h option');
+    like($stdout, qr/Usage.+Install or upgrade a package.+\-h.+Print this help message/s, 'prints help message if given -h option');
 
     ($stdout) = capture { Sbozyp::install_command_main('--help') };
-    like($stdout, qr/Usage.+Install a package.+\-h.+Print this help message/s, 'prints help message if given --help option');
+    like($stdout, qr/Usage.+Install or upgrade a package.+\-h.+Print this help message/s, 'prints help message if given --help option');
 
     ($stdout) = capture { Sbozyp::install_command_main('-i', '--help', 'mu') };
-    like($stdout, qr/Usage.+Install a package.+\-h.+Print this help message/s, 'prints help message if given --help option regardless of other options');
+    like($stdout, qr/Usage.+Install or upgrade a package.+\-h.+Print this help message/s, 'prints help message if given --help option regardless of other options');
 
     like(dies { Sbozyp::install_command_main('-H', 'mu') },
          qr/unknown option: H/,
@@ -1050,9 +1052,11 @@ subtest 'install_command_main()' => sub {
     Sbozyp::install_command_main('-i', 'sbozyp-basic');
     ok(-f "$TEST_DIR/sbozyp-basic-1.0-noarch-1_SBo.tgz", 'does not remove slackware package after installing it if $ONFIG{CLEANUP} = 0');
 
-    local $Sbozyp::CONFIG{CLEANUP} = 1;
     ($stdout) = capture { Sbozyp::install_command_main('-i', 'sbozyp-basic') };
-    like($stdout, qr/Installing package sbozyp-basic-1.0-noarch-1_SBo\.tgz/, 're-installs package if it is already installed');
+    like($stdout, qr/skipping install of 'misc\/sbozyp-basic' as it is installed and up to date$/, 'by default skips install with useful message if package is already installed');
+
+    ($stdout) = capture { Sbozyp::install_command_main('-i', '-f', 'sbozyp-basic') };
+    like($stdout, qr/Installing package sbozyp-basic-1.0-noarch-1_SBo\.tgz/, 're-installs package if it is already installed if using \'-f\' option');
 
     remove_tree "$TEST_DIR/tmp_root" or die;
 };
@@ -1111,13 +1115,12 @@ subtest 'query_command_main()' => sub {
         my $pkg = Sbozyp::pkg('sbozyp-basic');
         Sbozyp::install_slackware_pkg(Sbozyp::build_slackware_pkg($pkg));
 
-        like(dies { Sbozyp::query_command_main('-p', 'sbozyp-nested-dir') },
-             qr/^0$/s,
-             'outputs 0 and dies if package is not installed with -p option'
+        ok(dies { Sbozyp::query_command_main('-p', 'sbozyp-nested-dir') },
+             'dies if package is not installed with -p option'
         );
 
         ($stdout) = capture { Sbozyp::query_command_main('-p', 'sbozyp-basic') };
-        like($stdout, qr/^1$/s, 'outputs 1 and does not die if package is installed with -p option');
+        like($stdout, qr/^1\.0$/s, 'outputs installed version and does not die if package is installed with -p option');
 
         remove_tree "$TEST_DIR/tmp_root" or die;
     }

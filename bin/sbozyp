@@ -13,9 +13,8 @@ use File::Temp;
 use File::stat;
 use File::Copy qw(mv);
 use File::Path qw(make_path remove_tree);
-use Getopt::Long qw(GetOptionsFromArray :config no_ignore_case bundling);
+use Getopt::Long qw(GetOptionsFromArray :config no_ignore_case no_bundling);
 use Carp qw(carp confess);
-use version;
 
 $SIG{INT} = sub { die "\nsbozyp: got a SIGINT ... going down!\n" };
 
@@ -31,7 +30,28 @@ main(@ARGV) unless caller; # 'unless caller' allows us to require this file from
 
 sub main { # NOT TESTED
     my @argv = @_;
-    my $usage = 'Usage: sbozyp [-F <config>] [-R <repo>] [-S] <command> [<command_args>]';
+    my $usage = 'Usage: sbozyp [-h|--help] [-V|--version] [-F <config>] [-R <repo>] [-S] <command> [<command_args>]';
+    my $help_msg = <<"END_HELP";
+$usage
+
+Sbozyp is a package manager for SlackBuilds.org
+
+Every command has its own options and provides a '--help' option
+
+Options are:
+  -h|--help           Print this help message
+  -V|--version        Print the version of Sbozyp
+  -F FILE             Use FILE as the configuration file
+  -R REPO_NAME        Use repository REPO_NAME instead of REPO_PRIMARY
+  -S                  Sync the repository
+
+Commands are:
+  install|in          Install or upgrade a package
+  query|qr            Query for information about a package
+  remove|rm           Remove a package
+  search|se           Search for a package using a Perl regex
+  sync|sy             Sync a local SBo repository
+END_HELP
     # Process global options
     Getopt::Long::Configure('pass_through');
     sbozyp_getopts( # global options use uppercase while command options use lowercase
@@ -41,11 +61,10 @@ sub main { # NOT TESTED
         '-S'   => \my $opt_sync
     );
     Getopt::Long::Configure('nopass_through');
-    parse_config_file($opt_configfile); # mutates the global %CONFIG
-    set_repo_name_or_die($opt_reponame // $CONFIG{REPO_PRIMARY});
-    sbozyp_mkdir("$CONFIG{REPO_ROOT}/$CONFIG{REPO_NAME}", $CONFIG{TMPDIR});
     my $cmd = shift(@argv) or die "$usage\n";
-    if ($opt_sync) { i_am_root_or_die(); sync_repo() };
+    # deal with --help and --version here so we dont need to think about it later
+    if    ($cmd =~ /^(?:--help|-h)$/)    { print help_string()  ; exit 0 }
+    elsif ($cmd =~ /^(?:--version|-V)$/) { print $VERSION, "\n" ; exit 0 }
     # provide command abbreviations
     if    ($cmd eq 'in') { $cmd = 'install' }
     elsif ($cmd eq 'qr') { $cmd = 'query'   }
@@ -53,17 +72,21 @@ sub main { # NOT TESTED
     elsif ($cmd eq 'se') { $cmd = 'search'  }
     elsif ($cmd eq 'sy') { $cmd = 'sync'    }
     elsif ($cmd eq 'up') { $cmd = 'upgrade' }
-    # run the command
-    if    ($cmd =~ /^(?:--help|-h)$/)    { print help_string()          }
-    elsif ($cmd =~ /^(?:--version|-v)$/) { print $VERSION, "\n"         }
-    elsif ($cmd eq 'install')            { install_command_main(@argv)  }
-    elsif ($cmd eq 'query')              { query_command_main(@argv)    }
-    elsif ($cmd eq 'remove')             { remove_command_main(@argv)   }
-    elsif ($cmd eq 'search')             { search_command_main(@argv)   }
-    elsif ($cmd eq 'sync')               { sync_command_main(@argv)     }
-    elsif ($cmd eq 'upgrade')            { upgrade_command_main(@argv)  }
-    else                                 { die "$usage\n"               }
-    # all good if we made it here
+    # determine the command
+    my $cmd_main;
+    if    ($cmd eq 'install')            { $cmd_main = \&install_command_main  }
+    elsif ($cmd eq 'query')              { $cmd_main = \&query_command_main    }
+    elsif ($cmd eq 'remove')             { $cmd_main = \&remove_command_main   }
+    elsif ($cmd eq 'search')             { $cmd_main = \&search_command_main   }
+    elsif ($cmd eq 'sync')               { $cmd_main = \&sync_command_main     }
+    elsif ($cmd eq 'upgrade')            { $cmd_main = \&upgrade_command_main  }
+    else                                 { die "$usage\n"                      }
+    # setup environment and run the command
+    parse_config_file($opt_configfile); # mutates the global %CONFIG
+    set_repo_name_or_die($opt_reponame // $CONFIG{REPO_PRIMARY});
+    sbozyp_mkdir("$CONFIG{REPO_ROOT}/$CONFIG{REPO_NAME}", $CONFIG{TMPDIR});
+    if ($opt_sync) { i_am_root_or_die(); sync_repo() };
+    $cmd_main->(@argv);
     exit 0;
 }
 
@@ -76,18 +99,20 @@ sub install_command_main {
     my $help_msg = <<"END_HELP";
 $usage
 
-Install a package
+Install or upgrade a package
 
 Options are:
-  -h                  Print this help message
+  -h|--help           Print this help message
+  -f                  Force installation even if package is already up to date
   -i                  Non-interactive (DANGEROUS)
   -n                  Do not install package dependencies
 END_HELP
     sbozyp_getopts(
         \@_,
         'h|help' => \my $opt_help,
+        'f'      => \my $opt_force,
         'i'      => \my $opt_noninteractive,
-        'n'      => \my $opt_nodeps,
+        'n'      => \my $opt_nodeps
     );
     if ($opt_help) { print $help_msg ; return }
     @_ == 1 or die "$usage\n";
@@ -96,14 +121,19 @@ END_HELP
     my @queue = $opt_nodeps ? ($pkg) : pkg_queue($pkg);
     @queue = manage_install_queue_ui(@queue) unless $opt_noninteractive;
     for my $pkg (@queue) {
-        my $slackware_pkg = build_slackware_pkg($pkg);
-        install_slackware_pkg($slackware_pkg);
-        if ($CONFIG{CLEANUP}) { sbozyp_unlink($slackware_pkg) }
+        my $installed_version = pkg_installed($pkg);
+        if ($opt_force or !defined($installed_version) or $installed_version ne $pkg->{VERSION}) {
+            my $slackware_pkg = build_slackware_pkg($pkg);
+            install_slackware_pkg($slackware_pkg);
+            if ($CONFIG{CLEANUP}) { sbozyp_unlink($slackware_pkg) }
+        } else {
+            print "sbozyp: skipping install of '$pkg->{PKGNAME}' as it is installed and up to date\n";
+        }
     }
 }
 
 sub query_command_main {
-    my $usage = 'Usage: sbozyp query [-h] [-d] [-i] [-q] [-r] [-s] <pkgname>';
+    my $usage = 'Usage: sbozyp query [-h] [-d] [-i] [-p] [-q] [-r] [-s] <pkgname>';
     my $help_msg = <<"END_HELP";
 $usage
 
@@ -114,10 +144,10 @@ prompt for viewing package files. Only one of the '-d', '-i', '-p', '-q', '-r',
 '-s' options can be used.
 
 Options are:
-  -h                  Print this help message
+  -h|--help           Print this help message
   -d                  Print the packages slack-desc file
   -i                  Print the packages .info file
-  -p                  Print 1 and exit 0 if package is installed, otherwise print 0 and exit 1
+  -p                  If package is installed print the installed version, else exit with status 1
   -q                  Print the packages dependencies (recursively and in order)
   -r                  Print the packages README file
   -s                  Print the packages .SlackBuild file
@@ -140,7 +170,7 @@ END_HELP
     elsif ($exclusive_opts_set == 1) {
         if    ($opt_slackdesc)    { sbozyp_print_file("$pkg->{PKGDIR}/slack-desc")                      }
         elsif ($opt_info)         { sbozyp_print_file("$pkg->{PKGDIR}/$pkg->{PRGNAM}.info")             }
-        elsif ($opt_pkginstalled) { if (defined pkg_installed($pkg)) { print "1\n" } else { die "0\n" } }
+        elsif ($opt_pkginstalled) { if (defined(my $version = pkg_installed($pkg))) { print "$version\n" } else { die "\n" } }
         elsif ($opt_printqueue)   { print "$_->{PKGNAME}\n" for pkg_queue($pkg)                         }
         elsif ($opt_readme)       { sbozyp_print_file("$pkg->{PKGDIR}/README")                          }
         elsif ($opt_slackbuild)   { sbozyp_print_file("$pkg->{PKGDIR}/$pkg->{PRGNAM}.SlackBuild")       }
@@ -156,7 +186,7 @@ $usage
 Remove a package
 
 Options are:
-  -h                  Print this help message
+  -h|--help           Print this help message
   -i                  Non-interactive (DANGEROUS)
 END_HELP
     sbozyp_getopts(
@@ -200,7 +230,7 @@ $usage
 Search for a package using a Perl regex
 
 Options are:
-  -h                  Print this help message
+  -h|--help           Print this help message
   -c                  Match case sensitive
   -n                  Match against CATEGORY/PRGNAM instead of just PRGNAM
 END_HELP
