@@ -636,7 +636,7 @@ sub repo_git_url {
 
 sub sync_repo {
     my $local_git_repo = "$CONFIG{REPO_ROOT}/$CONFIG{REPO_NAME}";
-    if (-d $local_git_repo) {
+    if (-d "$local_git_repo/.git") {
         my $repo_git_branch = repo_git_branch();
         sbozyp_system('git', '-C', $local_git_repo, 'fetch');
         sbozyp_system('git', '-C', $local_git_repo, 'reset', '--hard', "origin/$repo_git_branch");
