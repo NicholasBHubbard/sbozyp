@@ -6,7 +6,7 @@ sbozyp is a package manager for Slackware's [SlackBuilds.org](https://slackbuild
 
 * Drop-in replacement for sbopkg
 * Built in dependency resolution
-* Multiple repo support
+* Multiple repository support
 * Pure CLI user interface (no ncurses)
 * Provides package browsing and searching
 * Requires zero dependencies (implemented as a single Perl script)
