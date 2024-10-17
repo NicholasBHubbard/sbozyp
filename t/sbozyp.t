@@ -21,6 +21,8 @@ require "$FindBin::Bin/../bin/sbozyp"; # import sbozyp
 
 $SIG{INT} = sub { die "\nsbozyp.t: got a SIGINT ... going down!\n" };
 
+my $TEST_DIR = File::Temp->newdir(DIR => '/tmp', TEMPLATE => 'sbozyp.tXXXXXX', CLEANUP => 1);
+
             ####################################################
             #                       TESTS                      #
             ####################################################
@@ -466,19 +468,40 @@ subtest 'sbozyp_tee()' => sub {
     is([Sbozyp::sbozyp_readdir($Sbozyp::CONFIG{TMPDIR})], [], 'cleans up tmp file from $CONFIG{TMPDIR} after a failed system command');
 };
 
-subtest 'sync_repo()' => sub {
-    Sbozyp::sbozyp_mkdir( "$Sbozyp::CONFIG{REPO_ROOT}/$Sbozyp::CONFIG{REPO_NAME}");
+subtest 'repo_is_cloned()' => sub {
+    is(0, scalar(Sbozyp::repo_is_cloned()), 'returns 0 if $CONFIG{REPO_ROOT}/$CONFIG{REPO_NAME}/.git does not exist');
+    Sbozyp::sbozyp_mkdir( "$Sbozyp::CONFIG{REPO_ROOT}/$Sbozyp::CONFIG{REPO_NAME}/.git");
+    is(1, scalar(Sbozyp::repo_is_cloned()), 'returns 1 if $CONFIG{REPO_ROOT}/$CONFIG{REPO_NAME}/.git does exist');
+    Sbozyp::sbozyp_rmdir( "$Sbozyp::CONFIG{REPO_ROOT}/$Sbozyp::CONFIG{REPO_NAME}/.git");
+};
 
-    Sbozyp::sync_repo();
-    ok(-d "$Sbozyp::CONFIG{REPO_ROOT}/$Sbozyp::CONFIG{REPO_NAME}/.git",
-       'clones SBo repo to $CONFIG{REPO_ROOT}/$CONFIG{REPO_NAME} if it has not yet been cloned'
-    );
+subtest 'clone_repo()' => sub {
+    Sbozyp::sbozyp_mkdir("$Sbozyp::CONFIG{REPO_ROOT}/$Sbozyp::CONFIG{REPO_NAME}");
+    my (undef, $stderr) = capture { Sbozyp::clone_repo() };
+    like($stderr, qr/^Cloning into/, 'clones repo if it does not yet exist');
+    (undef, $stderr) = capture { Sbozyp::clone_repo() };
+    like($stderr, qr/^Cloning into/, 're-clones repo if it already exists');
+};
+
+subtest 'sync_repo()' => sub {
+    Sbozyp::sbozyp_mkdir("$Sbozyp::CONFIG{REPO_ROOT}/$Sbozyp::CONFIG{REPO_NAME}");
 
     my ($stdout) = capture { Sbozyp::sync_repo() };
     like($stdout,
          qr/HEAD is now at/i,
          'uses git fetch and git reset if repo has already been cloned'
     );
+
+
+    Sbozyp::sbozyp_rmdir_rec("$Sbozyp::CONFIG{REPO_ROOT}/$Sbozyp::CONFIG{REPO_NAME}");
+    mkdir("$Sbozyp::CONFIG{REPO_ROOT}/$Sbozyp::CONFIG{REPO_NAME}") or die;
+    like(dies { Sbozyp::sync_repo() },
+         qr/^sbozyp: error: cannot sync non-existent repository at '$Sbozyp::CONFIG{REPO_ROOT}\/$Sbozyp::CONFIG{REPO_NAME}'$/,
+         'dies with useful error message if trying to sync non-existent repository'
+
+    );
+
+    Sbozyp::clone_repo(); # so the rest of the tests can go on
 };
 
 # add our mock packages to the SBo 14.1 repo we just cloned in the sync_repo() subtest

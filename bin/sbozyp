@@ -624,16 +624,30 @@ sub repo_git_url {
     return $repo_git_url;
 }
 
+sub repo_is_cloned {
+    my $local_git_repo = "$CONFIG{REPO_ROOT}/$CONFIG{REPO_NAME}"; # this dir was initialized in main()
+    return -d "$local_git_repo/.git" ? 1 : 0;
+}
+
+sub clone_repo {
+    my $local_git_repo = "$CONFIG{REPO_ROOT}/$CONFIG{REPO_NAME}"; # this dir was initialized in main()
+    if (repo_is_cloned()) {
+        sbozyp_rmdir_rec($local_git_repo);
+        sbozyp_mkdir($local_git_repo);
+    }
+    my $repo_git_branch = repo_git_branch();
+    my $repo_git_url = repo_git_url();
+    sbozyp_system('git', 'clone', '--branch', $repo_git_branch, $repo_git_url, $local_git_repo);
+}
+
 sub sync_repo {
-    my $local_git_repo = "$CONFIG{REPO_ROOT}/$CONFIG{REPO_NAME}";
-    if (-d "$local_git_repo/.git") {
+    my $local_git_repo = "$CONFIG{REPO_ROOT}/$CONFIG{REPO_NAME}"; # this dir was initialized in main()
+    if (repo_is_cloned()) {
         my $repo_git_branch = repo_git_branch();
         sbozyp_system('git', '-C', $local_git_repo, 'fetch');
         sbozyp_system('git', '-C', $local_git_repo, 'reset', '--hard', "origin/$repo_git_branch");
     } else {
-        my $repo_git_branch = repo_git_branch();
-        my $repo_git_url = repo_git_url();
-        sbozyp_system('git', 'clone', '--branch', $repo_git_branch, $repo_git_url, $local_git_repo);
+        sbozyp_die("cannot sync non-existent repository at '$local_git_repo'");
     }
 }
 
