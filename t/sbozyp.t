@@ -25,8 +25,6 @@ $SIG{INT} = sub { die "\nsbozyp.t: got a SIGINT ... going down!\n" };
             #                       TESTS                      #
             ####################################################
 
-my $TEST_DIR = File::Temp->newdir(DIR => '/tmp', TEMPLATE => 'sbozyp.tXXXXXX', CLEANUP => 1);
-
 subtest 'is_multilib_system()' => sub {
     if (-f '/etc/profile.d/32dev.sh') {
         ok(Sbozyp::is_multilib_system(), 'true if system is multilib');
@@ -123,6 +121,25 @@ subtest 'sbozyp_print_file()' => sub {
          qr/^sbozyp: error: could not open file '\/NOT\/A\/FILE': No such file or directory$/,
          'dies with useful message if the file cannot be opened'
     );
+};
+
+subtest 'sbozyp_pod2usage()' => sub {
+    like(Sbozyp::sbozyp_pod2usage('COMMANDS/INSTALL'),
+         qr/Install.+Install or upgrade a package.+Options are:.+--help.+Examples:.+sbozyp install/s,
+         'returns pod as string for given section'
+    );
+};
+
+subtest 'command_usage()' => sub {
+    like(Sbozyp::command_usage('install'), qr/^Usage: sbozyp <install\|in> \[-h\].+<pkgname>$/, 'returns usage if given command name');
+
+    like(Sbozyp::command_usage('main'), qr/^Usage: sbozyp \[global_opts\].+\[<command_args>\]$/, q(handles special case of 'main'))
+};
+
+subtest 'command_help_msg()' => sub {
+    like(Sbozyp::command_help_msg('install'), qr/^Usage: sbozyp <install\|in>.+[\n]Install or upgrade a package.+Options are:.+Examples:/s, 'returns help msg if given command name. Properly strips off leading whitespace.');
+
+    like(Sbozyp::command_help_msg('main'), qr/^Usage: sbozyp \[global_opts\].+Commands are.+Examples:/s, q(handles special case of 'main'));
 };
 
 subtest 'sbozyp_unlink()' => sub {

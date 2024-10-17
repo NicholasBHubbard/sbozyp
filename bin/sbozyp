@@ -673,6 +673,36 @@ sub parse_slackware_pkgname {
     return ($pkgname => $version);
 }
 
+sub sbozyp_pod2usage {
+    my ($sections) = @_;
+    my $fh = sbozyp_open('>', \my $pod);
+    pod2usage(
+        -input => __FILE__, # TODO: what is the best option here?
+        -output => $fh,
+        -exitval => 'NOEXIT',
+        -verbose => 99,
+        -sections => $sections,
+    );
+    return $pod;
+}
+
+sub command_usage {
+    my ($cmd) = @_;
+    my $pod = sbozyp_pod2usage($cmd eq 'main' ? 'OVERVIEW' : 'COMMANDS/'.uc($cmd));
+    my $usage = ($pod =~ /(Usage:[^\n]+)/s)[0];
+    return $usage;
+}
+
+sub command_help_msg {
+    my ($cmd) = @_;
+    my $pod = sbozyp_pod2usage($cmd eq 'main' ? 'OVERVIEW' : 'COMMANDS/'.uc($cmd));
+    my @pod = split "\n", $pod; @pod = @pod[1..$#pod];
+    my $shift = 0; $_ eq ' ' ? $shift++ : last for split '', $pod[0];
+    $_ =~ s/^.{$shift}// for @pod;
+    $pod = join("\n", @pod) . "\n";
+    return $pod;
+}
+
 sub installed_sbo_pkgs {
     my $root = $ENV{ROOT} // '/';
     my %installed_sbo_pkgs;
