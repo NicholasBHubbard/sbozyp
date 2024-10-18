@@ -6,15 +6,15 @@ use v5.34.0; # The Perl version on Slackware 15.0 (sbozyp's min supported versio
 
 package Sbozyp;
 
-our $VERSION = '1.0.0';
+our $VERSION = '0.0.1';
 
 use File::Basename qw(basename dirname);
 use File::Temp;
-use File::stat;
 use File::Copy qw(mv);
 use File::Path qw(make_path remove_tree);
 use Getopt::Long qw(GetOptionsFromArray :config no_ignore_case no_bundling);
 use Carp qw(carp confess);
+use Pod::Usage qw(pod2usage);
 
 $SIG{INT} = sub { die "\nsbozyp: got a SIGINT ... going down!\n" };
 
@@ -26,68 +26,48 @@ our %CONFIG = (
     #REPO_NAME => REPO_PRIMARY
 );
 
-main(@ARGV) unless caller; # 'unless caller' allows us to require this file from test code without executing main()
+ # 'unless caller' allows us to load this file from test code without executing main()
+unless (caller) { main(@ARGV) ; exit 0 }
 
 sub main { # NOT TESTED
     my @argv = @_;
-    my $usage = 'Usage: sbozyp [-h|--help] [-V|--version] [-F <config>] [-R <repo>] [-S] <command> [<command_args>]';
-    my $help_msg = <<"END_HELP";
-$usage
-
-Sbozyp is a package manager for SlackBuilds.org
-
-Every command has its own options and provides a '--help' option
-
-Options are:
-  -h|--help           Print this help message
-  -V|--version        Print the version of Sbozyp
-  -F FILE             Use FILE as the configuration file
-  -R REPO_NAME        Use repository REPO_NAME instead of REPO_PRIMARY
-  -S                  Sync the repository
-
-Commands are:
-  install|in          Install or upgrade a package
-  query|qr            Query for information about a package
-  remove|rm           Remove a package
-  search|se           Search for a package using a Perl regex
-  sync|sy             Sync a local SBo repository
-END_HELP
+    my $usage = command_usage('main');
+    my $help_msg = command_help_msg('main');
     # Process global options
-    Getopt::Long::Configure('pass_through');
+    Getopt::Long::Configure('pass_through'); # pass_through to ignore the command options
     sbozyp_getopts( # global options use uppercase while command options use lowercase
         \@argv,
+        '-C'   => \my $opt_clone,
         '-F=s' => \my $opt_configfile,
         '-R=s' => \my $opt_reponame,
         '-S'   => \my $opt_sync
     );
     Getopt::Long::Configure('nopass_through');
     my $cmd = shift(@argv) or die "$usage\n";
-    # deal with --help and --version here so we dont need to think about it later
-    if    ($cmd =~ /^(?:--help|-h)$/)    { print help_string()  ; exit 0 }
-    elsif ($cmd =~ /^(?:--version|-V)$/) { print $VERSION, "\n" ; exit 0 }
-    # provide command abbreviations
-    if    ($cmd eq 'in') { $cmd = 'install' }
-    elsif ($cmd eq 'qr') { $cmd = 'query'   }
-    elsif ($cmd eq 'rm') { $cmd = 'remove'  }
-    elsif ($cmd eq 'se') { $cmd = 'search'  }
-    elsif ($cmd eq 'sy') { $cmd = 'sync'    }
-    elsif ($cmd eq 'up') { $cmd = 'upgrade' }
-    # determine the command
+    # determine the command main function
     my $cmd_main;
-    if    ($cmd eq 'install')            { $cmd_main = \&install_command_main  }
-    elsif ($cmd eq 'query')              { $cmd_main = \&query_command_main    }
-    elsif ($cmd eq 'remove')             { $cmd_main = \&remove_command_main   }
-    elsif ($cmd eq 'search')             { $cmd_main = \&search_command_main   }
-    elsif ($cmd eq 'sync')               { $cmd_main = \&sync_command_main     }
-    elsif ($cmd eq 'upgrade')            { $cmd_main = \&upgrade_command_main  }
-    else                                 { die "$usage\n"                      }
-    # setup environment and run the command
+    if    ($cmd =~ /^(?:--help|-h)$/)    { print $help_msg      ; return        }
+    elsif ($cmd =~ /^(?:--version|-V)$/) { print $VERSION, "\n" ; return        }
+    elsif ($cmd =~ /^(?:install|in)$/)   { $cmd_main = \&install_command_main   }
+    elsif ($cmd =~ /^(?:null|nu)$/)      { $cmd_main = \&null_command_main      }
+    elsif ($cmd =~ /^(?:query|qr)$/)     { $cmd_main = \&query_command_main     }
+    elsif ($cmd =~ /^(?:remove|rm)$/)    { $cmd_main = \&remove_command_main    }
+    elsif ($cmd =~ /^(?:search|se)$/)    { $cmd_main = \&search_command_main    }
+    else                                 { sbozyp_die("invalid command '$cmd'") }
+    # setup environment
     parse_config_file($opt_configfile); # mutates the global %CONFIG
     set_repo_name_or_die($opt_reponame // $CONFIG{REPO_PRIMARY});
     sbozyp_mkdir("$CONFIG{REPO_ROOT}/$CONFIG{REPO_NAME}", $CONFIG{TMPDIR});
-    if ($opt_sync) { i_am_root_or_die(); sync_repo() };
+    if ($opt_clone or !repo_is_cloned()) {
+        i_am_root_or_die('need root to clone repo');
+        clone_repo();
+    }
+    if ($opt_sync) {
+        i_am_root_or_die('need root to sync repo');
+        sync_repo();
+    }
+    # run the command
     $cmd_main->(@argv);
-    exit 0;
 }
 
             ####################################################
@@ -95,18 +75,8 @@ END_HELP
             ####################################################
 
 sub install_command_main {
-    my $usage = 'Usage: sbozyp install [-h] [-i] [-n] <pkgname>';
-    my $help_msg = <<"END_HELP";
-$usage
-
-Install or upgrade a package
-
-Options are:
-  -h|--help           Print this help message
-  -f                  Force installation even if package is already up to date
-  -i                  Non-interactive (DANGEROUS)
-  -n                  Do not install package dependencies
-END_HELP
+    my $usage = command_usage('install');
+    my $help_msg = command_help_msg('install');
     sbozyp_getopts(
         \@_,
         'h|help' => \my $opt_help,
@@ -116,7 +86,7 @@ END_HELP
     );
     if ($opt_help) { print $help_msg ; return }
     @_ == 1 or die "$usage\n";
-    i_am_root_or_die();
+    i_am_root_or_die('the install command requires root');
     my $pkg = pkg($_[0]);
     my @queue = $opt_nodeps ? ($pkg) : pkg_queue($pkg);
     @queue = manage_install_queue_ui(@queue) unless $opt_noninteractive;
@@ -132,26 +102,20 @@ END_HELP
     }
 }
 
+sub null_command_main {
+    my $usage = command_usage('null');
+    my $help_msg = command_help_msg('null');
+    sbozyp_getopts(
+        \@_,
+        'h|help' => \my $opt_help,
+    );
+    if ($opt_help) { print $help_msg ; return }
+    @_ == 0 or die "$usage\n";
+}
+
 sub query_command_main {
-    my $usage = 'Usage: sbozyp query [-h] [-d] [-i] [-p] [-q] [-r] [-s] <pkgname>';
-    my $help_msg = <<"END_HELP";
-$usage
-
-Query for information about a package
-
-If no options are provided, this command will drop you into an interactive
-prompt for viewing package files. Only one of the '-d', '-i', '-p', '-q', '-r',
-'-s' options can be used.
-
-Options are:
-  -h|--help           Print this help message
-  -d                  Print the packages slack-desc file
-  -i                  Print the packages .info file
-  -p                  If package is installed print the installed version, else exit with status 1
-  -q                  Print the packages dependencies (recursively and in order)
-  -r                  Print the packages README file
-  -s                  Print the packages .SlackBuild file
-END_HELP
+    my $usage = command_usage('query');
+    my $help_msg = command_help_msg('query');
     sbozyp_getopts(
         \@_,
         'h|help' => \my $opt_help,
@@ -179,16 +143,8 @@ END_HELP
 }
 
 sub remove_command_main {
-    my $usage = 'Usage: sbozyp remove [-h] <pkgname>';
-    my $help_msg = <<"END_HELP";
-$usage
-
-Remove a package
-
-Options are:
-  -h|--help           Print this help message
-  -i                  Non-interactive (DANGEROUS)
-END_HELP
+    my $usage = command_usage('remove');
+    my $help_msg = command_help_msg('remove');
     sbozyp_getopts(
         \@_,
         'h|help' => \my $opt_help,
@@ -196,7 +152,7 @@ END_HELP
     );
     if ($opt_help) { print $help_msg ; return }
     @_ == 1 or die "$usage\n";
-    i_am_root_or_die();
+    i_am_root_or_die('the remove command requires root');
     my $pkg = pkg($_[0]);
     if (!defined pkg_installed($pkg)) {
         sbozyp_die("the package '$pkg->{PKGNAME}' is not installed");
@@ -223,17 +179,8 @@ END_HELP
 }
 
 sub search_command_main {
-    my $usage = 'Usage: sbozyp search [-h] [-c] [-n] <regex>';
-    my $help_msg = <<"END_HELP";
-$usage
-
-Search for a package using a Perl regex
-
-Options are:
-  -h|--help           Print this help message
-  -c                  Match case sensitive
-  -n                  Match against CATEGORY/PRGNAM instead of just PRGNAM
-END_HELP
+    my $usage = command_usage('search');
+    my $help_msg = command_help_msg('search');
     sbozyp_getopts(
         \@_,
         'h|help' => \my $opt_help,
@@ -248,31 +195,22 @@ END_HELP
         $opt_matchcategory ? $_ =~ $regex : basename($_) =~ $regex;
     } all_pkgnames();
     if (@matches) {
-        print "sbozyp: the following packages match the regex '$regex_arg':\n";
-        print "  $_\n" for @matches;
+        print $_, "\n" for @matches;
     } else {
         sbozyp_die("no packages match the regex '$regex_arg'");
     }
 }
 
 sub sync_command_main {
-    my $usage = 'Usage: sbozyp [-h] sync';
-    my $help_msg = <<"END_HELP";
-$usage
-
-Sync a local SBo repository. Use the global -R option to sync a repo other than
-REPO_PRIMARY.
-
-Options are:
-  -h|--help           Print this help message
-END_HELP
+    my $usage = command_usage('sync');
+    my $help_msg = command_help_msg('sync');
     sbozyp_getopts(
         \@_,
         'h|help' => \my $opt_help,
     );
     if ($opt_help) { print $help_msg ; return }
     @_ == 0 or die "$usage\n";
-    i_am_root_or_die();
+    i_am_root_or_die('the sync command requires root');
     sync_repo();
 }
 
@@ -546,14 +484,19 @@ sub sbozyp_rmdir_rec {
     }
 }
 
+sub i_am_root {
+    return 0 == $> ? 1 : 0;
+}
+
 sub i_am_root_or_die {
-    sbozyp_die('must be root') unless 0 == $>;
+    my ($msg) = @_;
+    sbozyp_die($msg // 'must be root') unless i_am_root();
 }
 
 sub parse_config_file {
     my ($config_file) = @_;
     if (!defined $config_file) {
-        $config_file = -f "$ENV{HOME}/.sbozyp.conf" ? "$ENV{HOME}/.sbozyp.conf" : '/etc/sbozyp.conf';
+        $config_file = -f "$ENV{HOME}/.sbozyp.conf" ? "$ENV{HOME}/.sbozyp.conf" : '/etc/sbozyp/sbozyp.conf';
     }
     my $fh = sbozyp_open('<', $config_file);
     while (<$fh>) {
@@ -626,12 +569,12 @@ sub repo_git_url {
 }
 
 sub repo_is_cloned {
-    my $local_git_repo = "$CONFIG{REPO_ROOT}/$CONFIG{REPO_NAME}"; # this dir was initialized in main()
+    my $local_git_repo = "$CONFIG{REPO_ROOT}/$CONFIG{REPO_NAME}";
     return -d "$local_git_repo/.git" ? 1 : 0;
 }
 
 sub clone_repo {
-    my $local_git_repo = "$CONFIG{REPO_ROOT}/$CONFIG{REPO_NAME}"; # this dir was initialized in main()
+    my $local_git_repo = "$CONFIG{REPO_ROOT}/$CONFIG{REPO_NAME}";
     if (repo_is_cloned()) {
         sbozyp_rmdir_rec($local_git_repo);
         sbozyp_mkdir($local_git_repo);
@@ -642,13 +585,13 @@ sub clone_repo {
 }
 
 sub sync_repo {
-    my $local_git_repo = "$CONFIG{REPO_ROOT}/$CONFIG{REPO_NAME}"; # this dir was initialized in main()
+    my $local_git_repo = "$CONFIG{REPO_ROOT}/$CONFIG{REPO_NAME}";
     if (repo_is_cloned()) {
         my $repo_git_branch = repo_git_branch();
         sbozyp_system('git', '-C', $local_git_repo, 'fetch');
         sbozyp_system('git', '-C', $local_git_repo, 'reset', '--hard', "origin/$repo_git_branch");
     } else {
-        sbozyp_die("cannot sync non-existent repository at '$local_git_repo'");
+        sbozyp_die("cannot sync non-existent git repository at '$local_git_repo'");
     }
 }
 
