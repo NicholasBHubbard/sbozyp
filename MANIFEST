@@ -1,0 +1,9 @@
+bin/sbozyp
+
+Changes
+LICENSE
+MANIFEST
+Makefile.PL
+cpanfile
+
+pkg/sbozyp.SlackBuild
