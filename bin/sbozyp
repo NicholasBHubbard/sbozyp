@@ -29,7 +29,7 @@ our %CONFIG = (
  # 'unless caller' allows us to load this file from test code without executing main()
 unless (caller) { main(@ARGV) ; exit 0 }
 
-sub main { # NOT TESTED
+sub main {
     my @argv = @_;
     my $usage = command_usage('main');
     my $help_msg = command_help_msg('main');
