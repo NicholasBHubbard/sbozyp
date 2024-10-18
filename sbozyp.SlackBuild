@@ -54,7 +54,7 @@ mkdir -p $PKG/install
 cp -a slack-desc  $PKG/install
 
 mkdir -p $PKG/etc/sbozyp
-cp -a sbozyp.conf $PKG/etc/sbozyp
+cp -a sbozyp.conf.example $PKG/etc/sbozyp
 
 cd $PKG
 /sbin/makepkg -l y -c n $OUTPUT/$PRGNAM-$VERSION-$ARCH-$BUILD$TAG.$PKGTYPE
