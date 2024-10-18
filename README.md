@@ -2,6 +2,10 @@
 
 sbozyp is a package manager for Slackware's [SlackBuilds.org](https://slackbuilds.org/). I created sbozyp because I wanted to and do not claim it is better or worse than its alternatives.
 
+# USER MANUAL
+
+The user manual can be viewed [here](./sbozyp.pod).
+
 # FEATURES
 
 * Drop-in replacement for sbopkg
