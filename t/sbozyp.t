@@ -321,11 +321,23 @@ subtest 'sbozyp_rmdir_rec()' => sub {
     ok (! -d "$TEST_DIR/tmp", 'removes dot files');
 };
 
+subtest 'i_am_root()' => sub {
+    if ($> == 0) {
+        is(1, scalar(Sbozyp::i_am_root()), 'return 1 if $> == 0');
+    } else {
+        is(0, scalar(Sbozyp::i_am_root()), 'return 0 if $> != 0')
+    }
+};
+
 subtest 'i_am_root_or_die()' => sub {
     if ($> == 0) {
         ok(lives { Sbozyp::i_am_root_or_die() }, 'lives if $> == 0');
     } else {
         like(dies { Sbozyp::i_am_root_or_die() }, qr/^sbozyp: error: must be root$/, 'dies if $> != 0');
+        like(dies { Sbozyp::i_am_root_or_die('death message') },
+             qr/^sbozyp: error: death message$/,
+             'uses message string as death message if it is given'
+        );
     }
 };
 
@@ -496,7 +508,7 @@ subtest 'sync_repo()' => sub {
     Sbozyp::sbozyp_rmdir_rec("$Sbozyp::CONFIG{REPO_ROOT}/$Sbozyp::CONFIG{REPO_NAME}");
     mkdir("$Sbozyp::CONFIG{REPO_ROOT}/$Sbozyp::CONFIG{REPO_NAME}") or die;
     like(dies { Sbozyp::sync_repo() },
-         qr/^sbozyp: error: cannot sync non-existent repository at '$Sbozyp::CONFIG{REPO_ROOT}\/$Sbozyp::CONFIG{REPO_NAME}'$/,
+         qr/^sbozyp: error: cannot sync non-existent git repository at '$Sbozyp::CONFIG{REPO_ROOT}\/$Sbozyp::CONFIG{REPO_NAME}'$/,
          'dies with useful error message if trying to sync non-existent repository'
 
     );
@@ -1033,16 +1045,16 @@ subtest 'install_command_main()' => sub {
     my ($stdout, $stderr); # were gonna capture STDOUT and STDERR into these for some tests
 
     ($stdout) = capture { Sbozyp::install_command_main('-h') };
-    like($stdout, qr/Usage.+Install or upgrade a package.+\-h.+Print this help message/s, 'prints help message if given -h option');
+    like($stdout, qr/Usage.+Install or upgrade a package.+\-h.+Print help message/s, 'prints help message if given -h option');
 
     ($stdout) = capture { Sbozyp::install_command_main('--help') };
-    like($stdout, qr/Usage.+Install or upgrade a package.+\-h.+Print this help message/s, 'prints help message if given --help option');
+    like($stdout, qr/Usage.+Install or upgrade a package.+\-h.+Print help message/s, 'prints help message if given --help option');
 
     ($stdout) = capture { Sbozyp::install_command_main('-i', '--help', 'mu') };
-    like($stdout, qr/Usage.+Install or upgrade a package.+\-h.+Print this help message/s, 'prints help message if given --help option regardless of other options');
+    like($stdout, qr/Usage.+Install or upgrade a package.+\-h.+Print help message/s, 'prints help message if given --help option regardless of other options');
 
     like(dies { Sbozyp::install_command_main('-H', 'mu') },
-         qr/unknown option: H/,
+         qr/^sbozyp: error: install: unknown option: H/,
          'dies with useful message if given invalid option'
     );
 
@@ -1099,6 +1111,23 @@ subtest 'install_command_main()' => sub {
     like($stdout, qr/Installing package sbozyp-basic-1.0-noarch-1_SBo\.tgz/, 're-installs package if it is already installed if using \'-f\' option');
 
     remove_tree "$TEST_DIR/tmp_root" or die;
+};
+
+subtest 'null_command_main()' => sub {
+    my ($stdout, $stderr); # were gonna capture STDOUT and STDERR into these for some tests
+
+    ($stdout) = capture { Sbozyp::null_command_main('--help', 'mu') };
+    like($stdout, qr/^Usage: sbozyp <null\|nu>.+Do nothing.+Options are.+Examples:/s, q(outputs help message if given '--help' option));
+
+    ($stdout) = capture { Sbozyp::null_command_main('-h') };
+    like($stdout, qr/^Usage: sbozyp <null\|nu>.+Do nothing.+Options are.+Examples:/s, q(accepts '-h' instead of '--help'));
+
+    ok(lives { Sbozyp::null_command_main() }, 'lives and does nothing if given no args');
+
+    like(dies { Sbozyp::null_command_main('foo') },
+         qr/^Usage: sbozyp <null\|nu> \[-h\]$/,
+         'dies with usage if given an arg'
+    );
 };
 
 subtest 'query_command_main()' => sub {
@@ -1175,13 +1204,13 @@ subtest 'remove_command_main()' => sub {
     my $stdin;  # were gonna mock user input in some of these tests.
 
     ($stdout) = capture { Sbozyp::remove_command_main('-h') };
-    like($stdout, qr/^Usage: sbozyp remove.+Remove a package.+Options are/s, q('-h' option prints a help string to STDOUT));
+    like($stdout, qr/^Usage: sbozyp <remove\|rm>.+Remove a package.+Options are/s, q('-h' option prints a help string to STDOUT));
 
     ($stdout) = capture { Sbozyp::remove_command_main('--help') };
-    like($stdout, qr/^Usage: sbozyp remove.+Remove a package.+Options are/s, q(also accepts '--help' instead of '-h'));
+    like($stdout, qr/^Usage: sbozyp <remove\|rm>.+Remove a package.+Options are/s, q(also accepts '--help' instead of '-h'));
 
     ($stdout) = capture { Sbozyp::remove_command_main('--help', 'FOOBARBAZ') };
-    like($stdout, qr/^Usage: sbozyp remove.+Remove a package.+Options are/s, q(ignores other arg if given '--help' option));
+    like($stdout, qr/^Usage: sbozyp <remove\|rm>.+Remove a package.+Options are/s, q(ignores other arg if given '--help' option));
 
 
     like(dies { Sbozyp::remove_command_main() },
@@ -1240,10 +1269,10 @@ subtest 'search_command_main()' => sub {
     like($stdout, qr/^Usage.+Search for a package using a Perl regex.+Options are/s, q(prints help even if args are given afterwards));
 
     ($stdout) = capture { Sbozyp::search_command_main('^mu$') };
-    like($stdout, qr/sbozyp: the following packages match the regex.+office\/mu\n$/s, 'returns matched package');
+    like($stdout, qr/office\/mu\n$/s, 'returns matched package');
 
     ($stdout) = capture { Sbozyp::search_command_main('^MU$') };
-    like($stdout, qr/sbozyp: the following packages match the regex.+office\/mu\n$/s, 'case-insensitive by default');
+    like($stdout, qr/office\/mu\n$/s, 'case-insensitive by default');
 
     like(dies { Sbozyp::search_command_main('-c','^MU$') },
          qr/^sbozyp: error: no packages match the regex '\^MU\$'$/,
@@ -1261,37 +1290,88 @@ subtest 'search_command_main()' => sub {
     );
 
     ($stdout) = capture { Sbozyp::search_command_main('-n', 'office/mu') };
-    like($stdout, qr/the following packages match the regex.+office\/mu/s, q(matches against PKGNAME instead of just PRGNAM if given '-n' option));
+    like($stdout, qr/office\/mu/s, q(matches against PKGNAME instead of just PRGNAM if given '-n' option));
 
     ($stdout) = capture { Sbozyp::search_command_main('mu') };
     ok(10 < split("\n",$stdout), 'returns all packages that match the regex');
 };
 
-subtest 'sync_command_main()' => sub {
-    skip_all('sync_command_main() requires root') unless $> == 0;
+subtest 'main()' => sub {
+    my ($stdout, $stderr); # were gonna capture STDOUT/STDERR into these variables for some tests
 
-    my ($stdin,$stdout,$stderr); # were gonna capture STDOUT/STDERR into these variables for some tests
+    ($stdout) = capture { Sbozyp::main('--help') };
+    like($stdout, qr/^Usage:.+Commands are:.+Examples/s, 'prints help message if called with just --help');
 
-    ($stdout) = capture { Sbozyp::sync_command_main('-h') };
-    like($stdout, qr/^Usage.+Sync a local SBo repository.+Options are/s, q('-h' option prints a help string to STDOUT));
+    ($stdout) = capture { Sbozyp::main('-h') };
+    like($stdout, qr/^Usage:.+Commands are:.+Examples/s, 'prints help message if called with just -h');
 
-    ($stdout) = capture { Sbozyp::sync_command_main('--help') };
-    like($stdout, qr/^Usage.+Sync a local SBo repository.+Options are/s, q('--help' can be used instead of '-h'));
+    ($stdout) = capture { Sbozyp::main('--version') };
+    like($stdout, qr/^\Q$Sbozyp::VERSION\E$/s, 'prints sbozyp version if called with just --version');
 
-    like(dies { Sbozyp::sync_command_main('mu') },
-         qr/^Usage:/,
-         q(dies with usage if given an argument)
+    ($stdout) = capture { Sbozyp::main('-V') };
+    like($stdout, qr/^\Q$Sbozyp::VERSION\E$/s, 'prints sbozyp version if called with just -V');
+
+    like(dies { Sbozyp::main('BADCOMMAND') },
+         qr/^sbozyp: error: invalid command 'BADCOMMAND'$/,
+         'dies with useful error if given invalid command'
     );
 
-    # test syncing
-    system "rm -rf '$Sbozyp::CONFIG{REPO_ROOT}/$Sbozyp::CONFIG{REPO_NAME}'" and die;
-    mkdir "$Sbozyp::CONFIG{REPO_ROOT}/$Sbozyp::CONFIG{REPO_NAME}" or die;
+    like(dies { Sbozyp::main('null', 'FOO') },
+         qr/^Usage: sbozyp <null\|nu>/,
+         'invokes given command'
+     );
 
-    (undef, $stderr) = capture { Sbozyp::sync_command_main() };
-    like($stderr, qr/Cloning into/i, 'clones git repo if it does not exist');
+    ok(lives { Sbozyp::sbozyp_main('null') }, 'lives and doesnt exit if command succeeds');
 
-    ($stdout) = capture { Sbozyp::sync_command_main() };
-    like($stdout, qr/HEAD is now at/i, 'git fetch and resets if git repo already exists');
+    ($stdout) = capture { Sbozyp::main('null', '--help') };
+    like($stdout, qr/^Usage: sbozyp <null\|nu>/, q(does not steal a commands '--help' option));
+
+    ($stdout) = capture { Sbozyp::main('nu', '--help') };
+    like($stdout, qr/^Usage: sbozyp <null\|nu>/, q(accepts command abbreviations));
+
+    ($stdout) = capture { Sbozyp::main('--help', 'null') };
+    like($stdout, qr/^Usage: sbozyp \[global_opts\]/, q(uses main --help if it is present in @argv before the command));
+
+    ($stdout) = capture { Sbozyp::main('-S', '--help', 'null', '-C') };
+    like($stdout, qr/^Usage: sbozyp \[global_opts\]/, q(order of global_opts in @argv do not matter));
+
+    like(dies { Sbozyp::main('-R', 'NOTAREPO', 'null') },
+         qr/^sbozyp: error: no repo named 'NOTAREPO'$/,
+         q(dies with useful error if given invalid repo with the '-R' option)
+    );
+
+    # test that everything is initialized properly as it would be on a fresh system:
+
+    Sbozyp::sbozyp_rmdir_rec($Sbozyp::CONFIG{REPO_ROOT});
+
+    if (Sbozyp::i_am_root()) {
+        Sbozyp::main('null');
+        ok(scalar(Sbozyp::repo_is_cloned(), 'automatically clones repo if it does not exist'));
+
+        (undef, $stderr) = capture { Sbozyp::main('-C', 'null') };
+        like($stderr, qr/^Cloning into/, q(re-clones repo if given '-C' option));
+
+
+        ($stdout) = capture { Sbozyp::main('-S', 'null') };
+        like($stdout, qr/HEAD is now at/, q(syncs repo if given '-S' option));
+    } else { # not root
+        like(dies { Sbozyp::main('null') },
+             qr/^sbozyp: error: need root to clone repo$/,
+             'if not root attempts to clone repo if it does not exist but fails with useful message'
+         );
+
+        Sbozyp::clone_repo(); # dont need root to clone from this test script
+
+        like(dies { Sbozyp::main('-C', 'null') },
+             qr/^sbozyp: error: need root to clone repo$/,
+             q(attempts to reclone if given '-C' option)
+         );
+
+        like(dies { Sbozyp::main('-S', 'null') },
+             qr/^sbozyp: error: need root to sync repo$/,
+             q(attempts to sync if given '-S' option. Fails with useful message if not root)
+         );
+    }
 };
 
 done_testing;
