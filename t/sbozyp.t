@@ -135,7 +135,7 @@ subtest 'sbozyp_pod2usage()' => sub {
 subtest 'command_usage()' => sub {
     like(Sbozyp::command_usage('install'), qr/^Usage: sbozyp <install\|in> \[-h\].+<pkgname>$/, 'returns usage if given command name');
 
-    like(Sbozyp::command_usage('main'), qr/^Usage: sbozyp \[global_opts\].+\[<command_args>\]$/, q(handles special case of 'main'))
+    like(Sbozyp::command_usage('main'), qr/^Usage: sbozyp \[global_opts\].+<command_args>$/, q(handles special case of 'main'))
 };
 
 subtest 'command_help_msg()' => sub {
@@ -510,12 +510,11 @@ subtest 'sync_repo()' => sub {
     like(dies { Sbozyp::sync_repo() },
          qr/^sbozyp: error: cannot sync non-existent git repository at '$Sbozyp::CONFIG{REPO_ROOT}\/$Sbozyp::CONFIG{REPO_NAME}'$/,
          'dies with useful error message if trying to sync non-existent repository'
-
     );
 
-    Sbozyp::clone_repo(); # so the rest of the tests can go on
 };
 
+Sbozyp::clone_repo(); # so the rest of the tests can go on
 # add our mock packages to the SBo 14.1 repo we just cloned in the sync_repo() subtest
 Sbozyp::sbozyp_copy("$FindBin::Bin/mock-packages", "$Sbozyp::CONFIG{REPO_ROOT}/$Sbozyp::CONFIG{REPO_NAME}/misc");
 
@@ -1145,7 +1144,7 @@ subtest 'query_command_main()' => sub {
     like($stdout, qr/^Usage.+Query for information.+Options are/s, q(--help options doesn't require a pkgname arg to be given));
 
     like(dies { Sbozyp::query_command_main('-Z', 'mu') },
-         qr/sbozyp: error: unknown option: Z/,
+         qr/sbozyp: error: query: unknown option: Z/,
          'dies with useful error if given an invalid option'
     );
 
@@ -1338,26 +1337,26 @@ END
          'dies with useful error if given invalid command'
     );
 
-    like(dies { Sbozyp::main('null', 'FOO') },
+    like(dies { Sbozyp::main('-F', "$tmp_config_file", 'null', 'FOO') },
          qr/^Usage: sbozyp <null\|nu>/,
          'invokes given command'
-     );
+    );
 
-    ok(lives { Sbozyp::sbozyp_main('null') }, 'lives and doesnt exit if command succeeds');
+    ok(lives { Sbozyp::main('-F', "$tmp_config_file", 'null') }, 'lives and doesnt exit if command succeeds');
 
-    ($stdout) = capture { Sbozyp::main('null', '--help') };
+    ($stdout) = capture { Sbozyp::main('-F', "$tmp_config_file", 'null', '--help') };
     like($stdout, qr/^Usage: sbozyp <null\|nu>/, q(does not steal a commands '--help' option));
 
-    ($stdout) = capture { Sbozyp::main('nu', '--help') };
+    ($stdout) = capture { Sbozyp::main('-F', "$tmp_config_file", 'nu', '--help') };
     like($stdout, qr/^Usage: sbozyp <null\|nu>/, q(accepts command abbreviations));
 
-    ($stdout) = capture { Sbozyp::main('--help', 'null') };
+    ($stdout) = capture { Sbozyp::main('-F', "$tmp_config_file", '--help', 'null') };
     like($stdout, qr/^Usage: sbozyp \[global_opts\]/, q(uses main --help if it is present in @argv before the command));
 
-    ($stdout) = capture { Sbozyp::main('-S', '--help', 'null', '-C') };
+    ($stdout) = capture { Sbozyp::main('-F', "$tmp_config_file", '-S', '--help', 'null', '-C') };
     like($stdout, qr/^Usage: sbozyp \[global_opts\]/, q(order of global_opts in @argv do not matter));
 
-    like(dies { Sbozyp::main('-R', 'NOTAREPO', 'null') },
+    like(dies { Sbozyp::main('-F', "$tmp_config_file", '-R', 'NOTAREPO', 'null') },
          qr/^sbozyp: error: no repo named 'NOTAREPO'$/,
          q(dies with useful error if given invalid repo with the '-R' option)
     );
@@ -1367,29 +1366,29 @@ END
     Sbozyp::sbozyp_rmdir_rec($Sbozyp::CONFIG{REPO_ROOT});
 
     if (Sbozyp::i_am_root()) {
-        Sbozyp::main('null');
+        Sbozyp::main('-F', "$tmp_config_file", 'null');
         ok(scalar(Sbozyp::repo_is_cloned(), 'automatically clones repo if it does not exist'));
 
-        (undef, $stderr) = capture { Sbozyp::main('-C', 'null') };
+        (undef, $stderr) = capture { Sbozyp::main('-F', "$tmp_config_file", '-C', 'null') };
         like($stderr, qr/^Cloning into/, q(re-clones repo if given '-C' option));
 
 
-        ($stdout) = capture { Sbozyp::main('-S', 'null') };
+        ($stdout) = capture { Sbozyp::main('-F', "$tmp_config_file", '-S', 'null') };
         like($stdout, qr/HEAD is now at/, q(syncs repo if given '-S' option));
     } else { # not root
-        like(dies { Sbozyp::main('null') },
+        like(dies { Sbozyp::main('-F', "$tmp_config_file", 'null') },
              qr/^sbozyp: error: need root to clone repo$/,
              'if not root attempts to clone repo if it does not exist but fails with useful message'
          );
 
         Sbozyp::clone_repo(); # dont need root to clone from this test script
 
-        like(dies { Sbozyp::main('-C', 'null') },
+        like(dies { Sbozyp::main('-F', "$tmp_config_file", '-C', 'null') },
              qr/^sbozyp: error: need root to clone repo$/,
              q(attempts to reclone if given '-C' option)
          );
 
-        like(dies { Sbozyp::main('-S', 'null') },
+        like(dies { Sbozyp::main('-F', "$tmp_config_file", '-S', 'null') },
              qr/^sbozyp: error: need root to sync repo$/,
              q(attempts to sync if given '-S' option. Fails with useful message if not root)
          );
