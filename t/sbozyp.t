@@ -1297,6 +1297,28 @@ subtest 'search_command_main()' => sub {
 };
 
 subtest 'main()' => sub {
+    my $tmp_config_file = File::Temp->new(DIR => $TEST_DIR, TEMPLATE => 'sbozyp.t_tmp_config_fileXXXXXX');
+    open my $fh, '>', "$tmp_config_file" or die;
+    print $fh <<"END";
+TMPDIR=$TEST_DIR
+CLEANUP=1
+REPO_ROOT=$TEST_DIR/var/lib/sbozyp/SBo
+REPO_PRIMARY=14.1
+
+REPO_0_NAME=14.1
+REPO_0_GIT_URL=git://git.slackbuilds.org/slackbuilds.git
+REPO_0_GIT_BRANCH=14.1
+
+REPO_1_NAME=14.2
+REPO_1_GIT_URL=git://git.slackbuilds.org/slackbuilds.git
+REPO_1_GIT_BRANCH=14.2
+
+REPO_2_NAME=15.0
+REPO_2_GIT_URL=git://git.slackbuilds.org/slackbuilds.git
+REPO_2_GIT_BRANCH=15.0
+END
+    close $fh or die;
+
     my ($stdout, $stderr); # were gonna capture STDOUT/STDERR into these variables for some tests
 
     ($stdout) = capture { Sbozyp::main('--help') };
