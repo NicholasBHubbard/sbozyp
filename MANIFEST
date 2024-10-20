@@ -1,4 +1,5 @@
 bin/sbozyp
+lib/App/sbozyp.pm
 
 Changes
 LICENSE
