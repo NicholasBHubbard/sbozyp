@@ -6,7 +6,8 @@ use v5.34.0;
 use ExtUtils::MakeMaker;
 
 WriteMakefile(
-    NAME         => 'sbozyp',
+    NAME         => 'App::sbozyp',
+    DISTNAME     => 'App-sbozyp',
     AUTHOR       => 'Nicholas Hubbard <nicholashubbard@posteo.net>',
     ABSTRACT     => q(a package manager for Slackware's SlackBuilds.org),
     LICENSE      => 'gpl_3',
