@@ -6,7 +6,7 @@ I created sbozyp because I wanted to and do not claim that it is better, worse, 
 
 # USER MANUAL
 
-The user manual can be viewed online [here](https://metacpan.org/dist/App-sbozyp/view/bin/sbozyp), or after install with `$ man sbozyp`.
+The user manual can be viewed online [here](https://metacpan.org/release/NHUBBARD/App-sbozyp-0.0.4/view/bin/sbozyp), or after install with `$ man sbozyp`.
 
 # FEATURES
 
@@ -25,7 +25,7 @@ The user manual can be viewed online [here](https://metacpan.org/dist/App-sbozyp
 # tar -xf App-sbozyp-$VERSION.tar.gz
 # chmod +x App-sbozyp-$VERSION/package/sbozyp.SlackBuild
 # App-sbozyp-$VERSION/package/sbozyp.SlackBuild
-# upgradepkg --reinstall --install-new /tmp/
+# upgradepkg --reinstall --install-new /tmp/sbozyp-$VERSION-noarch-1_nbh.tgz
 ```
 
 # DEVELOPERS
