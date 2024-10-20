@@ -6,7 +6,7 @@ I created sbozyp because I wanted to and do not claim that it is better, worse, 
 
 # USER MANUAL
 
-The user manual can be viewed online [here](./sbozyp.pod), or after install with `$ man sbozyp`.
+The user manual can be viewed online [here](https://metacpan.org/dist/App-sbozyp/view/bin/sbozyp), or after install with `$ man sbozyp`.
 
 # FEATURES
 
@@ -20,15 +20,12 @@ The user manual can be viewed online [here](./sbozyp.pod), or after install with
 # INSTALLATION
 
 ```
-# LATEST_VERSION=0.0.1
-# wget https://github.com/NicholasBHubbard/sbozyp/archive/refs/tags/sbozyp-$LATEST_VERSION.tar.gz
-# mkdir sbozyp
-# tar -xf sbozyp-$LATEST_VERSION.tar.gz -C sbozyp --strip-components=1
-# chmod +x sbozyp/sbozyp.SlackBuild
-# sbozyp/sbozyp.SlackBuild
-# upgradepkg --reinstall --install-new /tmp/sbozyp-$LATEST_VERSION-noarch-1_nbh.tgz
-# cp /etc/sbozyp/sbozyp.conf.example /etc/sbozyp/sbozyp.conf
-# rm -rf sbozyp*
+# VERSION=0.0.4
+# wget https://cpan.metacpan.org/authors/id/N/NH/NHUBBARD/App-sbozyp-$VERSION.tar.gz
+# tar -xf App-sbozyp-$VERSION.tar.gz
+# chmod +x App-sbozyp-$VERSION/package/sbozyp.SlackBuild
+# App-sbozyp-$VERSION/package/sbozyp.SlackBuild
+# upgradepkg --reinstall --install-new /tmp/
 ```
 
 # DEVELOPERS
@@ -44,7 +41,6 @@ $ perl t/sbozyp.t
 
 New release:
 
-* Update version in README.md, bin/sbozyp, and sbozyp.SlackBuild
-* Update Changes file
-* In case the manual was updated: `$ cp bin/sbozyp sbozyp.pod`
-* Perform a GitHub release
+* Update version in README.md, Changes, bin/sbozyp, and sbozyp.SlackBuild
+* Update Changes file to reflect new changes
+* Perform a CPAN release
