@@ -6,4 +6,6 @@ MANIFEST
 Makefile.PL
 cpanfile
 
-pkg/sbozyp.SlackBuild
+package/sbozyp.SlackBuild
+package/slack-desc
+package/sbozyp.conf.example
