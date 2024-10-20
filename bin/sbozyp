@@ -655,8 +655,8 @@ sub command_help_msg {
     my ($cmd) = @_;
     my $pod = sbozyp_pod2usage($cmd eq 'main' ? 'OVERVIEW' : 'COMMANDS/'.uc($cmd));
     my @pod = split "\n", $pod; @pod = @pod[1..$#pod];
-    my $shift = 0; $_ eq ' ' ? $shift++ : last for split '', $pod[0];
-    $_ =~ s/^.{$shift}// for @pod;
+    $pod[0] =~ s/^ //;
+    $_ =~ s/^.{4}// for @pod;
     $pod = join("\n", @pod) . "\n";
     return $pod;
 }
@@ -795,7 +795,7 @@ and the SlackBuilds.org repository.
 
 =head1 OVERVIEW
 
-Usage: sbozyp [global_opts] <command> [command_opts] <command_args>
+ Usage: sbozyp [global_opts] <command> [command_opts] <command_args>
 
 Every command has its own options, these are just the global ones:
 
@@ -880,7 +880,7 @@ If C<0> then keep built packages after installation. If C<1> then remove them.
 
 =head2 INSTALL
 
-Usage: sbozyp <install|in> [-h] [-f] [-i] [-n] <pkgname>
+ Usage: sbozyp <install|in> [-h] [-f] [-i] [-n] <pkgname>
 
 Install or upgrade a package
 
@@ -901,7 +901,7 @@ Examples:
 
 =head2 NULL
 
-Usage: sbozyp <null|nu> [-h]
+ Usage: sbozyp <null|nu> [-h]
 
 Do nothing, useful if you just want to re-clone (with global -C option) or
 sync (with global -S option) your repository.
@@ -919,7 +919,7 @@ Examples:
 
 =head2 QUERY
 
-Usage: sbozyp <query|qr> [-h] [-d] [-i] [-p] [-q] [-r] [-s] <pkgname>
+ Usage: sbozyp <query|qr> [-h] [-d] [-i] [-p] [-q] [-r] [-s] <pkgname>
 
 Query for information about a package
 
@@ -946,7 +946,7 @@ Examples:
 
 =head2 REMOVE
 
-Usage: sbozyp <remove|rm> [-h] [-i] <pkgname>
+ Usage: sbozyp <remove|rm> [-h] [-i] <pkgname>
 
 Remove a package
 
@@ -964,7 +964,7 @@ Examples:
 
 =head2 SEARCH
 
-Usage: sbozyp <search|se> [-h] [-c] [-n] <regex>
+ Usage: sbozyp <search|se> [-h] [-c] [-n] <regex>
 
 Search for a package using a Perl regex
 
@@ -981,22 +981,6 @@ Examples:
  sbozyp se password.+
  sbozyp se -c -n system/.+
  sbozyp -S -R $REPO se password-store
-
-=head2 SYNC
-
-Usage: sbozyp <sync|sy> [-h]
-
-Sync a local SBo repository. Use the global -R option to sync a repo other than
-REPO_PRIMARY.
-
-Options are:
- -h|--help           Print this help message
-
-Examples:
-
- sbozyp sync --help
- sbozyp sy
- sbozyp -R $REPO sy
 
 =head1 AUTHOR
 
