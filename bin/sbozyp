@@ -998,6 +998,14 @@ Examples:
  sbozyp sy
  sbozyp -R $REPO sy
 
+=head1 AUTHOR
+
+Nicholas Hubbard (nicholashubbard@posteo.net)
+
+=head1 CONTRIBUTORS
+
+Kat Nguyen
+
 =head1 COPYRIGHT
 
 Copyright (c) 2023-2024 by Nicholas Hubbard (nicholashubbard@posteo.net)
