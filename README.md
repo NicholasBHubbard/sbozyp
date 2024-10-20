@@ -6,7 +6,7 @@ I created sbozyp because I wanted to and do not claim that it is better, worse, 
 
 # USER MANUAL
 
-The user manual can be viewed online [here](https://metacpan.org/release/NHUBBARD/App-sbozyp-0.0.4/view/bin/sbozyp), or after install with `$ man sbozyp`.
+The user manual can be viewed online [here](https://metacpan.org/release/NHUBBARD/App-sbozyp-0.0.4/view/bin/sbozyp), or after installation with `$ man sbozyp`.
 
 # FEATURES
 
