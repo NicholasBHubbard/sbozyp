@@ -6,7 +6,7 @@ use v5.34.0; # The Perl version on Slackware 15.0 (sbozyp's min supported versio
 
 package Sbozyp;
 
-our $VERSION = '0.0.2';
+our $VERSION = '0.0.1';
 
 use File::Basename qw(basename dirname);
 use File::Temp;
@@ -1004,7 +1004,11 @@ Nicholas Hubbard (nicholashubbard@posteo.net)
 
 =head1 CONTRIBUTORS
 
-Kat Nguyen
+=over 4
+
+=item * Kat Nguyen
+
+=back
 
 =head1 COPYRIGHT
 
