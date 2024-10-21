@@ -26,6 +26,10 @@ The user manual can be viewed online [here](https://metacpan.org/release/NHUBBAR
 # chmod +x App-sbozyp-$VERSION/package/sbozyp.SlackBuild
 # App-sbozyp-$VERSION/package/sbozyp.SlackBuild
 # upgradepkg --reinstall --install-new /tmp/sbozyp-$VERSION-noarch-1_nbh.tgz
+```
+
+If you are using slackpkg then you probably don't want it to manage sbozyp
+```
 # echo sbozyp >> /etc/slackpkg/blacklist
 ```
 
