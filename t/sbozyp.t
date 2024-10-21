@@ -192,28 +192,6 @@ subtest 'sbozyp_copy()' => sub {
     );
 };
 
-subtest 'sbozyp_move()' => sub {
-    open my $fh, '>', "$TEST_DIR/foo" or die;
-    close $fh or die;
-    mkdir "$TEST_DIR/bar" or die;
-
-    my $umask = umask();
-    my $perm = $umask == 0666 ? 0555 : 0666;
-    chmod $perm, "$TEST_DIR/foo";
-
-    Sbozyp::sbozyp_move("$TEST_DIR/foo", "$TEST_DIR/bar");
-    ok(! -f "$TEST_DIR/foo" && -f "$TEST_DIR/bar/foo", 'successfully moved file');
-    is(stat("$TEST_DIR/bar/foo")->mode & 0777, $perm, 'saves permissions');
-    is(umask(), $umask, 'did not modify umask');
-
-    remove_tree("$TEST_DIR/bar") or die;
-
-    like(dies { Sbozyp::sbozyp_move("$TEST_DIR/foo", "$TEST_DIR/bar") },
-         qr/^sbozyp: error: could not move '\Q$TEST_DIR\E\/foo' to '\Q$TEST_DIR\E\/bar': No such file or directory$/,
-        'dies with useful error message if mv() fails'
-    );
-};
-
 subtest 'sbozyp_readdir()' => sub {
     is([Sbozyp::sbozyp_readdir($TEST_DIR)], [], 'throws away . and ..');
     open my $fh, '>', "$TEST_DIR/foo" or die;

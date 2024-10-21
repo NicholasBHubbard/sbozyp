@@ -10,7 +10,6 @@ our $VERSION = '0.0.5';
 
 use File::Basename qw(basename dirname);
 use File::Temp;
-use File::Copy qw(mv);
 use File::Path qw(make_path remove_tree);
 use Getopt::Long qw(GetOptionsFromArray :config no_ignore_case no_bundling);
 use Carp qw(carp confess);
@@ -413,11 +412,6 @@ sub sbozyp_unlink {
 sub sbozyp_copy {
     my ($file, $dest) = @_;
     sbozyp_system('cp', '-a', -d $file ? "$file/." : $file, $dest);
-}
-
-sub sbozyp_move {
-    my ($file, $dest) = @_;
-    mv($file, $dest) or sbozyp_die("could not move '$file' to '$dest': $!");
 }
 
 sub sbozyp_readdir {
