@@ -28,7 +28,7 @@ The user manual can be viewed online [here](https://metacpan.org/release/NHUBBAR
 # upgradepkg --reinstall --install-new /tmp/sbozyp-$VERSION-noarch-1_nbh.tgz
 ```
 
-If you are using slackpkg then you probably don't want it to manage sbozyp
+If you are using slackpkg then you probably don't want it to manage sbozyp:
 ```
 # echo sbozyp >> /etc/slackpkg/blacklist
 ```
