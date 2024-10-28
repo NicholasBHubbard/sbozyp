@@ -17,7 +17,7 @@ The user manual can be viewed online [here](https://metacpan.org/release/NHUBBAR
 * Requires zero dependencies on a full Slackware install
 * Supports Slackware 15.0 and greater
 
-# INSTALLATION
+# INSTALLATION / UPGRADE
 
 ```
 # VERSION=0.0.7
@@ -26,6 +26,11 @@ The user manual can be viewed online [here](https://metacpan.org/release/NHUBBAR
 # chmod +x App-sbozyp-$VERSION/package/sbozyp.SlackBuild
 # App-sbozyp-$VERSION/package/sbozyp.SlackBuild
 # upgradepkg --reinstall --install-new /tmp/sbozyp-$VERSION-noarch-1_nbh.tgz
+```
+
+Copy the example configuration:
+```
+# cp /etc/sbozyp/sbozyp.conf.example /etc/sbozyp/sbozyp.conf
 ```
 
 If you are using slackpkg then you probably don't want it to manage sbozyp:
