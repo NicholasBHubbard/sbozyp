@@ -45,7 +45,7 @@ Do not hesitate to open an [issue](https://github.com/NicholasBHubbard/sbozyp/is
 Run the test code:
 
 ```
-$ cpanm --installdeps
+$ cpanm --installdeps .
 $ perl t/sbozyp.t
 ```
 
