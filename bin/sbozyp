@@ -6,7 +6,7 @@ use v5.34.0; # The Perl version on Slackware 15.0 (sbozyp's min supported versio
 
 package Sbozyp;
 
-our $VERSION = '0.1.1';
+our $VERSION = '0.1.2';
 
 use File::Basename qw(basename dirname);
 use File::Temp;
@@ -951,6 +951,7 @@ Examples:
  sbozyp in system/password-store
  sbozyp in -f -i -n password-store
  sbozyp -S -R $REPO in -f password-store
+ sbozyp in $(sbozyp -S qr -u) ### upgrade all packages
 
 =head2 NULL
 
@@ -1039,7 +1040,6 @@ Examples:
  sbozyp se password.+
  sbozyp se -c -n system/.+
  sbozyp -S -R $REPO se password-store
- sbozyp in $(sbozyp -S qr -u) ### upgrade all packages
 
 =head1 AUTHOR
 
