@@ -768,6 +768,50 @@ sub remove_slackware_pkg {
     sbozyp_system("removepkg '$slackware_pkg'");
 }
 
+# versioncmp() is copy and pasted directly from the Sort::Versions CPAN module.
+# We copy and paste this here as we don't wish for sbozyp to have any deps.
+# Note that sbotools also uses Sort::Versions for version comparisons.
+sub versioncmp ($$) {
+    my @A = ($_[0] =~ /([-.]|\d+|[^-.\d]+)/g);
+    my @B = ($_[1] =~ /([-.]|\d+|[^-.\d]+)/g);
+
+    my ($A, $B);
+    while (@A and @B) {
+        $A = shift @A;
+        $B = shift @B;
+        if ($A eq '-' and $B eq '-') {
+            next;
+        } elsif ( $A eq '-' ) {
+            return -1;
+        } elsif ( $B eq '-') {
+            return 1;
+        } elsif ($A eq '.' and $B eq '.') {
+            next;
+        } elsif ( $A eq '.' ) {
+            return -1;
+        } elsif ( $B eq '.' ) {
+            return 1;
+        } elsif ($A =~ /^\d+$/ and $B =~ /^\d+$/) {
+            if ($A =~ /^0/ || $B =~ /^0/) {
+                return $A cmp $B if $A cmp $B;
+            } else {
+                return $A <=> $B if $A <=> $B;
+            }
+        } else {
+            $A = uc $A;
+            $B = uc $B;
+            return $A cmp $B if $A cmp $B;
+        }
+    }
+    @A <=> @B;
+}
+
+sub version_gt {
+    my ($v1, $v2) = @_;
+    my $cmp = versioncmp($v1, $v2);
+    return $cmp == 1;
+}
+
 1;
 
 __END__

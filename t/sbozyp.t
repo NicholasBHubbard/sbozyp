@@ -156,6 +156,14 @@ subtest 'sbozyp_unlink()' => sub {
     );
 };
 
+subtest 'version_gt()' => sub {
+    my $v1 = '0.0.3';
+    my $v2 = '0.0.2';
+    ok(Sbozyp::version_gt($v1, $v2), 'true if first version is greater than second version');
+    ok(!Sbozyp::version_gt($v2, $v1), 'false if first version is less than second version');
+    ok(!Sbozyp::version_gt($v1, $v1), 'false if both versions are the same');
+};
+
 subtest 'sbozyp_copy()' => sub {
     open my $fh, '>', "$TEST_DIR/foo" or die;
     close $fh or die;
