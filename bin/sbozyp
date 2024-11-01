@@ -6,7 +6,7 @@ use v5.34.0; # The Perl version on Slackware 15.0 (sbozyp's min supported versio
 
 package Sbozyp;
 
-our $VERSION = '0.1.0';
+our $VERSION = '0.1.1';
 
 use File::Basename qw(basename dirname);
 use File::Temp;
@@ -595,8 +595,8 @@ sub sync_repo {
     my $local_git_repo = "$CONFIG{REPO_ROOT}/$CONFIG{REPO_NAME}";
     if (repo_is_cloned()) {
         my $repo_git_branch = repo_git_branch();
-        sbozyp_system('git', '-C', $local_git_repo, 'fetch');
-        sbozyp_system('git', '-C', $local_git_repo, 'reset', '--hard', "origin/$repo_git_branch");
+        sbozyp_system("git -C '$local_git_repo' fetch 1>&2");
+        sbozyp_system("git -C '$local_git_repo' reset --hard 'origin/$repo_git_branch' 1>&2");
     } else {
         sbozyp_die("cannot sync non-existent git repository at '$local_git_repo'");
     }
@@ -1039,6 +1039,7 @@ Examples:
  sbozyp se password.+
  sbozyp se -c -n system/.+
  sbozyp -S -R $REPO se password-store
+ sbozyp in $(sbozyp -S qr -u) ### upgrade all packages
 
 =head1 AUTHOR
 

@@ -484,10 +484,10 @@ subtest 'clone_repo()' => sub {
 subtest 'sync_repo()' => sub {
     Sbozyp::sbozyp_mkdir("$Sbozyp::CONFIG{REPO_ROOT}/$Sbozyp::CONFIG{REPO_NAME}");
 
-    my ($stdout) = capture { Sbozyp::sync_repo() };
-    like($stdout,
+    my (undef, $stderr) = capture { Sbozyp::sync_repo() };
+    like($stderr,
          qr/HEAD is now at/i,
-         'uses git fetch and git reset if repo has already been cloned'
+         'Uses git fetch and git reset if repo has already been cloned. Redirects to STDERR as well.'
     );
 
 
@@ -1374,8 +1374,8 @@ END
         like($stderr, qr/^Cloning into/, q(re-clones repo if given '-C' option));
 
 
-        ($stdout) = capture { Sbozyp::main('-F', "$tmp_config_file", '-S', 'null') };
-        like($stdout, qr/HEAD is now at/, q(syncs repo if given '-S' option));
+        (undef, $stderr) = capture { Sbozyp::main('-F', "$tmp_config_file", '-S', 'null') };
+        like($stderr, qr/HEAD is now at/, q(syncs repo if given '-S' option));
     } else { # not root
         like(dies { Sbozyp::main('-F', "$tmp_config_file", 'null') },
              qr/^sbozyp: error: need root to clone repo$/,

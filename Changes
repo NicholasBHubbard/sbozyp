@@ -1,3 +1,8 @@
+0.1.1  2024-11-01
+
+   - Redirect git sync output to STDERR
+   - Documentation upgrades
+
 0.1.0  2024-11-01
 
    - 'install' and 'remove' commands accept multiple package arguments
