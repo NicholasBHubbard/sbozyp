@@ -1,3 +1,10 @@
+0.1.0  TBD
+
+   - 'install' and 'remove' commands accept multiple package arguments
+   - 'install' command only installs package if newer version is available
+   - Added '-a' and '-u' options for the 'query' command
+   - Documentation upgrades
+
 0.0.7  2024-10-28
 
    - Bug fix in the SlackBuild.
