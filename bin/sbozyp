@@ -132,7 +132,7 @@ sub query_command_main {
     if ($opt_help) { print $help_msg ; return }
     my $opts_set = 0; for ($opt_listinstalled,$opt_slackdesc,$opt_info,$opt_pkginstalled,$opt_printqueue,$opt_readme,$opt_slackbuild,$opt_listneedupgrade) { $opts_set++ if defined }
     if    ($opts_set > 1)  { sbozyp_die("can only set 1 option but $opts_set were set") }
-    elsif ($opts_set == 0) { @_ == 1 or die "$usage\n"; query_pkg_ui(pkg($_[0])) }
+    elsif ($opts_set == 0) { @_ == 1 or die "$usage\n"; my $pkg = pkg($_[0]); query_pkg_ui($pkg) }
     else {
         my $opt = $opt_listinstalled ? '-a' : $opt_slackdesc ? '-d' : $opt_info ? '-i' : $opt_pkginstalled ? '-p' : $opt_printqueue ? '-q' : $opt_readme ? '-r' : $opt_slackbuild ? '-s' : $opt_listneedupgrade ? '-u' : die;
         my $pkg;
