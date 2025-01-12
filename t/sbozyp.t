@@ -1025,7 +1025,7 @@ subtest 'set_repo_name_or_die()' => sub {
 };
 
             ####################################################
-            #                   MAIN TESTS                     #
+            #               COMMAND MAIN TESTS                 #
             ####################################################
 
 subtest 'install_command_main()' => sub {
