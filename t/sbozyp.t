@@ -720,7 +720,11 @@ subtest 'build_slackware_pkg()' => sub {
     );
     like($stdout,
          qr/Slackware package \Q$Sbozyp::CONFIG{TMPDIR}\E\/sbozyp-basic-1\.0-noarch-1_SBo\.tgz created/,
-         'SlackBuild output produces to STDOUT'
+         'SlackBuild output goes to STDOUT'
+    );
+    like(dies { Sbozyp::build_slackware_pkg({Sbozyp::pkg('sbozyp-build-fail')}) },
+         qr/^sbozyp: error: failed to build 'misc\/sbozyp-build-fail'$/,
+         'dies with useful error message if the SlackBuild fails'
     );
 
     unlink $slackware_pkg or die;
