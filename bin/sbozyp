@@ -423,6 +423,12 @@ sub sbozyp_unlink {
     unlink $file or sbozyp_die("could not unlink file '$file': $!");
 }
 
+sub sbozyp_mkfifo {
+    my ($path) = @_;
+    defined mkfifo($path, 0700) or sbozyp_die("could not mkfifo at '$path': $!");
+    return $path;
+}
+
 sub sbozyp_copy {
     my ($file, $dest) = @_;
     sbozyp_system('cp', '-a', -d $file ? "$file/." : $file, $dest);
