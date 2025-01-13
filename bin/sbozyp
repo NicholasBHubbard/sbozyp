@@ -13,6 +13,7 @@ use File::Temp;
 use File::Path qw(make_path remove_tree);
 use Getopt::Long qw(GetOptionsFromArray :config no_ignore_case no_bundling);
 use Carp qw(carp confess);
+use POSIX qw(mkfifo);
 use Pod::Usage qw(pod2usage);
 
 $SIG{INT} = sub { die "\nsbozyp: got a SIGINT ... going down!\n" };
@@ -398,7 +399,7 @@ sub sbozyp_qx {
 
 sub sbozyp_tee {
     my ($cmd) = @_;
-    my $tmp = File::Temp->new(DIR => $CONFIG{TMPDIR}, TEMPLATE => 'sbozyp_tee_XXXXXX');
+    my $tmp = File::Temp->new(DIR=>$CONFIG{TMPDIR}, TEMPLATE=>'sbozyp_tee_XXXXXX');
     $cmd = "set -o pipefail && ( $cmd ) | tee '$tmp'";
     sbozyp_system('bash', '-c', $cmd);
     seek $tmp, 0, 0;
