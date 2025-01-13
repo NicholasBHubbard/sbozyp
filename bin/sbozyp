@@ -379,6 +379,7 @@ sub sbozyp_system {
     unless (0 == $exit_status) {
         sbozyp_die("the following system command exited with status $exit_status: @cmd");
     }
+    return $exit_status;
 }
 
 sub clear_terminal {
