@@ -89,18 +89,21 @@ sub install_command_main {
     i_am_root_or_die('the install command requires root');
     my @pkgs = map { $_ = pkg($_) } @_;
     my @queue; for my $pkg (@pkgs) {
-        @queue = merge_pkg_queues(@queue, $opt_nodeps ? ($pkg) : pkg_queue($pkg))
+        my @pkg_queue = $opt_nodeps ? ($pkg) : pkg_queue($pkg);
+        unless ($opt_force) {
+            @pkg_queue = grep { !pkg_installed_and_up_to_date($_) } @pkg_queue;
+        }
+        @queue = merge_pkg_queues(@queue, @pkg_queue);
     }
-    @queue = manage_install_queue_ui(@queue) unless $opt_noninteractive;
-    for my $pkg (@queue) {
-        my $installed_version = pkg_installed($pkg);
-        if ($opt_force or !defined($installed_version) or version_gt($pkg->{VERSION}, $installed_version)) {
+    if (@queue) {
+        @queue = manage_install_queue_ui(@queue) unless $opt_noninteractive;
+        for my $pkg (@queue) {
             my $slackware_pkg = build_slackware_pkg($pkg);
             install_slackware_pkg($slackware_pkg);
             if ($CONFIG{CLEANUP}) { sbozyp_unlink($slackware_pkg) }
-        } else {
-            print "sbozyp: skipping install of '$pkg->{PKGNAME}' as it is installed and up to date\n";
         }
+    } else {
+        print "sbozyp: all packages (and their deps) requested for installation are up to date, invoke with -f option to force installation\n"
     }
 }
 
@@ -304,6 +307,18 @@ sub pkg_installed {
     my $installed_sbo_pkgs = installed_sbo_pkgs(); # hash from PKGNAME to version
     my $version = $installed_sbo_pkgs->{$pkg->{PKGNAME}};
     return $version;
+}
+
+sub pkg_installed_and_up_to_date {
+    my ($pkg) = @_;
+    my $installed_version = pkg_installed($pkg);
+    say "PKG HERE \$installed_version: $installed_version" if defined $installed_version;
+    say "PKG HERE \$available_version: $pkg->{VERSION}" if defined $pkg->{VERSION};
+    if (!defined $installed_version or version_gt($pkg->{VERSION}, $installed_version)) {
+        return 0;
+    } else {
+        return 1;
+    }
 }
 
 sub all_categories {

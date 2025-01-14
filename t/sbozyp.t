@@ -826,6 +826,53 @@ subtest 'pkg_installed()' => sub {
     remove_tree("$TEST_DIR/tmp_root") or die;
 };
 
+subtest 'pkg_installed_and_up_to_date()' => sub {
+    skip_all('tests for pkg_installed_and_up_to_date() require root so we can install test pkgs') unless $> == 0;
+
+    local $ENV{ROOT} = "$TEST_DIR/tmp_root"; # were gonna install some packages
+
+    my $pkg1 = Sbozyp::pkg('sbozyp-basic'); # not installed
+
+    is(0, Sbozyp::pkg_installed_and_up_to_date($pkg1), 'false if pkg is not installed');
+
+    Sbozyp::install_slackware_pkg(Sbozyp::build_slackware_pkg($pkg1));
+
+    ok(Sbozyp::pkg_installed_and_up_to_date($pkg1), 'true if pkg is installed and up to date');
+
+    # change the version of sbozyp-basic from 1.0 to 3.0
+    my $info_path = "$Sbozyp::CONFIG{REPO_ROOT}/$Sbozyp::CONFIG{REPO_NAME}/misc/sbozyp-basic/sbozyp-basic.info";
+    my $info_tmp = File::Temp->new(DIR=>$Sbozyp::CONFIG{TMPDIR},TEMPLATE=>'sbozyp.t_tmp_info_XXXX');
+    open my $fh_r, '<', $info_path or die;
+    open my $fh_w, '>', "$info_tmp" or die;
+    while (my $line = <$fh_r>) {
+        if ($line =~ /^VERSION=/) {
+            print $fh_w 'VERSION="3.0"', "\n";
+        } else {
+            print $fh_w $line;
+        }
+    }
+    close $fh_r; close $fh_w;
+    system('cp', "$info_tmp", $info_path) and die;
+
+    $pkg1 = Sbozyp::pkg('sbozyp-basic');
+    is(0, Sbozyp::pkg_installed_and_up_to_date($pkg1), 'false if pkg is installed but not up to date');
+
+    # restore the version of sbozyp-basic
+    open $fh_r, '<', $info_path or die;
+    open $fh_w, '>', "$info_tmp" or die;
+    while (my $line = <$fh_r>) {
+        if ($line =~ /^VERSION=/) {
+            print $fh_w 'VERSION="1.0"', "\n";
+        } else {
+            print $fh_w $line;
+        }
+    }
+    close $fh_r; close $fh_w;
+    system('cp', "$info_tmp", $info_path) and die;
+
+    remove_tree("$TEST_DIR/tmp_root") or die;
+};
+
 subtest 'repo_name_repo_num()'  => sub {
     my $repo_num_0 = Sbozyp::repo_name_repo_num('14.1');
     my $repo_num_1 = Sbozyp::repo_name_repo_num('14.2');
@@ -1117,7 +1164,7 @@ subtest 'install_command_main()' => sub {
     ok(-f "$TEST_DIR/sbozyp-basic-1.0-noarch-1_SBo.tgz", 'does not remove slackware package after installing it if $ONFIG{CLEANUP} = 0');
 
     ($stdout) = capture { Sbozyp::install_command_main('-i', 'sbozyp-basic') };
-    like($stdout, qr/skipping install of 'misc\/sbozyp-basic' as it is installed and up to date$/, 'by default skips install with useful message if package is already installed');
+    like($stdout, qr/sbozyp: all packages \(and their deps\) requested for installation are up to date/, 'by default skips install with useful message if package is already installed');
 
     ($stdout) = capture { Sbozyp::install_command_main('-i', '-f', 'sbozyp-basic') };
     like($stdout, qr/Installing package sbozyp-basic-1.0-noarch-1_SBo\.tgz/, 're-installs package if it is already installed if using \'-f\' option');
