@@ -312,8 +312,6 @@ sub pkg_installed {
 sub pkg_installed_and_up_to_date {
     my ($pkg) = @_;
     my $installed_version = pkg_installed($pkg);
-    say "PKG HERE \$installed_version: $installed_version" if defined $installed_version;
-    say "PKG HERE \$available_version: $pkg->{VERSION}" if defined $pkg->{VERSION};
     if (!defined $installed_version or version_gt($pkg->{VERSION}, $installed_version)) {
         return 0;
     } else {
