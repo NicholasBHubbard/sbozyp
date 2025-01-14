@@ -796,7 +796,7 @@ sub build_slackware_pkg {
     my $cmd = "cd '$staging_dir' && chmod +x ./$slackbuild && ./$slackbuild";
     # This next bit of code is a bit confusing, but the idea is that we want to
     # print the slackbuild output to stdout, while also reading the stdout to
-    # look for the created slackware package name, which is we return. This
+    # look for the created slackware package name, which we return. This
     # solution does not waste disk space. See issue #6 for more details.
     my $tmpdir = File::Temp->newdir(DESTROY=>1,DIR=>$CONFIG{TMPDIR},TEMPLATE=>'sbozyp_tmpfifo_XXXXXX');
     my $fifo_path = sbozyp_mkfifo("$tmpdir/fifo");
