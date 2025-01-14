@@ -1,3 +1,7 @@
+0.2.1  2025-01-14
+
+   - Minor bug fix
+
 0.2.0  2025-01-14
 
    - Prevent up-to-date packages from entering install queue without -f
