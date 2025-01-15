@@ -802,8 +802,8 @@ sub build_slackware_pkg {
     my $fifo_path = sbozyp_mkfifo("$tmpdir/fifo");
     my $pid = sbozyp_fork();
     if ($pid == 0) { # child
-        my $fifo_w_fh = sbozyp_open('>', $fifo_path);
         sbozyp_system('bash', '-c', "set -o pipefail; ( $cmd ) | tee '$fifo_path'");
+        my $fifo_w_fh = sbozyp_open('>', $fifo_path);
         print $fifo_w_fh "sbozyp: SLACKBUILD SUCCEEDED: $fifo_path\n";
         exit 0;
     } else { # parent
