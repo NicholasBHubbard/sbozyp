@@ -42,7 +42,7 @@ If you are using slackpkg then you probably don't want it to manage sbozyp:
 
 Do not hesitate to open an [issue](https://github.com/NicholasBHubbard/sbozyp/issues/new) or [pull request](https://github.com/NicholasBHubbard/sbozyp/compare)!
 
-Run the test code:
+To run the test code:
 
 ```
 $ cpanm --installdeps .
