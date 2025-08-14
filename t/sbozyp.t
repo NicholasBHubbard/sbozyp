@@ -730,8 +730,20 @@ subtest 'build_slackware_pkg()' => sub {
     unlink $slackware_pkg or die;
 };
 
+subtest 'built_slackware_pkg()' => sub {
+    skip_all('built_slackware_pkg() testing requires root to build mock package') unless $> == 0;
+
+    my $pkg = Sbozyp::pkg('sbozyp-basic');
+    is(undef, Sbozyp::built_slackware_pkg($pkg), 'returns undef if pkg is not built');
+    my $slackware_pkg = Sbozyp::build_slackware_pkg($pkg);
+    is($slackware_pkg, Sbozyp::built_slackware_pkg($pkg), 'returns path to package if it is already built');
+    unlink $slackware_pkg or die;
+};
+
 subtest 'install_slackware_pkg()' => sub {
     skip_all('install_slackware_pkg() requires root') unless $> == 0;
+
+    my @built_pkgs;
 
     # change the install destination
     local $ENV{ROOT} = "$TEST_DIR/tmp_root";
@@ -741,6 +753,8 @@ subtest 'install_slackware_pkg()' => sub {
     ok(-f "$TEST_DIR/tmp_root/var/lib/pkgtools/packages/sbozyp-basic-1.0-noarch-1_SBo",
        'successfully installs slackware pkg'
     );
+
+    push @built_pkgs, $pkg;
 
     my $stdout = capture { Sbozyp::install_slackware_pkg(Sbozyp::build_slackware_pkg($pkg)) };
     like($stdout,
@@ -754,6 +768,13 @@ subtest 'install_slackware_pkg()' => sub {
        'upgrades package if older version already exists'
     );
 
+    push @built_pkgs, $pkg;
+
+    for my $pkg (@built_pkgs) {
+        if (my $slackware_pkg = Sbozyp::built_slackware_pkg($pkg)) {
+            unlink $slackware_pkg or die;
+        }
+    }
     remove_tree "$TEST_DIR/tmp_root" or die;
 };
 
@@ -769,6 +790,9 @@ subtest 'remove_slackware_pkg()' => sub {
        'successfully removes slackware pkg'
     );
 
+    if (my $slackware_pkg = Sbozyp::built_slackware_pkg($pkg)) {
+        unlink $slackware_pkg or die;
+    }
     remove_tree("$TEST_DIR/tmp_root") or die;
 };
 
@@ -779,6 +803,8 @@ subtest 'installed_sbo_pkgs()' => sub {
 
     is(Sbozyp::installed_sbo_pkgs(), {}, 'returns empty hash if $root/var/lib/pkgtools/packages does not exist');
 
+    my @built_pkgs; # for cleaning up
+
     my $pkg1 = Sbozyp::pkg('sbozyp-basic');
     my $pkg2 = Sbozyp::pkg('sbozyp-nested-dir');
     my $pkg3 = Sbozyp::pkg('sbozyp-readme-extra-deps');
@@ -786,6 +812,8 @@ subtest 'installed_sbo_pkgs()' => sub {
     Sbozyp::install_slackware_pkg(Sbozyp::build_slackware_pkg($pkg1));
     Sbozyp::install_slackware_pkg(Sbozyp::build_slackware_pkg($pkg2));
     Sbozyp::install_slackware_pkg(Sbozyp::build_slackware_pkg($pkg3));
+
+    push @built_pkgs, $pkg1, $pkg2, $pkg3;
 
     is({Sbozyp::installed_sbo_pkgs()},
        {'misc/sbozyp-basic'=>'1.0','misc/sbozyp-nested-dir'=>'1.0','misc/sbozyp-readme-extra-deps'=>'1.0'},
@@ -805,6 +833,12 @@ subtest 'installed_sbo_pkgs()' => sub {
        q(only returns pkgs that have the '_SBo' tag)
     );
 
+
+    for my $pkg (@built_pkgs) {
+        if (my $slackware_pkg = Sbozyp::built_slackware_pkg($pkg)) {
+            unlink $slackware_pkg or die;
+        }
+    }
     remove_tree("$TEST_DIR/tmp_root") or die;
 };
 
@@ -831,11 +865,15 @@ subtest 'pkg_installed_and_up_to_date()' => sub {
 
     local $ENV{ROOT} = "$TEST_DIR/tmp_root"; # were gonna install some packages
 
+    my @built_pkgs;
+
     my $pkg1 = Sbozyp::pkg('sbozyp-basic'); # not installed
 
     is(0, Sbozyp::pkg_installed_and_up_to_date($pkg1), 'false if pkg is not installed');
 
     Sbozyp::install_slackware_pkg(Sbozyp::build_slackware_pkg($pkg1));
+
+    push @built_pkgs, $pkg1;
 
     ok(Sbozyp::pkg_installed_and_up_to_date($pkg1), 'true if pkg is installed and up to date');
 
@@ -870,6 +908,11 @@ subtest 'pkg_installed_and_up_to_date()' => sub {
     close $fh_r; close $fh_w;
     system('cp', "$info_tmp", $info_path) and die;
 
+    for my $pkg (@built_pkgs) {
+        if (my $slackware_pkg = Sbozyp::built_slackware_pkg($pkg)) {
+            unlink $slackware_pkg or die;
+        }
+    }
     remove_tree("$TEST_DIR/tmp_root") or die;
 };
 
@@ -1090,6 +1133,34 @@ subtest 'set_repo_name_or_die()' => sub {
             ####################################################
             #               COMMAND MAIN TESTS                 #
             ####################################################
+
+subtest 'build_command_main' => sub {
+    skip_all('build_command_main() requires root') unless $> == 0;
+
+    my ($stdout, $stderr); # were gonna capture STDOUT and STDERR into these for some tests
+
+    ($stdout) = capture { Sbozyp::build_command_main('--help', 'mu') };
+    like($stdout, qr/^Usage: sbozyp <build\|bu>.+Options are.+Examples:/s, q(outputs help message if given '--help' option));
+
+    ($stdout) = capture { Sbozyp::build_command_main('-h') };
+    like($stdout, qr/^Usage: sbozyp <build\|bu>.+Options are.+Examples:/s, q(accepts '-h' instead of '--help'));
+
+    my $pkg = Sbozyp::pkg('sbozyp-basic');
+    ok(!Sbozyp::built_slackware_pkg($pkg));
+    ($stdout) = capture { Sbozyp::build_command_main('sbozyp-basic') };
+    like($stdout, qr/Slackware package \Q$Sbozyp::CONFIG{TMPDIR}\E\/sbozyp-basic.+created/, q(prints path to built package to stdout));
+    ok(Sbozyp::built_slackware_pkg($pkg), 'builds the package');
+
+    ($stdout) = capture { Sbozyp::build_command_main('-f', 'sbozyp-basic') };
+    like($stdout, qr/Slackware package \Q$Sbozyp::CONFIG{TMPDIR}\E\/sbozyp-basic.+created/, q(rebuilds package if already built with '-f' option));
+    ok(Sbozyp::built_slackware_pkg($pkg));
+
+    ($stdout) = capture { Sbozyp::build_command_main('sbozyp-basic') };
+    like($stdout, qr/^sbozyp: existing package for 'misc\/sbozyp-basic' found at '\Q$Sbozyp::CONFIG{TMPDIR}\E\/sbozyp-basic.+$'$/s);
+
+    ($stdout) = capture { Sbozyp::build_command_main('-f', 'sbozyp-basic', 'sbozyp-basic-2.0') };
+    like($stdout, qr/sbozyp-basic-1\.0.+created.+sbozyp-basic-2\.0.+created/s, 'builds multiple packages on single invocation');
+};
 
 subtest 'install_command_main()' => sub {
     skip_all('install_command_main() requires root') unless $> == 0;
