@@ -48,6 +48,7 @@ sub main {
     my $cmd_main;
     if    ($cmd =~ /^(?:--help|-h)$/)    { print $help_msg      ; return        }
     elsif ($cmd =~ /^(?:--version|-V)$/) { print $VERSION, "\n" ; return        }
+    elsif ($cmd =~ /^(?:build|bu)$/)     { $cmd_main = \&build_command_main     }
     elsif ($cmd =~ /^(?:install|in)$/)   { $cmd_main = \&install_command_main   }
     elsif ($cmd =~ /^(?:null|nu)$/)      { $cmd_main = \&null_command_main      }
     elsif ($cmd =~ /^(?:query|qr)$/)     { $cmd_main = \&query_command_main     }
@@ -73,6 +74,29 @@ sub main {
             ####################################################
             #                     COMMANDS                     #
             ####################################################
+
+sub build_command_main {
+    my $usage = command_usage('build');
+    my $help_msg = command_help_msg('build');
+    sbozyp_getopts(
+        \@_,
+        'h|help' => \my $opt_help,
+        'f'      => \my $opt_force
+    );
+    if ($opt_help) { print $help_msg ; return }
+    @_ >= 1 or die "$usage\n";
+    i_am_root_or_die('the build command requires root');
+    my @pkgs = map { $_ = pkg($_) } @_;
+    for my $pkg (@pkgs) {
+        if (my $slackware_pkg = built_slackware_pkg($pkg)) {
+            unless ($opt_force) {
+                print "sbozyp: existing package for '$pkg->{PKGNAME}' found at '$slackware_pkg'\n";
+                next;
+            }
+        }
+        build_slackware_pkg($pkg);
+    }
+}
 
 sub install_command_main {
     my $usage = command_usage('install');
@@ -788,6 +812,16 @@ sub manage_install_queue_ui {
     return wantarray ? @pkg_queue : \@pkg_queue;
 }
 
+sub install_slackware_pkg {
+    my ($slackware_pkg) = @_;
+    sbozyp_system("upgradepkg --reinstall --install-new '$slackware_pkg'");
+}
+
+sub remove_slackware_pkg {
+    my ($slackware_pkg) = @_;
+    sbozyp_system("removepkg '$slackware_pkg'");
+}
+
 sub build_slackware_pkg {
     my ($pkg) = @_;
     local $ENV{OUTPUT} = $CONFIG{TMPDIR}; # all SlackBuilds use the $OUTPUT env var to determine output pkg location
@@ -805,14 +839,10 @@ sub build_slackware_pkg {
     return $slackware_pkg;
 }
 
-sub install_slackware_pkg {
-    my ($slackware_pkg) = @_;
-    sbozyp_system("upgradepkg --reinstall --install-new '$slackware_pkg'");
-}
-
-sub remove_slackware_pkg {
-    my ($slackware_pkg) = @_;
-    sbozyp_system("removepkg '$slackware_pkg'");
+sub built_slackware_pkg {
+    my ($pkg) = @_;
+    my $output = $CONFIG{TMPDIR};
+    return [ glob "$output/$pkg->{PRGNAM}*$pkg->{VERSION}*_SBo*" ]->[0];
 }
 
 # versioncmp() is copy and pasted directly from the Sort::Versions CPAN module.
@@ -964,11 +994,29 @@ If C<0> then keep built packages after installation. If C<1> then remove them.
 
 =head1 COMMANDS
 
+=head2 BUILD
+
+ Usage: sbozyp <build|bu> [-h] <pkgname...>
+
+Build but don't install packages.
+
+Options are:
+
+ -h|--help           Print help message
+ -f                  Force rebuild the package even if it's already built
+
+Examples:
+
+sbozyp build --help
+sbozyp bu password-store
+sbozyp bu -f password-store
+sbozyp bu system/password-store xclip mu
+
 =head2 INSTALL
 
  Usage: sbozyp <install|in> [-h] [-f] [-i] [-n] <pkgname...>
 
-Install or upgrade packages
+Install or upgrade packages.
 
 Options are:
 
@@ -991,8 +1039,8 @@ Examples:
 
  Usage: sbozyp <null|nu> [-h]
 
-Do nothing, useful if you just want to re-clone (with global -C option) or
-sync (with global -S option) your repository.
+Do nothing. Useful if you just want to re-clone (with global -C option) or
+sync (with global -S option) a repository.
 
 Options are:
 
@@ -1009,7 +1057,7 @@ Examples:
 
  Usage: sbozyp <query|qr> [-h] [-a] [-d] [-i] [-p] [-q] [-r] [-s] [-u] PKGNAME?
 
-Query for package related information
+Query for package related information.
 
 If only PKGNAME and no options are provided, this command will drop you into an
 interactive prompt for viewing PKGNAME's files.
@@ -1041,7 +1089,7 @@ Examples:
 
  Usage: sbozyp <remove|rm> [-h] [-i] <pkgname...>
 
-Remove packages
+Remove packages.
 
 Options are:
 
@@ -1059,7 +1107,7 @@ Examples:
 
  Usage: sbozyp <search|se> [-h] [-c] [-n] <regex>
 
-Search for a package using a Perl regex
+Search for a package using a Perl regex.
 
 Options are:
 
