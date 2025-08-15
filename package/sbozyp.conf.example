@@ -7,9 +7,6 @@
 ### Directory used to contain working files specific to sbozyp.
 # TMPDIR=/tmp
 
-### By default built packages are removed after install. Set to 0 to keep them around.
-# CLEANUP=1
-
 ### REPOS
 REPO_PRIMARY=15.0
 
