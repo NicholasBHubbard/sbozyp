@@ -341,7 +341,7 @@ subtest 'i_am_root_or_die()' => sub {
 
 subtest 'parse_config_file()' => sub {
     is(\%Sbozyp::CONFIG,
-       {TMPDIR=>'/tmp',CLEANUP=>1,REPO_ROOT=>'/var/lib/sbozyp/SBo'},
+       {TMPDIR=>'/tmp',REPO_ROOT=>'/var/lib/sbozyp/SBo'},
        '%CONFIG has correct default values'
     );
 
@@ -351,7 +351,7 @@ subtest 'parse_config_file()' => sub {
     close $fh or die;
     Sbozyp::parse_config_file($test_config);
     is(\%Sbozyp::CONFIG,
-       {TMPDIR=>'/tmp',CLEANUP=>1,REPO_ROOT=>'/var/lib/sbozyp/SBo'},
+       {TMPDIR=>'/tmp',REPO_ROOT=>'/var/lib/sbozyp/SBo'},
        'parsing empty config file leaves %CONFIG as its default value'
     );
 
@@ -362,29 +362,25 @@ END
     close $fh or die;
     Sbozyp::parse_config_file($test_config);
     is(\%Sbozyp::CONFIG,
-       {TMPDIR=>'foo',CLEANUP=>1,REPO_ROOT=>'/var/lib/sbozyp/SBo'},
+       {TMPDIR=>'foo',REPO_ROOT=>'/var/lib/sbozyp/SBo'},
        'only modifies %CONFIG values specified in the config file'
     );
 
     open $fh, '>', $test_config or die;
     print $fh <<"END";
-# CLEANUP=note_the_comment
 
 TMPDIR = bar # eol comment
-
-CLEANUP   =   bar # eol comment
 END
     close $fh or die;
     Sbozyp::parse_config_file($test_config);
     is(\%Sbozyp::CONFIG,
-       {TMPDIR=>'bar',CLEANUP=>'bar',REPO_ROOT=>'/var/lib/sbozyp/SBo'},
+       {TMPDIR=>'bar',REPO_ROOT=>'/var/lib/sbozyp/SBo'},
        'ignores comments, eol comments, whitespace, and blank lines'
     );
 
     open $fh, '>', $test_config or die;
     print $fh <<'END';
 TMPDIR=foo
-CLEANUP=foo
 REPO_ROOT=foo
 REPO_PRIMARY=foo
 REPO_0_NAME=foo
@@ -394,7 +390,7 @@ END
     close $fh or die;
     Sbozyp::parse_config_file($test_config);
     is(\%Sbozyp::CONFIG,
-       {TMPDIR=>'foo',CLEANUP=>'foo',REPO_ROOT=>'foo',REPO_0_GIT_URL=>'foo',REPO_0_NAME=>'foo',REPO_PRIMARY=>'foo',REPO_0_GIT_BRANCH=>'foo'},
+       {TMPDIR=>'foo',REPO_ROOT=>'foo',REPO_0_GIT_URL=>'foo',REPO_0_NAME=>'foo',REPO_PRIMARY=>'foo',REPO_0_GIT_BRANCH=>'foo'},
        'successfully parses config file and updates %CONFIG. Note that REPO_NAME is not set to REPO_PRIMARY.'
     );
 
@@ -433,7 +429,6 @@ END
     open $fh, '>', $test_config or die;
     print $fh <<"END";
 TMPDIR=$TEST_DIR
-CLEANUP=1
 REPO_ROOT=$TEST_DIR/var/lib/sbozyp/SBo
 REPO_PRIMARY=14.1
 
@@ -452,7 +447,7 @@ END
     close $fh or die;
     Sbozyp::parse_config_file($test_config);
     is(\%Sbozyp::CONFIG,
-       {TMPDIR=>"$TEST_DIR", CLEANUP=>1,REPO_ROOT=>"$TEST_DIR/var/lib/sbozyp/SBo",REPO_0_GIT_URL=>'git://git.slackbuilds.org/slackbuilds.git',REPO_1_GIT_URL=>'git://git.slackbuilds.org/slackbuilds.git',REPO_1_GIT_URL=>'git://git.slackbuilds.org/slackbuilds.git',REPO_2_GIT_URL=>'git://git.slackbuilds.org/slackbuilds.git',REPO_0_GIT_BRANCH=>'14.1',REPO_1_GIT_BRANCH=>'14.2',REPO_2_GIT_BRANCH=>'15.0',REPO_0_NAME=>'14.1',REPO_1_NAME=>'14.2',REPO_2_NAME=>'15.0',REPO_PRIMARY=>'14.1'},
+       {TMPDIR=>"$TEST_DIR",REPO_ROOT=>"$TEST_DIR/var/lib/sbozyp/SBo",REPO_0_GIT_URL=>'git://git.slackbuilds.org/slackbuilds.git',REPO_1_GIT_URL=>'git://git.slackbuilds.org/slackbuilds.git',REPO_1_GIT_URL=>'git://git.slackbuilds.org/slackbuilds.git',REPO_2_GIT_URL=>'git://git.slackbuilds.org/slackbuilds.git',REPO_0_GIT_BRANCH=>'14.1',REPO_1_GIT_BRANCH=>'14.2',REPO_2_GIT_BRANCH=>'15.0',REPO_0_NAME=>'14.1',REPO_1_NAME=>'14.2',REPO_2_NAME=>'15.0',REPO_PRIMARY=>'14.1'},
        '%CONFIG is properly set for use by the rest of this test script'
     );
 
@@ -1193,11 +1188,9 @@ subtest 'install_command_main()' => sub {
          'dies with useful message if the package does not exist'
     );
 
-    local $Sbozyp::CONFIG{CLEANUP} = 1;
-
     Sbozyp::install_command_main('-i', 'sbozyp-basic');
     ok(Sbozyp::pkg_installed({Sbozyp::pkg('sbozyp-basic')}), 'installs a package');
-    ok(! -f "$TEST_DIR/sbozyp-basic-1.0-noarch-1_SBo.tgz", 'removes slackware package after installing it if $ONFIG{CLEANUP} = 1');
+    ok(! -f "$TEST_DIR/sbozyp-basic-1.0-noarch-1_SBo.tgz", 'removes slackware package after installing it if not given -k option');
 
     Sbozyp::install_command_main('-i', 'sbozyp-recursive-dep-A');
     ok(   Sbozyp::pkg_installed({Sbozyp::pkg('sbozyp-recursive-dep-A')})
@@ -1230,9 +1223,8 @@ subtest 'install_command_main()' => sub {
          'accepts multiple package name args and dies if any are not valid packages'
     );
 
-    local $Sbozyp::CONFIG{CLEANUP} = 0;
-    Sbozyp::install_command_main('-i', 'sbozyp-basic');
-    ok(-f "$TEST_DIR/sbozyp-basic-1.0-noarch-1_SBo.tgz", 'does not remove slackware package after installing it if $ONFIG{CLEANUP} = 0');
+    Sbozyp::install_command_main('-i', '-k', 'sbozyp-basic');
+    ok(-f "$TEST_DIR/sbozyp-basic-1.0-noarch-1_SBo.tgz", 'does not remove slackware package after installing it if given -k flag');
 
     ($stdout) = capture { Sbozyp::install_command_main('-i', 'sbozyp-basic') };
     like($stdout, qr/sbozyp: all packages \(and their deps\) requested for installation are up to date/, 'by default skips install with useful message if package is already installed');
@@ -1435,7 +1427,6 @@ subtest 'main()' => sub {
     open my $fh, '>', "$tmp_config_file" or die;
     print $fh <<"END";
 TMPDIR=$TEST_DIR
-CLEANUP=1
 REPO_ROOT=$TEST_DIR/var/lib/sbozyp/SBo
 REPO_PRIMARY=14.1
 

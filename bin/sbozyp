@@ -21,7 +21,6 @@ $SIG{INT} = sub { die "\nsbozyp: got a SIGINT ... going down!\n" };
 our %CONFIG = (
     # defaults
     TMPDIR => '/tmp',
-    CLEANUP => 1,
     REPO_ROOT => '/var/lib/sbozyp/SBo',
     #REPO_NAME => REPO_PRIMARY
 );
@@ -106,6 +105,7 @@ sub install_command_main {
         'h|help' => \my $opt_help,
         'f'      => \my $opt_force,
         'i'      => \my $opt_noninteractive,
+        'k'      => \my $opt_keeppackage,
         'n'      => \my $opt_nodeps
     );
     if ($opt_help) { print $help_msg ; return }
@@ -122,9 +122,9 @@ sub install_command_main {
     if (@queue) {
         @queue = manage_install_queue_ui(@queue) unless $opt_noninteractive;
         for my $pkg (@queue) {
-            my $slackware_pkg = build_slackware_pkg($pkg);
+            my $slackware_pkg = built_slackware_pkg($pkg) // build_slackware_pkg($pkg);
             install_slackware_pkg($slackware_pkg);
-            if ($CONFIG{CLEANUP}) { sbozyp_unlink($slackware_pkg) }
+            sbozyp_unlink($slackware_pkg) unless $opt_keeppackage;
         }
     } else {
         print "sbozyp: all packages (and their deps) requested for installation are up to date, invoke with -f option to force installation\n"
@@ -988,10 +988,6 @@ The directory used for placing working files.
 
 Defaults to C<TMPDIR=/tmp>.
 
-=head3 CLEANUP
-
-If C<0> then keep built packages after installation. If C<1> then remove them.
-
 =head1 COMMANDS
 
 =head2 BUILD
@@ -1023,6 +1019,7 @@ Options are:
  -h|--help           Print help message
  -f                  Force installation even if package is already up to date
  -i                  Non-interactive (DANGEROUS)
+ -k                  Keep the built package (resides in TMPDIR)
  -n                  Do not install package dependencies
 
 Examples:
@@ -1030,7 +1027,7 @@ Examples:
  sbozyp install --help
  sbozyp in password-store
  sbozyp in xclip mu password-store
- sbozyp in system/password-store
+ sbozyp in -k system/password-store
  sbozyp in -f -i -n password-store
  sbozyp -S -R $REPO in -f password-store
  sbozyp in $(sbozyp -S qr -u | cut -d' ' -f1) ### upgrade all packages
