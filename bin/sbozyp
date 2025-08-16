@@ -351,10 +351,10 @@ sub all_categories {
 }
 
 sub all_pkgnames {
-    my @pkgnames = sort map {
+    state @all_pkgnames = sort map {
         my ($pkgname) = $_ =~ m,/([^/]+/[^/]+)$,;
     } sbozyp_qx("find '$CONFIG{REPO_ROOT}/$CONFIG{REPO_NAME}' -mindepth 2 -maxdepth 2 -type d -not -path '*/.*'");
-    return @pkgnames;
+    return @all_pkgnames;
 }
 
 sub find_pkgname { # if $prgnam is a pkgname then just return it back
