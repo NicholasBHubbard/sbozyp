@@ -344,12 +344,9 @@ sub pkg_installed_and_up_to_date {
 }
 
 sub all_categories {
-    state @all_categories;
-    unless (@all_categories) {
-        @all_categories = sort map {
-            basename($_);
-        } sbozyp_qx("find '$CONFIG{REPO_ROOT}/$CONFIG{REPO_NAME}' -mindepth 1 -maxdepth 1 -type d -not -path '*/.*'");
-    }
+    state @all_categories = sort map {
+        basename($_);
+    } sbozyp_qx("find '$CONFIG{REPO_ROOT}/$CONFIG{REPO_NAME}' -mindepth 1 -maxdepth 1 -type d -not -path '*/.*'");
     return @all_categories
 }
 
