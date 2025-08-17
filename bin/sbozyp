@@ -80,12 +80,29 @@ sub build_command_main {
     sbozyp_getopts(
         \@_,
         'h|help' => \my $opt_help,
-        'f'      => \my $opt_force
+        'f'      => \my $opt_force,
+        'i'      => \my $opt_noninteractive
     );
     if ($opt_help) { print $help_msg ; return }
     @_ >= 1 or die "$usage\n";
     i_am_root_or_die('the build command requires root');
     my @pkgs = map { $_ = pkg($_) } @_;
+    if (not $opt_noninteractive) {
+        my $error_msg = '';
+        while (1) {
+            clear_terminal();
+            if ($error_msg) { print "$error_msg\n\n"; $error_msg = '' };
+            print "sbozyp: are you sure you want to build packages: @{[map { q(').$_->{PKGNAME}.q(') } @pkgs]}? y/n\n";
+            print '  -> ';
+            my $decision = <STDIN>;
+            $decision =~ s/^\s+|\s+$//g; # remove leading and trailing whitespace
+            if    ($decision =~ /^y(?:es)?$/i) { last   }
+            elsif ($decision =~ /^no?$/i)      { return }
+            else {
+                $error_msg = "invalid input: '$decision'";
+            }
+        }
+    }
     for my $pkg (@pkgs) {
         if (my $slackware_pkg = built_slackware_pkg($pkg)) {
             unless ($opt_force) {
@@ -998,13 +1015,16 @@ Options are:
 
  -h|--help           Print help message
  -f                  Force rebuild the package even if it's already built
+ -i                  No confirmation prompt
 
 Examples:
 
-sbozyp build --help
-sbozyp bu password-store
-sbozyp bu -f password-store
-sbozyp bu system/password-store xclip mu
+ sbozyp build --help
+ sbozyp bu password-store
+ sbozyp bu -f password-store
+ sbozyp bu -f -i system/password-store
+ sbozyp -S -R $REPO bu password-store
+ sbozyp bu -i system/password-store xclip mu
 
 =head2 INSTALL
 
@@ -1016,7 +1036,7 @@ Options are:
 
  -h|--help           Print help message
  -f                  Force installation even if package is already up to date
- -i                  Non-interactive (DANGEROUS)
+ -i                  No interactive prompt
  -k                  Keep the built package (resides in TMPDIR)
  -n                  Do not install package dependencies
 
@@ -1089,7 +1109,7 @@ Remove packages.
 Options are:
 
  -h|--help           Print help message
- -i                  Non-interactive (DANGEROUS)
+ -i                  No confirmation prompt
 
 Examples:
 

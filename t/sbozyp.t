@@ -1133,6 +1133,7 @@ subtest 'build_command_main' => sub {
     skip_all('build_command_main() requires root') unless $> == 0;
 
     my ($stdout, $stderr); # were gonna capture STDOUT and STDERR into these for some tests
+    my $stdin;  # were gonna mock user input in some of these tests.
 
     ($stdout) = capture { Sbozyp::build_command_main('--help', 'mu') };
     like($stdout, qr/^Usage: sbozyp <build\|bu>.+Options are.+Examples:/s, q(outputs help message if given '--help' option));
@@ -1141,20 +1142,74 @@ subtest 'build_command_main' => sub {
     like($stdout, qr/^Usage: sbozyp <build\|bu>.+Options are.+Examples:/s, q(accepts '-h' instead of '--help'));
 
     my $pkg = Sbozyp::pkg('sbozyp-basic');
-    ok(!Sbozyp::built_slackware_pkg($pkg));
-    ($stdout) = capture { Sbozyp::build_command_main('sbozyp-basic') };
-    like($stdout, qr/Slackware package \Q$Sbozyp::CONFIG{TMPDIR}\E\/sbozyp-basic.+created/, q(prints path to built package to stdout));
-    ok(Sbozyp::built_slackware_pkg($pkg), 'builds the package');
+    my $pkg2 = Sbozyp::pkg('sbozyp-basic-2.0');
 
-    ($stdout) = capture { Sbozyp::build_command_main('-f', 'sbozyp-basic') };
+    ok(!Sbozyp::built_slackware_pkg($pkg));
+    ($stdout) = capture { Sbozyp::build_command_main('-i', 'sbozyp-basic') };
+    like($stdout, qr/Slackware package \Q$Sbozyp::CONFIG{TMPDIR}\E\/sbozyp-basic.+created/, q(prints path to built package to stdout));
+    ok(Sbozyp::built_slackware_pkg($pkg), 'builds the package (non-interactively with -i flag)');
+    unlink Sbozyp::built_slackware_pkg($pkg) or die;
+
+    like(dies { Sbozyp::build_command_main('NOTAPACKAGE') },
+         qr/^sbozyp: error: could not find a package named 'NOTAPACKAGE'$/,
+         'dies with useful error message if given a non-existent package'
+    );
+
+    like(dies { Sbozyp::build_command_main('sbozyp-basic', 'NOTAPACKAGE') },
+         qr/^sbozyp: error: could not find a package named 'NOTAPACKAGE'$/,
+         'dies with useful error message if given a non-existent package along with a existing package'
+    );
+    ok(!Sbozyp::built_slackware_pkg($pkg));
+
+    open $stdin, '<', \"no\n" or die;
+    local *STDIN = $stdin;
+    Sbozyp::build_command_main('sbozyp-basic');
+    close $stdin;
+    ok(!Sbozyp::built_slackware_pkg($pkg), q(doesnt build package if user says 'no' at prompt (prompts by default)));
+
+    open $stdin, '<', \"n\n" or die;
+    local *STDIN = $stdin;
+    Sbozyp::build_command_main('sbozyp-basic');
+    close $stdin;
+    ok(!Sbozyp::built_slackware_pkg($pkg), q(accepts 'n' instead of 'no' at prompt));
+
+    open $stdin, '<', \"yes\n" or die;
+    local *STDIN = $stdin;
+    Sbozyp::build_command_main('sbozyp-basic');
+    close $stdin;
+    ok(Sbozyp::built_slackware_pkg($pkg), q(does build package if user says 'yes' at prompt (prompts by default)));
+    unlink Sbozyp::built_slackware_pkg($pkg) or die;
+
+    open $stdin, '<', \"y\n" or die;
+    local *STDIN = $stdin;
+    Sbozyp::build_command_main('sbozyp-basic');
+    close $stdin;
+    ok(Sbozyp::built_slackware_pkg($pkg), q(accepts 'y' instead of 'yes' at prompt));
+    unlink Sbozyp::built_slackware_pkg($pkg) or die;
+
+    open $stdin, '<', \"foo\nno\n" or die;
+    local *STDIN = $stdin;
+    ($stdout) = capture { Sbozyp::build_command_main('sbozyp-basic') };
+    like($stdout, qr/invalid input: 'foo'/, 'gives useful message about invalid prompt input');
+    close $stdin;
+    ok(!Sbozyp::built_slackware_pkg($pkg));
+
+    ($stdout) = capture { Sbozyp::build_command_main('-f', '-i', 'sbozyp-basic') };
     like($stdout, qr/Slackware package \Q$Sbozyp::CONFIG{TMPDIR}\E\/sbozyp-basic.+created/, q(rebuilds package if already built with '-f' option));
     ok(Sbozyp::built_slackware_pkg($pkg));
 
-    ($stdout) = capture { Sbozyp::build_command_main('sbozyp-basic') };
+    ($stdout) = capture { Sbozyp::build_command_main('-i', 'sbozyp-basic') };
     like($stdout, qr/^sbozyp: existing package for 'misc\/sbozyp-basic' found at '\Q$Sbozyp::CONFIG{TMPDIR}\E\/sbozyp-basic.+$'$/s);
 
-    ($stdout) = capture { Sbozyp::build_command_main('-f', 'sbozyp-basic', 'sbozyp-basic-2.0') };
+    ($stdout) = capture { Sbozyp::build_command_main('-f', '-i', 'sbozyp-basic', 'sbozyp-basic-2.0') };
     like($stdout, qr/sbozyp-basic-1\.0.+created.+sbozyp-basic-2\.0.+created/s, 'builds multiple packages on single invocation');
+
+    # cleanup
+    for my $pkg ($pkg, $pkg2) {
+        if (my $built_slackware_pkg = Sbozyp::built_slackware_pkg($pkg)) {
+            unlink $built_slackware_pkg or die;
+        }
+    }
 };
 
 subtest 'install_command_main()' => sub {
