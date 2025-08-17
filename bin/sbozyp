@@ -949,9 +949,10 @@ Examples:
  sbozyp --help
  sbozyp --version
  sbozyp install -S -R $REPO -f xclip system/password-store
+ sbozyp build -f mu
  sbozyp query -q password-store
  sbozyp remove xclip password-store
- sbozyp search system/.+
+ sbozyp search -n system/.+
  sbozyp -R $REPO -C null
 
 =head1 CONFIGURATION
