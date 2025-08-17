@@ -220,16 +220,14 @@ sub remove_command_main {
             print '  -> ';
             my $decision = <STDIN>;
             $decision =~ s/^\s+|\s+$//g; # remove leading and trailing whitespace
-            if ($decision =~ /^y(?:es)?$/i) {
-                remove_slackware_pkg($_->{PRGNAM}) for @pkgs;
-                last;
-            } elsif ($decision =~ /^no?$/i) {
-                last;
-            } else {
+            if    ($decision =~ /^y(?:es)?$/i) { last   }
+            elsif ($decision =~ /^no?$/i)      { return }
+            else {
                 $error_msg = "invalid input: '$decision'";
             }
         }
-    } else { remove_slackware_pkg($_->{PRGNAM}) for @pkgs }
+    }
+    remove_slackware_pkg($_->{PRGNAM}) for @pkgs;
 }
 
 sub search_command_main {
