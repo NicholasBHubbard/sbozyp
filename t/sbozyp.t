@@ -1460,6 +1460,15 @@ subtest 'search_command_main()' => sub {
          q(matches case-sensitive when given '-c' option)
     );
 
+    ($stdout) = capture { Sbozyp::search_command_main('-p', '^mu$') };
+    like($stdout, qr/^mu\n$/s, 'returns just prgnam of matched package if given -p flag');
+
+    ($stdout) = capture { Sbozyp::search_command_main('^mu(pdf)?$') };
+    is($stdout, "office/mu\noffice/mupdf\n", 'returns results sorted');
+
+    ($stdout) = capture { Sbozyp::search_command_main('-p', '^mu(pdf)?$') };
+    is($stdout, "mu\nmupdf\n", 'returns results sorted with -p flag');
+
     like(dies { Sbozyp::search_command_main('.+','^MU$') },
          qr/^Usage:/,
          'dies with usage if given multiple args'

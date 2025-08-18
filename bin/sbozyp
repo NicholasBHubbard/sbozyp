@@ -255,6 +255,7 @@ sub search_command_main {
         'h|help' => \my $opt_help,
         'c'      => \my $opt_casesensitive,
         'n'      => \my $opt_matchcategory,
+        'p'      => \my $opt_prgnam
     );
     if ($opt_help) { print $help_msg ; return }
     @_ == 1 or die "$usage\n";
@@ -264,7 +265,10 @@ sub search_command_main {
         $opt_matchcategory ? $_ =~ $regex : basename($_) =~ $regex;
     } all_pkgnames();
     if (@matches) {
-        print $_, "\n" for @matches;
+        if ($opt_prgnam) {
+            @matches = sort map { $_ = basename($_) } @matches;
+        }
+        print $_, "\n" for @matches
     } else {
         sbozyp_die("no packages match the regex '$regex_arg'");
     }
@@ -1130,12 +1134,13 @@ Options are:
  -h|--help           Print help message
  -c                  Match case sensitive
  -n                  Match against CATEGORY/PRGNAM instead of just PRGNAM
+ -p                  Print just the PRGNAM of matched packages
 
 Examples:
 
  sbozyp search --help
  sbozyp se password-store
- sbozyp se password.+
+ sbozyp se -p password.+
  sbozyp se -c -n system/.+
  sbozyp -S -R $REPO se password-store
 
