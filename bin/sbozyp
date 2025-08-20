@@ -943,6 +943,7 @@ Every command has its own options, these are just the global ones:
 Commands are:
 
  install|in          Install or upgrade packages
+ build|bu            Build but don't install packages
  null|nu             Do nothing, useful in conjunction with -C or -S opts
  query|qr            Query for information about a package
  remove|rm           Remove packages
