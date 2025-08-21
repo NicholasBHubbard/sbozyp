@@ -38,6 +38,8 @@ If you are using slackpkg then you probably don't want it to manage sbozyp:
 # echo sbozyp >> /etc/slackpkg/blacklist
 ```
 
+Note that if you remove sbozyp, any SBo repositories in your `$REPO_ROOT` are not automatically removed.
+
 # DEVELOPERS
 
 Do not hesitate to open an [issue](https://github.com/NicholasBHubbard/sbozyp/issues/new) or [pull request](https://github.com/NicholasBHubbard/sbozyp/compare)!
