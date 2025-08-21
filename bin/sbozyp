@@ -952,7 +952,7 @@ Commands are:
 Examples:
 
  sbozyp --help
- sbozyp --version
+ sbozyp install --help
  sbozyp install -S -R $REPO -f xclip system/password-store
  sbozyp build -f mu
  sbozyp query -q password-store
