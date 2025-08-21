@@ -944,10 +944,10 @@ Commands are:
 
  install|in          Install or upgrade packages
  build|bu            Build but don't install packages
- null|nu             Do nothing, useful in conjunction with -C or -S opts
  query|qr            Query for information about a package
  remove|rm           Remove packages
  search|se           Search for a package using a Perl regex
+ null|nu             Do nothing, useful in conjunction with -C or -S opts
 
 Examples:
 
