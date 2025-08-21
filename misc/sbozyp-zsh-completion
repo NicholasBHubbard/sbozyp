@@ -118,7 +118,7 @@ _sbozyp_complete() {
             elif [[ $cur == -* ]]; then
                 compadd -X "options" -- ${=opts}
             else
-                local installed_packages=$(sbozyp $(_sbozyp_command_prefix) query -a 2>/dev/null | cut -d'/' -f2)
+                local installed_packages=$(sbozyp $(_sbozyp_command_prefix) query -a 2>/dev/null | cut -d'/' -f2 | sort)
                 compadd -X "installed packages" -- ${(f)installed_packages}
             fi
             ;;
