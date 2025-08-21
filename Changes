@@ -5,6 +5,7 @@
    - Added '-k' option to the install command to keep built package
    - Removed CLEANUP configuration file option
    - Added '-p' option to search command to print just package PRGNAMs
+   - Added shell completion for bash and zsh
 
 0.2.2  2025-01-15
 
