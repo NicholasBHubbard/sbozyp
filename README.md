@@ -49,6 +49,8 @@ $ cpanm --installdeps .
 $ perl t/sbozyp.t
 ```
 
+Note that some tests require root permissions.
+
 New release:
 
 * Update version in README.md, Changes, bin/sbozyp, and sbozyp.SlackBuild
