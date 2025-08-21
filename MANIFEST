@@ -11,5 +11,5 @@ package/sbozyp.SlackBuild
 package/slack-desc
 package/sbozyp.conf.example
 
-misc/sbozyp-bash-completion
-misc/sbozyp-zsh-completion
+completions/sbozyp.bash
+completions/sbozyp.zsh
