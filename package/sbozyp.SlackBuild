@@ -52,6 +52,12 @@ cp -a package/slack-desc  $PKG/install
 mkdir -p $PKG/etc/sbozyp
 cp -a package/sbozyp.conf.example $PKG/etc/sbozyp
 
+mkdir -p $PKG/usr/share/bash-completion/completions
+cp -a misc/sbozyp-bash-completion $PKG/usr/share/bash-completion/completions/sbozyp
+
+mkdir -p $PKG/usr/share/zsh/site-functions
+cp -a misc/sbozyp-zsh-completion $PKG/usr/share/zsh/site-functions/_sbozyp
+
 find $PKG -depth -type d -empty -delete || true
 
 cd $PKG
