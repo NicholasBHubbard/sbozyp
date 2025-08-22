@@ -583,6 +583,8 @@ subtest 'pkg()' => sub {
 
     is(ref(Sbozyp::pkg('system/password-store')), 'HASH', 'returns hashref in scalar context');
 
+    is({Sbozyp::pkg('sbozyp-non-existent-dep')}->{REQUIRES}, ['sbozyp-basic'], 'removes non-existent packages from REQUIRES');
+
     like(dies { Sbozyp::pkg('FOO') },
          qr/^sbozyp: error: could not find a package named 'FOO'$/,
          'dies with useful error message if passed invalid prgnam'
