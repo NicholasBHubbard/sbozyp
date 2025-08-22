@@ -419,7 +419,7 @@ END
 foo=bar
 END
     close $fh or die;
-    # TODO
+    # TODO: should we handle invalid config settings?
     # like(dies { Sbozyp::parse_config_file($test_config) },
     #      qr/^sbozyp: error: invalid setting on line 1 'foo': '\Q$test_config\E'$/,
     #      'dies with useful error message if config file contains invalid setting'
