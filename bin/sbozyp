@@ -658,7 +658,7 @@ sub clone_repo {
     }
     my $repo_git_branch = repo_git_branch();
     my $repo_git_url = repo_git_url();
-    sbozyp_system('git', 'clone', '--branch', $repo_git_branch, $repo_git_url, $local_git_repo);
+    sbozyp_system('git', 'clone', '--branch', $repo_git_branch, '--single-branch', $repo_git_url, $local_git_repo);
 }
 
 sub sync_repo {

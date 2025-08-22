@@ -1,3 +1,7 @@
+0.3.3  TBD
+
+   - Use git '--single-branch' opt when cloning SBo repo
+
 0.3.2  2025-08-21
 
    - Documentation upgrades
