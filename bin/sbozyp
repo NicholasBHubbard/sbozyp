@@ -42,8 +42,8 @@ sub main {
         '-S'   => \my $opt_sync
     );
     Getopt::Long::Configure('nopass_through');
-    my $cmd = shift(@argv) or die "$usage\n";
     # determine the command main function
+    my $cmd = shift(@argv) or die "$usage\n";
     my $cmd_main;
     if    ($cmd =~ /^(?:--help|-h)$/)    { print $help_msg      ; return        }
     elsif ($cmd =~ /^(?:--version|-V)$/) { print $VERSION, "\n" ; return        }
