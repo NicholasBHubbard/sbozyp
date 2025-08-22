@@ -940,7 +940,7 @@ Every command has its own options, these are just the global ones:
  -R REPO_NAME        Use repository REPO_NAME instead of REPO_PRIMARY
  -S                  Sync repository before running the command
 
-Commands are:
+Commands:
 
  install|in          Install or upgrade packages
  build|bu            Build but don't install packages
