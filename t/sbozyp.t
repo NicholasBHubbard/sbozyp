@@ -141,7 +141,7 @@ subtest 'command_usage()' => sub {
 subtest 'command_help_msg()' => sub {
     like(Sbozyp::command_help_msg('install'), qr/^Usage: sbozyp <install\|in>.+[\n]Install or upgrade packages.+Options are:.+Examples:/s, 'returns help msg if given command name. Properly strips off leading whitespace.');
 
-    like(Sbozyp::command_help_msg('main'), qr/^Usage: sbozyp \[global_opts\].+Commands are.+Examples:/s, q(handles special case of 'main'));
+    like(Sbozyp::command_help_msg('main'), qr/^Usage: sbozyp \[global_opts\].+Commands.+Examples:/s, q(handles special case of 'main'));
 };
 
 subtest 'sbozyp_unlink()' => sub {
@@ -1511,10 +1511,10 @@ END
     my ($stdout, $stderr); # were gonna capture STDOUT/STDERR into these variables for some tests
 
     ($stdout) = capture { Sbozyp::main('--help') };
-    like($stdout, qr/^Usage:.+Commands are:.+Examples/s, 'prints help message if called with just --help');
+    like($stdout, qr/^Usage:.+Commands:.+Examples/s, 'prints help message if called with just --help');
 
     ($stdout) = capture { Sbozyp::main('-h') };
-    like($stdout, qr/^Usage:.+Commands are:.+Examples/s, 'prints help message if called with just -h');
+    like($stdout, qr/^Usage:.+Commands:.+Examples/s, 'prints help message if called with just -h');
 
     ($stdout) = capture { Sbozyp::main('--version') };
     like($stdout, qr/^\Q$Sbozyp::VERSION\E$/s, 'prints sbozyp version if called with just --version');
@@ -1550,6 +1550,9 @@ END
          qr/^sbozyp: error: no repo named 'NOTAREPO'$/,
          q(dies with useful error if given invalid repo with the '-R' option)
     );
+
+    ($stdout, $stderr) = capture { Sbozyp::main('-T', '-R', '15.0', 'install', 'mu') };
+    ok(($stdout eq "" and $stderr eq "" and ! -d "$Sbozyp::CONFIG{REPO_ROOT}/$Sbozyp::CONFIG{REPO_NAME}"), '-T option makes main do nothing and exit if repo is not cloned');
 
     # test that everything is initialized properly as it would be on a fresh system:
 

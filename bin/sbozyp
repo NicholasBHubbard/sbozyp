@@ -6,7 +6,7 @@ use v5.34.0; # The Perl version on Slackware 15.0 (sbozyp's min supported versio
 
 package Sbozyp;
 
-our $VERSION = '0.3.2';
+our $VERSION = '0.4.0';
 
 use File::Basename qw(basename dirname);
 use File::Temp;
@@ -32,14 +32,15 @@ sub main {
     my @argv = @_;
     my $usage = command_usage('main');
     my $help_msg = command_help_msg('main');
-    # Process global options
+    # process global options
     Getopt::Long::Configure('pass_through'); # pass_through to ignore the command options
-    sbozyp_getopts( # global options use uppercase while command options use lowercase
+    sbozyp_getopts(
         \@argv,
         '-C'   => \my $opt_clone,
         '-F=s' => \my $opt_configfile,
         '-R=s' => \my $opt_reponame,
-        '-S'   => \my $opt_sync
+        '-S'   => \my $opt_sync,
+        '-T'   => \my $opt_noinit
     );
     Getopt::Long::Configure('nopass_through');
     # determine the command main function
@@ -54,9 +55,11 @@ sub main {
     elsif ($cmd =~ /^(?:remove|rm)$/)    { $cmd_main = \&remove_command_main    }
     elsif ($cmd =~ /^(?:search|se)$/)    { $cmd_main = \&search_command_main    }
     else                                 { sbozyp_die("invalid command '$cmd'") }
-    # setup environment
+    # set the configuration
     parse_config_file($opt_configfile); # mutates the global %CONFIG
     set_repo_name_or_die($opt_reponame // $CONFIG{REPO_PRIMARY});
+    # initialize the environment
+    return if ($opt_noinit and !repo_is_cloned());
     sbozyp_mkdir("$CONFIG{REPO_ROOT}/$CONFIG{REPO_NAME}", $CONFIG{TMPDIR});
     if ($opt_clone or !repo_is_cloned()) {
         i_am_root_or_die('need root to clone repo');
@@ -935,17 +938,18 @@ and the SlackBuilds.org repository.
 
 Every command has its own options, these are just the global ones:
 
- -C                  Re-clone repository before running the command
+ -C                  Re-clone SBo repository before running the command
  -F FILE             Use FILE as the configuration file
- -R REPO_NAME        Use repository REPO_NAME instead of REPO_PRIMARY
- -S                  Sync repository before running the command
+ -R REPO_NAME        Use SBo repository REPO_NAME instead of REPO_PRIMARY
+ -S                  Sync SBo repository before running the command
+ -T                  Exit if the SBo repository hasn't been cloned yet
 
 Commands:
 
  install|in          Install or upgrade packages
  build|bu            Build but don't install packages
- query|qr            Query for information about a package
  remove|rm           Remove packages
+ query|qr            Query for information about a package
  search|se           Search for a package using a Perl regex
  null|nu             Do nothing, useful in conjunction with -C or -S opts
 
@@ -955,7 +959,7 @@ Examples:
  sbozyp --version
  sbozyp install --help
  sbozyp install -S -R $REPO -f xclip system/password-store
- sbozyp build -f mu
+ sbozyp -T build -f mu
  sbozyp query -q password-store
  sbozyp remove xclip password-store
  sbozyp search -n system/.+
