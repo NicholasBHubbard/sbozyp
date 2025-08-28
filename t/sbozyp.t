@@ -558,17 +558,17 @@ subtest 'parse_info_file()' => sub {
 };
 
 subtest 'pkg()' => sub {
-    is({Sbozyp::pkg('misc/sbozyp-basic')},
+    is(Sbozyp::pkg('misc/sbozyp-basic'),
        {PRGNAM=>'sbozyp-basic',DESC_FILE=>"$Sbozyp::CONFIG{REPO_ROOT}/$Sbozyp::CONFIG{REPO_NAME}/misc/sbozyp-basic/slack-desc",INFO_FILE=>"$Sbozyp::CONFIG{REPO_ROOT}/$Sbozyp::CONFIG{REPO_NAME}/misc/sbozyp-basic/sbozyp-basic.info",SLACKBUILD_FILE=>"$Sbozyp::CONFIG{REPO_ROOT}/$Sbozyp::CONFIG{REPO_NAME}/misc/sbozyp-basic/sbozyp-basic.SlackBuild",README_FILE=>"$Sbozyp::CONFIG{REPO_ROOT}/$Sbozyp::CONFIG{REPO_NAME}/misc/sbozyp-basic/README",PKGNAME=>'misc/sbozyp-basic',PKGDIR=>"$Sbozyp::CONFIG{REPO_ROOT}/$Sbozyp::CONFIG{REPO_NAME}/misc/sbozyp-basic",VERSION=>'1.0',HOMEPAGE=>'https://github.com/NicholasBHubbard/sbozyp/releases/tag/SbozypFakeRelease-1.0',DOWNLOAD=>['https://github.com/NicholasBHubbard/sbozyp/archive/refs/tags/SbozypFakeRelease-1.0.tar.gz'],MD5SUM=>['1973a308d90831774a0922e9ec0085ff'],DOWNLOAD_x86_64=>[],MD5SUM_x86_64=>[],REQUIRES=>[],MAINTAINER=>'Nicholas Hubbard',EMAIL=>'nicholashubbard@posteo.net',ARCH_UNSUPPORTED=>0,HAS_EXTRA_DEPS=>0},
        'creates correct pkg hash'
     );
 
-    is({Sbozyp::pkg('sbozyp-basic')},
+    is(Sbozyp::pkg('sbozyp-basic'),
        {PRGNAM=>'sbozyp-basic',DESC_FILE=>"$Sbozyp::CONFIG{REPO_ROOT}/$Sbozyp::CONFIG{REPO_NAME}/misc/sbozyp-basic/slack-desc",INFO_FILE=>"$Sbozyp::CONFIG{REPO_ROOT}/$Sbozyp::CONFIG{REPO_NAME}/misc/sbozyp-basic/sbozyp-basic.info",SLACKBUILD_FILE=>"$Sbozyp::CONFIG{REPO_ROOT}/$Sbozyp::CONFIG{REPO_NAME}/misc/sbozyp-basic/sbozyp-basic.SlackBuild",README_FILE=>"$Sbozyp::CONFIG{REPO_ROOT}/$Sbozyp::CONFIG{REPO_NAME}/misc/sbozyp-basic/README",PKGNAME=>'misc/sbozyp-basic',PKGDIR=>"$Sbozyp::CONFIG{REPO_ROOT}/$Sbozyp::CONFIG{REPO_NAME}/misc/sbozyp-basic",VERSION=>'1.0',HOMEPAGE=>'https://github.com/NicholasBHubbard/sbozyp/releases/tag/SbozypFakeRelease-1.0',DOWNLOAD=>['https://github.com/NicholasBHubbard/sbozyp/archive/refs/tags/SbozypFakeRelease-1.0.tar.gz'],MD5SUM=>['1973a308d90831774a0922e9ec0085ff'],DOWNLOAD_x86_64=>[],MD5SUM_x86_64=>[],REQUIRES=>[],MAINTAINER=>'Nicholas Hubbard',EMAIL=>'nicholashubbard@posteo.net',ARCH_UNSUPPORTED=>0,HAS_EXTRA_DEPS=>0},
        'accepts just a prgnam'
     );
 
-    is({Sbozyp::pkg('misc/sbozyp-readme-extra-deps')},
+    is(Sbozyp::pkg('misc/sbozyp-readme-extra-deps'),
        {PRGNAM=>'sbozyp-readme-extra-deps',DESC_FILE=>"$Sbozyp::CONFIG{REPO_ROOT}/$Sbozyp::CONFIG{REPO_NAME}/misc/sbozyp-readme-extra-deps/slack-desc",INFO_FILE=>"$Sbozyp::CONFIG{REPO_ROOT}/$Sbozyp::CONFIG{REPO_NAME}/misc/sbozyp-readme-extra-deps/sbozyp-readme-extra-deps.info",SLACKBUILD_FILE=>"$Sbozyp::CONFIG{REPO_ROOT}/$Sbozyp::CONFIG{REPO_NAME}/misc/sbozyp-readme-extra-deps/sbozyp-readme-extra-deps.SlackBuild",README_FILE=>"$Sbozyp::CONFIG{REPO_ROOT}/$Sbozyp::CONFIG{REPO_NAME}/misc/sbozyp-readme-extra-deps/README",PKGNAME=>'misc/sbozyp-readme-extra-deps',PKGDIR=>"$Sbozyp::CONFIG{REPO_ROOT}/$Sbozyp::CONFIG{REPO_NAME}/misc/sbozyp-readme-extra-deps",VERSION=>'1.0',HOMEPAGE=>'https://github.com/NicholasBHubbard/sbozyp/releases/tag/SbozypFakeRelease-1.0',DOWNLOAD=>['https://github.com/NicholasBHubbard/sbozyp/archive/refs/tags/SbozypFakeRelease-1.0.tar.gz'],MD5SUM=>['1973a308d90831774a0922e9ec0085ff'],DOWNLOAD_x86_64=>[],MD5SUM_x86_64=>[],REQUIRES=>['sbozyp-basic'],MAINTAINER=>'Nicholas Hubbard',EMAIL=>'nicholashubbard@posteo.net',ARCH_UNSUPPORTED=>0,HAS_EXTRA_DEPS=>1},
        'specifies HAS_EXTRA_DEPS=>1 if %README% is in .info files requires, and does not include %README% in the pkgs REQUIRES field'
     );
@@ -576,14 +576,14 @@ subtest 'pkg()' => sub {
     my $is_x86_64 = Sbozyp::arch() eq 'x86_64';
     my $unsupported_pkgname = $is_x86_64 ? 'misc/sbozyp-unsupported-x86_64' : 'misc/sbozyp-unsupported-no-x86_64';
     my $unsupported_prgnam = basename($unsupported_pkgname);
-    is({Sbozyp::pkg($unsupported_pkgname)},
+    is(Sbozyp::pkg($unsupported_pkgname),
        {PRGNAM=>$unsupported_prgnam,DESC_FILE=>"$Sbozyp::CONFIG{REPO_ROOT}/$Sbozyp::CONFIG{REPO_NAME}/$unsupported_pkgname/slack-desc",INFO_FILE=>"$Sbozyp::CONFIG{REPO_ROOT}/$Sbozyp::CONFIG{REPO_NAME}/$unsupported_pkgname/$unsupported_prgnam.info",SLACKBUILD_FILE=>"$Sbozyp::CONFIG{REPO_ROOT}/$Sbozyp::CONFIG{REPO_NAME}/$unsupported_pkgname/$unsupported_prgnam.SlackBuild",README_FILE=>"$Sbozyp::CONFIG{REPO_ROOT}/$Sbozyp::CONFIG{REPO_NAME}/$unsupported_pkgname/README",PKGNAME=>$unsupported_pkgname,PKGDIR=>"$Sbozyp::CONFIG{REPO_ROOT}/$Sbozyp::CONFIG{REPO_NAME}/$unsupported_pkgname",VERSION=>'1.0',HOMEPAGE=>'https://github.com/NicholasBHubbard/sbozyp/releases/tag/SbozypFakeRelease-1.0',DOWNLOAD=> $is_x86_64 ? ['https://github.com/NicholasBHubbard/sbozyp/archive/refs/tags/SbozypFakeRelease-1.0.tar.gz'] : [],MD5SUM=> $is_x86_64 ? ['1973a308d90831774a0922e9ec0085ff'] : [],DOWNLOAD_x86_64=> $is_x86_64 ? ['UNSUPPORTED'] : ['https://github.com/NicholasBHubbard/sbozyp/archive/refs/tags/SbozypFakeRelease-1.0.tar.gz'],MD5SUM_x86_64=> $is_x86_64 ? [] : ['1973a308d90831774a0922e9ec0085ff'],REQUIRES=>[],MAINTAINER=>'Nicholas Hubbard',EMAIL=>'nicholashubbard@posteo.net',ARCH_UNSUPPORTED=>'unsupported',HAS_EXTRA_DEPS=>0},
        'creates correct pkg for package that is unsupported on this architecture'
     );
 
     is(ref(Sbozyp::pkg('system/password-store')), 'HASH', 'returns hashref in scalar context');
 
-    is({Sbozyp::pkg('sbozyp-non-existent-dep')}->{REQUIRES}, ['sbozyp-basic'], 'removes non-existent packages from REQUIRES');
+    is(Sbozyp::pkg('sbozyp-non-existent-dep')->{REQUIRES}, ['sbozyp-basic'], 'removes non-existent packages from REQUIRES');
 
     like(dies { Sbozyp::pkg('FOO') },
          qr/^sbozyp: error: could not find a package named 'FOO'$/,
@@ -719,7 +719,7 @@ subtest 'build_slackware_pkg()' => sub {
          qr/Slackware package \Q$Sbozyp::CONFIG{TMPDIR}\E\/sbozyp-basic-1\.0-noarch-1_SBo\.tgz created/,
          'SlackBuild output goes to STDOUT'
     );
-    like(dies { Sbozyp::build_slackware_pkg({Sbozyp::pkg('sbozyp-build-fail')}) },
+    like(dies { Sbozyp::build_slackware_pkg(Sbozyp::pkg('sbozyp-build-fail')) },
          qr/^sbozyp: error: failed to build 'misc\/sbozyp-build-fail'$/,
          'dies with useful error message if the SlackBuild fails'
     );
@@ -798,7 +798,7 @@ subtest 'installed_sbo_pkgs()' => sub {
 
     local $ENV{ROOT} = "$TEST_DIR/tmp_root";
 
-    is(Sbozyp::installed_sbo_pkgs(), {}, 'returns empty hash if $root/var/lib/pkgtools/packages does not exist');
+    is({Sbozyp::installed_sbo_pkgs()}, {}, 'returns empty hash if $root/var/lib/pkgtools/packages does not exist');
 
     my @built_pkgs; # for cleaning up
 
@@ -918,7 +918,7 @@ subtest 'pkg_dependents()' => sub {
 
     my @dependents;
 
-    @dependents = Sbozyp::pkg_dependents({Sbozyp::pkg('sbozyp-basic')});
+    @dependents = Sbozyp::pkg_dependents(Sbozyp::pkg('sbozyp-basic'));
     ok(@dependents == 0, 'returns no pkgs if no dependents exist for input pkg');
 
     # change the install destination
@@ -1274,32 +1274,32 @@ subtest 'install_command_main()' => sub {
     );
 
     Sbozyp::install_command_main('-i', 'sbozyp-basic');
-    ok(Sbozyp::pkg_installed({Sbozyp::pkg('sbozyp-basic')}), 'installs a package');
+    ok(Sbozyp::pkg_installed(Sbozyp::pkg('sbozyp-basic')), 'installs a package');
     ok(! -f "$TEST_DIR/sbozyp-basic-1.0-noarch-1_SBo.tgz", 'removes slackware package after installing it if not given -k option');
 
     Sbozyp::install_command_main('-i', 'sbozyp-recursive-dep-A');
-    ok(   Sbozyp::pkg_installed({Sbozyp::pkg('sbozyp-recursive-dep-A')})
-       && Sbozyp::pkg_installed({Sbozyp::pkg('sbozyp-recursive-dep-B')})
-       && Sbozyp::pkg_installed({Sbozyp::pkg('sbozyp-recursive-dep-C')})
-       && Sbozyp::pkg_installed({Sbozyp::pkg('sbozyp-recursive-dep-D')})
-       && Sbozyp::pkg_installed({Sbozyp::pkg('sbozyp-recursive-dep-E')}),
+    ok(   Sbozyp::pkg_installed(Sbozyp::pkg('sbozyp-recursive-dep-A'))
+       && Sbozyp::pkg_installed(Sbozyp::pkg('sbozyp-recursive-dep-B'))
+       && Sbozyp::pkg_installed(Sbozyp::pkg('sbozyp-recursive-dep-C'))
+       && Sbozyp::pkg_installed(Sbozyp::pkg('sbozyp-recursive-dep-D'))
+       && Sbozyp::pkg_installed(Sbozyp::pkg('sbozyp-recursive-dep-E')),
        'installs a package along with its dependencies'
     );
     remove_tree "$TEST_DIR/tmp_root" or die; # cleanup for the next test
 
     Sbozyp::install_command_main('-i', '-n', 'sbozyp-recursive-dep-A');
-    ok(   Sbozyp::pkg_installed({Sbozyp::pkg('sbozyp-recursive-dep-A')})
-       && not(Sbozyp::pkg_installed({Sbozyp::pkg('sbozyp-recursive-dep-B')}))
-       && not(Sbozyp::pkg_installed({Sbozyp::pkg('sbozyp-recursive-dep-C')}))
-       && not(Sbozyp::pkg_installed({Sbozyp::pkg('sbozyp-recursive-dep-D')}))
-       && not(Sbozyp::pkg_installed({Sbozyp::pkg('sbozyp-recursive-dep-E')})),
+    ok(   Sbozyp::pkg_installed(Sbozyp::pkg('sbozyp-recursive-dep-A'))
+       && not(Sbozyp::pkg_installed(Sbozyp::pkg('sbozyp-recursive-dep-B')))
+       && not(Sbozyp::pkg_installed(Sbozyp::pkg('sbozyp-recursive-dep-C')))
+       && not(Sbozyp::pkg_installed(Sbozyp::pkg('sbozyp-recursive-dep-D')))
+       && not(Sbozyp::pkg_installed(Sbozyp::pkg('sbozyp-recursive-dep-E'))),
        'only installs package, not dependencies, when given -n option'
     );
 
     remove_tree "$TEST_DIR/tmp_root" or die;
 
     Sbozyp::install_command_main('-i', 'sbozyp-basic', 'sbozyp-readme-extra-deps');
-    ok(Sbozyp::pkg_installed({Sbozyp::pkg('sbozyp-basic')}) && Sbozyp::pkg_installed({Sbozyp::pkg('sbozyp-readme-extra-deps')}), 'accepts multiple package arguments to install');
+    ok(Sbozyp::pkg_installed(Sbozyp::pkg('sbozyp-basic')) && Sbozyp::pkg_installed(Sbozyp::pkg('sbozyp-readme-extra-deps')), 'accepts multiple package arguments to install');
 
     remove_tree "$TEST_DIR/tmp_root" or die;
 

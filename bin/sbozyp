@@ -313,7 +313,7 @@ sub pkg {
             else                                       { 0             }
         }
     };
-    return wantarray ? %$pkg : $pkg;
+    return $pkg
 }
 
 sub query_pkg_ui {
@@ -352,8 +352,8 @@ sub query_pkg_ui {
 
 sub pkg_installed {
     my ($pkg) = @_;
-    my $installed_sbo_pkgs = installed_sbo_pkgs(); # hash from PKGNAME to version
-    my $version = $installed_sbo_pkgs->{$pkg->{PKGNAME}};
+    my %installed_sbo_pkgs = installed_sbo_pkgs(); # hash from PKGNAME to version
+    my $version = $installed_sbo_pkgs{$pkg->{PKGNAME}};
     return $version;
 }
 
@@ -709,7 +709,7 @@ sub merge_pkg_queues {
 sub pkg_dependents {
     my ($pkg) = @_;
     my @dependents;
-    my @installed_sbo_pkgs = keys %{installed_sbo_pkgs()};
+    my @installed_sbo_pkgs = keys %{{installed_sbo_pkgs()}};
     for my $pkgname (@installed_sbo_pkgs) {
         my $pkg_ = pkg($pkgname);
         my @deps = @{$pkg_->{REQUIRES}};
@@ -766,7 +766,7 @@ sub installed_sbo_pkgs {
             defined $pkgname ? ($pkgname, $version) : ();
         } grep /_SBo$/, sbozyp_readdir("$root/var/lib/pkgtools/packages");
     }
-    return wantarray ? %installed_sbo_pkgs : \%installed_sbo_pkgs;
+    return %installed_sbo_pkgs;
 }
 
 sub prepare_pkg {
@@ -846,7 +846,7 @@ sub manage_install_queue_ui {
             $error_msg = "invalid input: '$input'";
         }
     }
-    return wantarray ? @pkg_queue : \@pkg_queue;
+    return @pkg_queue;
 }
 
 sub install_slackware_pkg {
