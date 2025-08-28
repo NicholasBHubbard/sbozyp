@@ -1,3 +1,7 @@
+0.5.0  TBD
+
+   - The -p query flag no longer causes exit if pkg not installed
+
 0.4.2  2025-08-22
 
    - Documentation upgrades

@@ -195,12 +195,12 @@ sub query_command_main {
                 print $pkgname, "\n";
             }
         }
-        elsif ($opt_slackdesc)    { sbozyp_print_file("$pkg->{PKGDIR}/slack-desc")                                           }
-        elsif ($opt_info)         { sbozyp_print_file("$pkg->{PKGDIR}/$pkg->{PRGNAM}.info")                                  }
-        elsif ($opt_pkginstalled) { if (defined(my $version = pkg_installed($pkg))) { print "$version\n" } else { die "\n" } }
-        elsif ($opt_printqueue)   { print "$_->{PKGNAME}\n" for pkg_queue($pkg)                                              }
-        elsif ($opt_readme)       { sbozyp_print_file("$pkg->{PKGDIR}/README")                                               }
-        elsif ($opt_slackbuild)   { sbozyp_print_file("$pkg->{PKGDIR}/$pkg->{PRGNAM}.SlackBuild")                            }
+        elsif ($opt_slackdesc)    { sbozyp_print_file("$pkg->{PKGDIR}/slack-desc")                         }
+        elsif ($opt_info)         { sbozyp_print_file("$pkg->{PKGDIR}/$pkg->{PRGNAM}.info")                }
+        elsif ($opt_pkginstalled) { if (defined(my $version = pkg_installed($pkg))) { print "$version\n" } }
+        elsif ($opt_printqueue)   { print "$_->{PKGNAME}\n" for pkg_queue($pkg)                            }
+        elsif ($opt_readme)       { sbozyp_print_file("$pkg->{PKGDIR}/README")                             }
+        elsif ($opt_slackbuild)   { sbozyp_print_file("$pkg->{PKGDIR}/$pkg->{PRGNAM}.SlackBuild")          }
         elsif ($opt_listneedupgrade) {
             my %installed_sbo_pkgs = installed_sbo_pkgs();
             for my $pkgname (sort keys %installed_sbo_pkgs) {
@@ -1097,7 +1097,7 @@ Options are:
  -a                  Print a list of all SBo packages installed on the system
  -d                  Print PKGNAME's slack-desc file
  -i                  Print PKGNAME's info file
- -p                  If PKGNAME is installed print the installed version, else exit with status 1
+ -p                  If PKGNAME is installed print the installed version
  -q                  Print PKGNAME's dependencies (recursively and in order)
  -r                  Print PKGNAME's README file
  -s                  Print PKGNAME's .SlackBuild file

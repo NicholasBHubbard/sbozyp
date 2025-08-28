@@ -1365,8 +1365,8 @@ subtest 'query_command_main()' => sub {
         my $pkg = Sbozyp::pkg('sbozyp-basic');
         Sbozyp::install_slackware_pkg(Sbozyp::build_slackware_pkg($pkg));
 
-        ok(dies { Sbozyp::query_command_main('-p', 'sbozyp-nested-dir') },
-             'dies if package is not installed with -p option'
+        ok(lives { Sbozyp::query_command_main('-p', 'sbozyp-nested-dir') },
+             'does not die if package is not installed with -p option'
         );
 
         ($stdout) = capture { Sbozyp::query_command_main('-p', 'sbozyp-basic') };
