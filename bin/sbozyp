@@ -171,6 +171,7 @@ sub query_command_main {
         '-a'     => \my $opt_listinstalled,
         '-d'     => \my $opt_slackdesc,
         '-i'     => \my $opt_info,
+        '-o'     => \my $opt_dependents,
         '-p'     => \my $opt_pkginstalled,
         '-q'     => \my $opt_printqueue,
         '-r'     => \my $opt_readme,
@@ -178,13 +179,13 @@ sub query_command_main {
         '-u'     => \my $opt_listneedupgrade
     );
     if ($opt_help) { print $help_msg ; return }
-    my $opts_set = 0; for ($opt_listinstalled,$opt_slackdesc,$opt_info,$opt_pkginstalled,$opt_printqueue,$opt_readme,$opt_slackbuild,$opt_listneedupgrade) { $opts_set++ if defined }
+    my $opts_set = 0; for ($opt_listinstalled,$opt_slackdesc,$opt_info,$opt_dependents,$opt_pkginstalled,$opt_printqueue,$opt_readme,$opt_slackbuild,$opt_listneedupgrade) { $opts_set++ if defined }
     if    ($opts_set > 1)  { sbozyp_die("can only set 1 option but $opts_set were set") }
     elsif ($opts_set == 0) { @_ == 1 or die "$usage\n"; my $pkg = pkg($_[0]); query_pkg_ui($pkg) }
     else {
-        my $opt = $opt_listinstalled ? '-a' : $opt_slackdesc ? '-d' : $opt_info ? '-i' : $opt_pkginstalled ? '-p' : $opt_printqueue ? '-q' : $opt_readme ? '-r' : $opt_slackbuild ? '-s' : $opt_listneedupgrade ? '-u' : die;
+        my $opt = $opt_listinstalled ? '-a' : $opt_slackdesc ? '-d' : $opt_info ? '-i' : $opt_dependents ? '-o' : $opt_pkginstalled ? '-p' : $opt_printqueue ? '-q' : $opt_readme ? '-r' : $opt_slackbuild ? '-s' : $opt_listneedupgrade ? '-u' : die;
         my $pkg;
-        if ($opt_slackdesc || $opt_info || $opt_pkginstalled || $opt_printqueue || $opt_readme || $opt_slackbuild) {
+        if ($opt_slackdesc || $opt_info || $opt_dependents || $opt_pkginstalled || $opt_printqueue || $opt_readme || $opt_slackbuild) {
             @_ == 1 or sbozyp_die("query: option '$opt' requires single PKGNAME argument");
             $pkg = pkg($_[0]);
         } else { @_ == 0 or sbozyp_die("query: option '$opt' does not take PKGNAME argument") }
@@ -197,6 +198,7 @@ sub query_command_main {
         }
         elsif ($opt_slackdesc)    { sbozyp_print_file("$pkg->{PKGDIR}/slack-desc")                         }
         elsif ($opt_info)         { sbozyp_print_file("$pkg->{PKGDIR}/$pkg->{PRGNAM}.info")                }
+        elsif ($opt_dependents)   { print "$_->{PKGNAME}\n" for pkg_dependents($pkg)                       }
         elsif ($opt_pkginstalled) { if (defined(my $version = pkg_installed($pkg))) { print "$version\n" } }
         elsif ($opt_printqueue)   { print "$_->{PKGNAME}\n" for pkg_queue($pkg)                            }
         elsif ($opt_readme)       { sbozyp_print_file("$pkg->{PKGDIR}/README")                             }
@@ -704,6 +706,19 @@ sub merge_pkg_queues {
     return @queue;
 }
 
+sub pkg_dependents {
+    my ($pkg) = @_;
+    my @dependents;
+    my @installed_sbo_pkgs = keys %{installed_sbo_pkgs()};
+    for my $pkgname (@installed_sbo_pkgs) {
+        my $pkg_ = pkg($pkgname);
+        my @deps = @{$pkg_->{REQUIRES}};
+        push @dependents, $pkg_ if grep { $pkg->{PRGNAM} eq $_ } @deps;
+    }
+    @dependents = sort { $a->{PKGNAME} cmp $b->{PKGNAME} } @dependents;
+    return @dependents;
+}
+
 sub parse_slackware_pkgname {
     my ($slackware_pkgname) = @_;
     my ($prgnam, $version) = $slackware_pkgname =~ /^([\w-]+)-([^-]*)-[^-]*-\d+_SBo$/;
@@ -1081,7 +1096,7 @@ Examples:
 
 =head2 QUERY
 
- Usage: sbozyp <query|qr> [-h] [-a] [-d] [-i] [-p] [-q] [-r] [-s] [-u] PKGNAME?
+ Usage: sbozyp <query|qr> [-h] [-a] [-d] [-i] [-o] [-p] [-q] [-r] [-s] [-u] PKGNAME?
 
 Query for package related information.
 
@@ -1097,6 +1112,7 @@ Options are:
  -a                  Print a list of all SBo packages installed on the system
  -d                  Print PKGNAME's slack-desc file
  -i                  Print PKGNAME's info file
+ -o                  Print PKGNAME'S direct dependents
  -p                  If PKGNAME is installed print the installed version
  -q                  Print PKGNAME's dependencies (recursively and in order)
  -r                  Print PKGNAME's README file
