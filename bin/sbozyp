@@ -198,7 +198,7 @@ sub query_command_main {
         }
         elsif ($opt_slackdesc)    { sbozyp_print_file("$pkg->{PKGDIR}/slack-desc")                         }
         elsif ($opt_info)         { sbozyp_print_file("$pkg->{PKGDIR}/$pkg->{PRGNAM}.info")                }
-        elsif ($opt_dependents)   { print "$_->{PKGNAME}\n" for pkg_dependents($pkg)                       }
+        elsif ($opt_dependents)   { print "$_->{PKGNAME}\n" for pkg_dependents_direct($pkg)                }
         elsif ($opt_pkginstalled) { if (defined(my $version = pkg_installed($pkg))) { print "$version\n" } }
         elsif ($opt_printqueue)   { print "$_->{PKGNAME}\n" for pkg_queue($pkg)                            }
         elsif ($opt_readme)       { sbozyp_print_file("$pkg->{PKGDIR}/README")                             }
@@ -706,10 +706,10 @@ sub merge_pkg_queues {
     return @queue;
 }
 
-sub pkg_dependents {
+sub pkg_dependents_direct {
     my ($pkg) = @_;
     my @dependents;
-    my @installed_sbo_pkgs = keys %{{installed_sbo_pkgs()}};
+    my @installed_sbo_pkgs = keys %{{ installed_sbo_pkgs() }};
     for my $pkgname (@installed_sbo_pkgs) {
         my $pkg_ = pkg($pkgname);
         my @deps = @{$pkg_->{REQUIRES}};

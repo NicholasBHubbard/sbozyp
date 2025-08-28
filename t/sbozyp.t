@@ -913,12 +913,12 @@ subtest 'pkg_installed_and_up_to_date()' => sub {
     remove_tree("$TEST_DIR/tmp_root") or die;
 };
 
-subtest 'pkg_dependents()' => sub {
-    skip_all('pkg_dependents() tests require root') unless $> == 0;
+subtest 'pkg_dependents_direct()' => sub {
+    skip_all('pkg_dependents_direct() tests require root') unless $> == 0;
 
     my @dependents;
 
-    @dependents = Sbozyp::pkg_dependents(Sbozyp::pkg('sbozyp-basic'));
+    @dependents = Sbozyp::pkg_dependents_direct(Sbozyp::pkg('sbozyp-basic'));
     ok(@dependents == 0, 'returns no pkgs if no dependents exist for input pkg');
 
     # change the install destination
@@ -929,15 +929,21 @@ subtest 'pkg_dependents()' => sub {
     Sbozyp::install_slackware_pkg(Sbozyp::build_slackware_pkg($pkg_a));
     Sbozyp::install_slackware_pkg(Sbozyp::build_slackware_pkg($pkg_b));
 
-    @dependents = Sbozyp::pkg_dependents($pkg_b);
+    @dependents = Sbozyp::pkg_dependents_direct($pkg_b);
     is([map { $_->{PKGNAME} } @dependents], ['misc/sbozyp-recursive-dep-A'], 'returns single dependent');
 
     my $pkg_d = Sbozyp::pkg('sbozyp-depends-on-recursive-deps'); # depends on A and B
     Sbozyp::install_slackware_pkg(Sbozyp::build_slackware_pkg($pkg_d));
 
-    @dependents = Sbozyp::pkg_dependents($pkg_b);
+    @dependents = Sbozyp::pkg_dependents_direct($pkg_b);
     is([map { $_->{PKGNAME} } @dependents], ['misc/sbozyp-depends-on-recursive-deps', 'misc/sbozyp-recursive-dep-A'], 'returns all dependents (sorted by pkgname) if multiple');
 
+    my @built_pkgs = ($pkg_a, $pkg_b, $pkg_d);
+    for my $pkg (@built_pkgs) {
+        if (my $slackware_pkg = Sbozyp::built_slackware_pkg($pkg)) {
+            unlink $slackware_pkg or die;
+        }
+    }
     remove_tree "$TEST_DIR/tmp_root" or die;
 };
 
@@ -1417,6 +1423,12 @@ subtest 'query_command_main()' => sub {
 
         # TODO: test -u option. Need to figure out how to mock a package upgrade situation
 
+        my @built_pkgs = ($pkg_a, $pkg_b, $pkg_c);
+        for my $pkg (@built_pkgs) {
+            if (my $slackware_pkg = Sbozyp::built_slackware_pkg($pkg)) {
+                unlink $slackware_pkg or die;
+            }
+        }
         remove_tree "$TEST_DIR/tmp_root" or die;
     }
 };
