@@ -718,6 +718,23 @@ sub pkg_dependents_direct {
     return @dependents;
 }
 
+sub pkg_dependents_recursive {
+    my ($pkg) = @_;
+    my @dependents;
+    my %seen;
+    my $resolve_dependents = sub {
+        my @pkgs = @_;
+        for my $pkg (@pkgs) {
+            next if $seen{$pkg->{PKGNAME}};
+            $seen{$pkg->{PKGNAME}} = 1;
+            push @dependents, $pkg;
+            __SUB__->(pkg_dependents_direct($pkg));
+        }
+    };
+    $resolve_dependents->(pkg_dependents_direct($pkg));
+    @dependents = sort { $a->{PKGNAME} cmp $b->{PKGNAME} } @dependents;
+    return @dependents;
+}
 sub parse_slackware_pkgname {
     my ($slackware_pkgname) = @_;
     my ($prgnam, $version) = $slackware_pkgname =~ /^([\w-]+)-([^-]*)-[^-]*-\d+_SBo$/;

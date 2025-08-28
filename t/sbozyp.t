@@ -592,8 +592,8 @@ subtest 'pkg()' => sub {
 };
 
 subtest 'pkg_queue()' => sub {
-    is([Sbozyp::pkg_queue(scalar(Sbozyp::pkg('misc/sbozyp-recursive-dep-E')))],
-       [scalar(Sbozyp::pkg('misc/sbozyp-recursive-dep-E'))],
+    is([Sbozyp::pkg_queue(Sbozyp::pkg('misc/sbozyp-recursive-dep-D'))],
+       [Sbozyp::pkg('misc/sbozyp-recursive-dep-D')],
        'returns single elem list containing input package when it has no deps'
     );
 
@@ -603,7 +603,7 @@ subtest 'pkg_queue()' => sub {
     );
 
     is([Sbozyp::pkg_queue(scalar(Sbozyp::pkg('misc/sbozyp-recursive-dep-A')))],
-       [scalar(Sbozyp::pkg('misc/sbozyp-recursive-dep-E')), scalar(Sbozyp::pkg('misc/sbozyp-recursive-dep-C')), scalar(Sbozyp::pkg('misc/sbozyp-recursive-dep-D')), scalar(Sbozyp::pkg('misc/sbozyp-recursive-dep-B')), scalar(Sbozyp::pkg('misc/sbozyp-recursive-dep-A'))],
+       [Sbozyp::pkg('misc/sbozyp-recursive-dep-F'), scalar(Sbozyp::pkg('misc/sbozyp-recursive-dep-E')), scalar(Sbozyp::pkg('misc/sbozyp-recursive-dep-C')), scalar(Sbozyp::pkg('misc/sbozyp-recursive-dep-D')), scalar(Sbozyp::pkg('misc/sbozyp-recursive-dep-B')), scalar(Sbozyp::pkg('misc/sbozyp-recursive-dep-A'))],
        'resolves recursive dependencies'
     );
 
@@ -924,7 +924,7 @@ subtest 'pkg_dependents_direct()' => sub {
     # change the install destination
     local $ENV{ROOT} = "$TEST_DIR/tmp_root";
 
-    my $pkg_a = Sbozyp::pkg('sbozyp-recursive-dep-A'); # depends on B and C
+    my $pkg_a = Sbozyp::pkg('sbozyp-recursive-dep-A'); # depends on B
     my $pkg_b = Sbozyp::pkg('sbozyp-recursive-dep-B');
     Sbozyp::install_slackware_pkg(Sbozyp::build_slackware_pkg($pkg_a));
     Sbozyp::install_slackware_pkg(Sbozyp::build_slackware_pkg($pkg_b));
@@ -939,6 +939,45 @@ subtest 'pkg_dependents_direct()' => sub {
     is([map { $_->{PKGNAME} } @dependents], ['misc/sbozyp-depends-on-recursive-deps', 'misc/sbozyp-recursive-dep-A'], 'returns all dependents (sorted by pkgname) if multiple');
 
     my @built_pkgs = ($pkg_a, $pkg_b, $pkg_d);
+    for my $pkg (@built_pkgs) {
+        if (my $slackware_pkg = Sbozyp::built_slackware_pkg($pkg)) {
+            unlink $slackware_pkg or die;
+        }
+    }
+    remove_tree "$TEST_DIR/tmp_root" or die;
+};
+
+subtest 'pkg_dependents_recursive()' => sub {
+    skip_all('pkg_dependents_recursive() tests require root') unless $> == 0;
+
+    # change the install destination
+    local $ENV{ROOT} = "$TEST_DIR/tmp_root";
+
+    my @dependents;
+    my @built_pkgs;
+
+    my $pkg_a = Sbozyp::pkg('sbozyp-recursive-dep-A'); # depends on B and C
+    my $pkg_b = Sbozyp::pkg('sbozyp-recursive-dep-B'); # depends on D
+    my $pkg_c = Sbozyp::pkg('sbozyp-recursive-dep-C'); # depends on E
+    my $pkg_d = Sbozyp::pkg('sbozyp-recursive-dep-D'); # no depends
+    my $pkg_e = Sbozyp::pkg('sbozyp-recursive-dep-E'); # depends on F
+    my $pkg_f = Sbozyp::pkg('sbozyp-recursive-dep-F'); # no depends
+    Sbozyp::install_slackware_pkg(Sbozyp::build_slackware_pkg($pkg_a));
+    Sbozyp::install_slackware_pkg(Sbozyp::build_slackware_pkg($pkg_b));
+    Sbozyp::install_slackware_pkg(Sbozyp::build_slackware_pkg($pkg_c));
+    Sbozyp::install_slackware_pkg(Sbozyp::build_slackware_pkg($pkg_d));
+    Sbozyp::install_slackware_pkg(Sbozyp::build_slackware_pkg($pkg_e));
+    Sbozyp::install_slackware_pkg(Sbozyp::build_slackware_pkg($pkg_f));
+    push @built_pkgs, $pkg_a, $pkg_b, $pkg_c, $pkg_d, $pkg_e, $pkg_f;
+
+    is([Sbozyp::pkg_dependents_recursive(Sbozyp::pkg('sbozyp-basic'))], [], 'returns empty array if no dependents');
+
+    is([map { $_->{PRGNAM} } Sbozyp::pkg_dependents_recursive($pkg_b)], ['sbozyp-recursive-dep-A'], 'returns direct dependent in no recursive dependents');
+
+    is([map { $_->{PRGNAM} } Sbozyp::pkg_dependents_recursive($pkg_e)], ['sbozyp-recursive-dep-A', 'sbozyp-recursive-dep-C'], 'returns recursive dependents (sorted)');
+
+    is([map { $_->{PRGNAM} } Sbozyp::pkg_dependents_recursive($pkg_f)], ['sbozyp-recursive-dep-A', 'sbozyp-recursive-dep-C', 'sbozyp-recursive-dep-E'], 'returns recursive dependents (3 levels) (sorted)');
+
     for my $pkg (@built_pkgs) {
         if (my $slackware_pkg = Sbozyp::built_slackware_pkg($pkg)) {
             unlink $slackware_pkg or die;
@@ -1395,7 +1434,7 @@ subtest 'query_command_main()' => sub {
     is($stdout, '', 'no output with -o flag if no dependent packages');
 
     ($stdout) = capture { Sbozyp::query_command_main('-q', 'sbozyp-recursive-dep-A') };
-    like($stdout, qr|^misc/sbozyp-recursive-dep-E\nmisc/sbozyp-recursive-dep-C\nmisc/sbozyp-recursive-dep-D\nmisc/sbozyp-recursive-dep-B\nmisc/sbozyp-recursive-dep-A\n$|s, 'prints packages dependencies (in order and recursively) if given -q option');
+    like($stdout, qr|^misc/sbozyp-recursive-dep-F\nmisc/sbozyp-recursive-dep-E\nmisc/sbozyp-recursive-dep-C\nmisc/sbozyp-recursive-dep-D\nmisc/sbozyp-recursive-dep-B\nmisc/sbozyp-recursive-dep-A\n$|s, 'prints packages dependencies (in order and recursively) if given -q option');
 
     if ($> == 0) { # need to be root to install a package
         local $ENV{ROOT} = "$TEST_DIR/tmp_root"; # were gonna install some packages
