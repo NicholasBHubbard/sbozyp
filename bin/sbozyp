@@ -682,7 +682,6 @@ sub pkg_queue {
     my @queue = ($pkg);
     my $resolve_deps = sub {
         my ($pkg) = @_;
-        # $pkg->{REQUIRES} will never contain %README% as its removed when we parse a pkgs info file (see pkg()).
         for my $req (@{$pkg->{REQUIRES}}) {
             my $req_pkg = pkg($req);
             @queue = grep { $req_pkg->{PKGNAME} ne $_->{PKGNAME} } @queue;
