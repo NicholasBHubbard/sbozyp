@@ -410,7 +410,7 @@ sub is_multilib_system {
 }
 
 sub arch {
-    my $arch = sbozyp_qx('uname -m');
+    state $arch = sbozyp_qx('uname -m');
     return $arch;
 }
 
