@@ -1433,6 +1433,9 @@ subtest 'query_command_main()' => sub {
     ($stdout) = capture { Sbozyp::query_command_main('-o', 'sbozyp-basic') };
     is($stdout, '', 'no output with -o flag if no dependent packages');
 
+    ($stdout) = capture { Sbozyp::query_command_main('-n', 'sbozyp-basic') };
+    is($stdout, '', 'no output with -n flag if no dependent packages');
+
     ($stdout) = capture { Sbozyp::query_command_main('-q', 'sbozyp-recursive-dep-A') };
     like($stdout, qr|^misc/sbozyp-recursive-dep-F\nmisc/sbozyp-recursive-dep-E\nmisc/sbozyp-recursive-dep-C\nmisc/sbozyp-recursive-dep-D\nmisc/sbozyp-recursive-dep-B\nmisc/sbozyp-recursive-dep-A\n$|s, 'prints packages dependencies (in order and recursively) if given -q option');
 
@@ -1458,7 +1461,11 @@ subtest 'query_command_main()' => sub {
         Sbozyp::install_slackware_pkg(Sbozyp::build_slackware_pkg($pkg_b));
         Sbozyp::install_slackware_pkg(Sbozyp::build_slackware_pkg($pkg_c));
         ($stdout) = capture { Sbozyp::query_command_main('-o', 'sbozyp-recursive-dep-B') };
-        is($stdout, "misc/sbozyp-depends-on-recursive-deps\nmisc/sbozyp-recursive-dep-A\n", 'outputs all dependent package names sorted');
+        is($stdout, "misc/sbozyp-depends-on-recursive-deps\nmisc/sbozyp-recursive-dep-A\n", '-o outputs all dependent package names sorted');
+
+        ($stdout) = capture { Sbozyp::query_command_main('-n', 'sbozyp-recursive-dep-B') };
+        is($stdout, "misc/sbozyp-depends-on-recursive-deps\nmisc/sbozyp-recursive-dep-A\n", '-n outputs all dependent package names sorted');
+
 
         # TODO: test -u option. Need to figure out how to mock a package upgrade situation
 
