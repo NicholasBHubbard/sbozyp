@@ -737,6 +737,7 @@ sub pkg_dependents_recursive {
     @dependents = sort { $a->{PKGNAME} cmp $b->{PKGNAME} } @dependents;
     return @dependents;
 }
+
 sub parse_slackware_pkgname {
     my ($slackware_pkgname) = @_;
     my ($prgnam, $version) = $slackware_pkgname =~ /^([\w-]+)-([^-]*)-[^-]*-\d+_SBo$/;
