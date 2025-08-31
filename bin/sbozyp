@@ -34,11 +34,11 @@ sub main {
     Getopt::Long::Configure('pass_through'); # pass_through to ignore the command options
     sbozyp_getopts(
         \@argv,
-        '-C'   => \my $opt_clone,
-        '-F=s' => \my $opt_configfile,
-        '-R=s' => \my $opt_reponame,
-        '-S'   => \my $opt_sync,
-        '-T'   => \my $opt_noinit
+        'C'   => \my $opt_clone,
+        'F=s' => \my $opt_configfile,
+        'R=s' => \my $opt_reponame,
+        'S'   => \my $opt_sync,
+        'T'   => \my $opt_noinit
     );
     Getopt::Long::Configure('nopass_through');
     # determine the command main function
@@ -158,16 +158,16 @@ sub query_command_main {
     sbozyp_getopts(
         \@_,
         'h|help' => \my $opt_help,
-        '-a'     => \my $opt_listinstalled,
-        '-d'     => \my $opt_slackdesc,
-        '-i'     => \my $opt_info,
-        '-n'     => \my $opt_recdependents,
-        '-o'     => \my $opt_directdependents,
-        '-p'     => \my $opt_pkginstalled,
-        '-q'     => \my $opt_printqueue,
-        '-r'     => \my $opt_readme,
-        '-s'     => \my $opt_slackbuild,
-        '-u'     => \my $opt_listneedupgrade
+        'a'     => \my $opt_listinstalled,
+        'd'     => \my $opt_slackdesc,
+        'i'     => \my $opt_info,
+        'n'     => \my $opt_recdependents,
+        'o'     => \my $opt_directdependents,
+        'p'     => \my $opt_pkginstalled,
+        'q'     => \my $opt_printqueue,
+        'r'     => \my $opt_readme,
+        's'     => \my $opt_slackbuild,
+        'u'     => \my $opt_listneedupgrade
     );
     if ($opt_help) { print command_help_msg('query'); return }
     my $opts_set = 0; for ($opt_listinstalled,$opt_slackdesc,$opt_info,$opt_recdependents,$opt_directdependents,$opt_pkginstalled,$opt_printqueue,$opt_readme,$opt_slackbuild,$opt_listneedupgrade) { $opts_set++ if defined }
