@@ -292,7 +292,7 @@ sub pkg {
         MD5SUM          => [split ' ', $info{MD5SUM}],
         DOWNLOAD_x86_64 => [split ' ', $info{DOWNLOAD_x86_64}],
         MD5SUM_x86_64   => [split ' ', $info{MD5SUM_x86_64}],
-        REQUIRES        => [grep { $_ ne '%README%' and find_pkgname($_) } split(' ', $info{REQUIRES})], # removes %README% specifier and non-existent packages
+        REQUIRES        => [grep { find_pkgname($_) } split(' ', $info{REQUIRES})], # removes %README% specifier and non-existent packages
         HAS_EXTRA_DEPS  => scalar(grep { $_ eq '%README%' } split(' ', $info{REQUIRES})),
         ARCH_UNSUPPORTED  => do {
             my @urls = split(' ', arch() eq 'x86_64' ? $info{DOWNLOAD_x86_64} : $info{DOWNLOAD});
