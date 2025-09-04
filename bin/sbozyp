@@ -161,6 +161,7 @@ sub query_command_main {
         'a'     => \my $opt_listinstalled,
         'd'     => \my $opt_slackdesc,
         'i'     => \my $opt_info,
+        'm'     => \my $opt_pkgsnodependents,
         'n'     => \my $opt_recdependents,
         'o'     => \my $opt_directdependents,
         'p'     => \my $opt_pkginstalled,
@@ -170,11 +171,11 @@ sub query_command_main {
         'u'     => \my $opt_listneedupgrade
     );
     if ($opt_help) { print command_help_msg('query'); return }
-    my $opts_set = 0; for ($opt_listinstalled,$opt_slackdesc,$opt_info,$opt_recdependents,$opt_directdependents,$opt_pkginstalled,$opt_printqueue,$opt_readme,$opt_slackbuild,$opt_listneedupgrade) { $opts_set++ if defined }
+    my $opts_set = 0; for ($opt_listinstalled,$opt_slackdesc,$opt_info,$opt_pkgsnodependents,$opt_recdependents,$opt_directdependents,$opt_pkginstalled,$opt_printqueue,$opt_readme,$opt_slackbuild,$opt_listneedupgrade) { $opts_set++ if defined }
     if    ($opts_set > 1)  { sbozyp_die("can only set 1 option but $opts_set were set") }
     elsif ($opts_set == 0) { @_ == 1 or die command_usage('query'); my $pkg = pkg($_[0]); query_pkg_ui($pkg) }
     else {
-        my $opt = $opt_listinstalled ? '-a' : $opt_slackdesc ? '-d' : $opt_info ? '-i' : $opt_recdependents ? '-n' : $opt_directdependents ? '-o' : $opt_pkginstalled ? '-p' : $opt_printqueue ? '-q' : $opt_readme ? '-r' : $opt_slackbuild ? '-s' : $opt_listneedupgrade ? '-u' : die;
+        my $opt = $opt_listinstalled ? '-a' : $opt_slackdesc ? '-d' : $opt_info ? '-i' : $opt_pkgsnodependents ? '-m' : $opt_recdependents ? '-n' : $opt_directdependents ? '-o' : $opt_pkginstalled ? '-p' : $opt_printqueue ? '-q' : $opt_readme ? '-r' : $opt_slackbuild ? '-s' : $opt_listneedupgrade ? '-u' : die;
         my $pkg;
         if ($opt_slackdesc || $opt_info || $opt_recdependents || $opt_directdependents || $opt_pkginstalled || $opt_printqueue || $opt_readme || $opt_slackbuild) {
             @_ == 1 or sbozyp_die("query: option '$opt' requires single PKGNAME argument");
@@ -189,6 +190,7 @@ sub query_command_main {
         }
         elsif ($opt_slackdesc)        { sbozyp_print_file("$pkg->{PKGDIR}/slack-desc")                         }
         elsif ($opt_info)             { sbozyp_print_file("$pkg->{PKGDIR}/$pkg->{PRGNAM}.info")                }
+        elsif ($opt_pkgsnodependents) { print "$_->{PKGNAME}\n" for pkgs_no_dependents()                       }
         elsif ($opt_recdependents)    { print "$_->{PKGNAME}\n" for pkg_dependents_recursive($pkg)             }
         elsif ($opt_directdependents) { print "$_->{PKGNAME}\n" for pkg_dependents_direct($pkg)                }
         elsif ($opt_pkginstalled)     { if (defined(my $version = pkg_installed($pkg))) { print "$version\n" } }
@@ -274,6 +276,7 @@ sub search_command_main {
 sub pkg {
     my ($prgnam) = @_;
     my $pkgname = find_pkgname($prgnam) // sbozyp_die("could not find a package named '$prgnam'");
+    state %pkg_cache; if (my $pkg = $pkg_cache{$pkgname}) { return $pkg }
     my $info_file = "$CONFIG{REPO_ROOT}/$CONFIG{REPO_NAME}/$pkgname/@{[basename($pkgname)]}.info";
     my %info = parse_info_file($info_file);
     my $pkg = {
@@ -301,6 +304,7 @@ sub pkg {
             else                                       { 0             }
         }
     };
+    $pkg_cache{$pkgname} = $pkg;
     return $pkg
 }
 
@@ -724,6 +728,17 @@ sub pkg_dependents_recursive {
     return @dependents;
 }
 
+sub pkgs_no_dependents {
+    my @pkgs_no_dependents;
+    my @installed_sbo_pkgs = keys %{{ installed_sbo_pkgs() }};
+    for my $pkgname (@installed_sbo_pkgs) {
+        my $pkg = pkg($pkgname);
+        push @pkgs_no_dependents, $pkg if 0 == pkg_dependents_direct($pkg);
+    }
+    @pkgs_no_dependents = sort { $a->{PKGNAME} cmp $b->{PKGNAME} } @pkgs_no_dependents;
+    return @pkgs_no_dependents;
+}
+
 sub parse_slackware_pkgname {
     my ($slackware_pkgname) = @_;
     my ($prgnam, $version) = $slackware_pkgname =~ /^([\w-]+)-([^-]*)-[^-]*-\d+_SBo$/;
@@ -1101,7 +1116,7 @@ Examples:
 
 =head2 QUERY
 
- Usage: sbozyp <query|qr> [-h] [-a] [-d] [-i] [-n] [-o] [-p] [-q] [-r] [-s] [-u] PKGNAME?
+ Usage: sbozyp <query|qr> [-h] [-a] [-d] [-i] [-m] [-n] [-o] [-p] [-q] [-r] [-s] [-u] PKGNAME?
 
 Query for package related information.
 
@@ -1114,22 +1129,24 @@ invocation.
 Options are:
 
  -h|--help           Print help message
- -a                  Print a list of all SBo packages installed on the system
+ -a                  Print all installed SBo packages
  -d                  Print PKGNAME's slack-desc file
  -i                  Print PKGNAME's info file
+ -m                  Print all installed SBo packages with no dependents
  -n                  Print PKGNAME's recursive dependents
  -o                  Print PKGNAME'S direct dependents
  -p                  If PKGNAME is installed print the installed version
  -q                  Print PKGNAME's dependencies (recursively and in order)
  -r                  Print PKGNAME's README file
  -s                  Print PKGNAME's .SlackBuild file
- -u                  Print a list of all packages that have upgrades available
+ -u                  Print all packages that have upgrades available
 
 Examples:
 
  sbozyp query --help
  sbozyp qr system/password-store
  sbozyp qr -q password-store
+ sbozyp qr -m
  sbozyp -S qr -u
  sbozyp -S -R $REPO qr password-store
 

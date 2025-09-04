@@ -1,5 +1,6 @@
 0.5.1  TBD
 
+   - Added -m query flag to print all packages with no parents
    - Various performance improvements
 
 0.5.0  2025-08-28

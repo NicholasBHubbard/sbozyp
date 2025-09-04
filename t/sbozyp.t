@@ -874,36 +874,14 @@ subtest 'pkg_installed_and_up_to_date()' => sub {
 
     ok(Sbozyp::pkg_installed_and_up_to_date($pkg1), 'true if pkg is installed and up to date');
 
-    # change the version of sbozyp-basic from 1.0 to 3.0
-    my $info_path = "$Sbozyp::CONFIG{REPO_ROOT}/$Sbozyp::CONFIG{REPO_NAME}/misc/sbozyp-basic/sbozyp-basic.info";
-    my $info_tmp = File::Temp->new(DIR=>$Sbozyp::CONFIG{TMPDIR},TEMPLATE=>'sbozyp.t_tmp_info_XXXX');
-    open my $fh_r, '<', $info_path or die;
-    open my $fh_w, '>', "$info_tmp" or die;
-    while (my $line = <$fh_r>) {
-        if ($line =~ /^VERSION=/) {
-            print $fh_w 'VERSION="3.0"', "\n";
-        } else {
-            print $fh_w $line;
-        }
-    }
-    close $fh_r; close $fh_w;
-    system('cp', "$info_tmp", $info_path) and die;
+    # hack the version of the installed sbozyp-basic from 1.0 to 0.5
+    system("mv '$ENV{ROOT}/var/lib/pkgtools/packages/sbozyp-basic-1.0-noarch-1_SBo' '$ENV{ROOT}/var/lib/pkgtools/packages/sbozyp-basic-0.5-noarch-1_SBo'") and die;
 
     $pkg1 = Sbozyp::pkg('sbozyp-basic');
     is(0, Sbozyp::pkg_installed_and_up_to_date($pkg1), 'false if pkg is installed but not up to date');
 
-    # restore the version of sbozyp-basic
-    open $fh_r, '<', $info_path or die;
-    open $fh_w, '>', "$info_tmp" or die;
-    while (my $line = <$fh_r>) {
-        if ($line =~ /^VERSION=/) {
-            print $fh_w 'VERSION="1.0"', "\n";
-        } else {
-            print $fh_w $line;
-        }
-    }
-    close $fh_r; close $fh_w;
-    system('cp', "$info_tmp", $info_path) and die;
+    # move it back
+    system("mv '$ENV{ROOT}/var/lib/pkgtools/packages/sbozyp-basic-0.5-noarch-1_SBo' '$ENV{ROOT}/var/lib/pkgtools/packages/sbozyp-basic-1.0-noarch-1_SBo'") and die;
 
     for my $pkg (@built_pkgs) {
         if (my $slackware_pkg = Sbozyp::built_slackware_pkg($pkg)) {
@@ -977,6 +955,40 @@ subtest 'pkg_dependents_recursive()' => sub {
     is([map { $_->{PRGNAM} } Sbozyp::pkg_dependents_recursive($pkg_e)], ['sbozyp-recursive-dep-A', 'sbozyp-recursive-dep-C'], 'returns recursive dependents (sorted)');
 
     is([map { $_->{PRGNAM} } Sbozyp::pkg_dependents_recursive($pkg_f)], ['sbozyp-recursive-dep-A', 'sbozyp-recursive-dep-C', 'sbozyp-recursive-dep-E'], 'returns recursive dependents (3 levels) (sorted)');
+
+    for my $pkg (@built_pkgs) {
+        if (my $slackware_pkg = Sbozyp::built_slackware_pkg($pkg)) {
+            unlink $slackware_pkg or die;
+        }
+    }
+    remove_tree "$TEST_DIR/tmp_root" or die;
+};
+
+subtest 'pkgs_no_dependents()' => sub {
+    skip_all('pkg_dependents_recursive() tests require root') unless $> == 0;
+
+    # change the install destination
+    local $ENV{ROOT} = "$TEST_DIR/tmp_root";
+
+    my @built_pkgs;
+
+    my $pkg_basic = Sbozyp::pkg('sbozyp-basic');
+    my $pkg_a = Sbozyp::pkg('sbozyp-recursive-dep-A'); # depends on B and C
+    my $pkg_b = Sbozyp::pkg('sbozyp-recursive-dep-B'); # depends on D
+    my $pkg_c = Sbozyp::pkg('sbozyp-recursive-dep-C'); # depends on E
+    my $pkg_d = Sbozyp::pkg('sbozyp-recursive-dep-D'); # no depends
+    my $pkg_e = Sbozyp::pkg('sbozyp-recursive-dep-E'); # depends on F
+    my $pkg_f = Sbozyp::pkg('sbozyp-recursive-dep-F'); # no depends
+    Sbozyp::install_slackware_pkg(Sbozyp::build_slackware_pkg($pkg_basic));
+    Sbozyp::install_slackware_pkg(Sbozyp::build_slackware_pkg($pkg_a));
+    Sbozyp::install_slackware_pkg(Sbozyp::build_slackware_pkg($pkg_b));
+    Sbozyp::install_slackware_pkg(Sbozyp::build_slackware_pkg($pkg_c));
+    Sbozyp::install_slackware_pkg(Sbozyp::build_slackware_pkg($pkg_d));
+    Sbozyp::install_slackware_pkg(Sbozyp::build_slackware_pkg($pkg_e));
+    Sbozyp::install_slackware_pkg(Sbozyp::build_slackware_pkg($pkg_f));
+    push @built_pkgs, $pkg_basic, $pkg_a, $pkg_b, $pkg_c, $pkg_d, $pkg_e, $pkg_f;
+
+    is([map { $_->{PRGNAM} } Sbozyp::pkgs_no_dependents()], ['sbozyp-basic', 'sbozyp-recursive-dep-A'], 'returns packages with no parents (sorted)');
 
     for my $pkg (@built_pkgs) {
         if (my $slackware_pkg = Sbozyp::built_slackware_pkg($pkg)) {
@@ -1430,11 +1442,17 @@ subtest 'query_command_main()' => sub {
     ($stdout) = capture { Sbozyp::query_command_main('-s', 'sbozyp-basic') };
     like($stdout, qr/Slackware build script for sbozyp-basic.+make/s, 'prints .SlackBuild file if given -s option');
 
+    ($stdout) = capture { Sbozyp::query_command_main('-m') };
+    is($stdout, '', 'no output with -m flag if no dependent packages');
+    like(dies { Sbozyp::query_command_main('-m', 'mu') }, qr/^sbozyp: error: query: option '-m' does not take PKGNAME argument$/, 'dies with useful error if given PKGNAME arg with -m');
+
     ($stdout) = capture { Sbozyp::query_command_main('-o', 'sbozyp-basic') };
     is($stdout, '', 'no output with -o flag if no dependent packages');
+    like(dies { Sbozyp::query_command_main('-o') }, qr/^sbozyp: error: query: option '-o' requires single PKGNAME argument$/, 'dies with useful error if not given PKGNAME arg with -o');
 
     ($stdout) = capture { Sbozyp::query_command_main('-n', 'sbozyp-basic') };
     is($stdout, '', 'no output with -n flag if no dependent packages');
+    like(dies { Sbozyp::query_command_main('-n') }, qr/^sbozyp: error: query: option '-n' requires single PKGNAME argument$/, 'dies with useful error if not given PKGNAME arg with -n');
 
     ($stdout) = capture { Sbozyp::query_command_main('-q', 'sbozyp-recursive-dep-A') };
     like($stdout, qr|^misc/sbozyp-recursive-dep-F\nmisc/sbozyp-recursive-dep-E\nmisc/sbozyp-recursive-dep-C\nmisc/sbozyp-recursive-dep-D\nmisc/sbozyp-recursive-dep-B\nmisc/sbozyp-recursive-dep-A\n$|s, 'prints packages dependencies (in order and recursively) if given -q option');
@@ -1466,6 +1484,8 @@ subtest 'query_command_main()' => sub {
         ($stdout) = capture { Sbozyp::query_command_main('-n', 'sbozyp-recursive-dep-B') };
         is($stdout, "misc/sbozyp-depends-on-recursive-deps\nmisc/sbozyp-recursive-dep-A\n", '-n outputs all dependent package names sorted');
 
+        ($stdout) = capture { Sbozyp::query_command_main('-m') };
+        is($stdout, "misc/sbozyp-basic\nmisc/sbozyp-depends-on-recursive-deps\n", '-m outputs all packages without dependents (sorted)');
 
         # TODO: test -u option. Need to figure out how to mock a package upgrade situation
 
