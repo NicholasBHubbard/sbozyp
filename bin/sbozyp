@@ -16,7 +16,7 @@ use Carp qw(carp confess);
 use POSIX qw(mkfifo WNOHANG);
 use Pod::Usage qw(pod2usage);
 
-$SIG{INT} = sub { die "\nsbozyp: got a SIGINT ... going down!\n" };
+$SIG{INT} = $SIG{TERM} = sub { die "\nsbozyp: got a signal to exit ... going down!\n" };
 
 our %CONFIG = (
     # defaults
