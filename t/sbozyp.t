@@ -498,7 +498,12 @@ subtest 'cleanup_subs' => sub {
     Sbozyp::register_cleanup_sub(sub { system("echo baz >> '$tmpdir/foo'") });
     Sbozyp::run_cleanup_subs();
     is(Sbozyp::sbozyp_qx("cat '$tmpdir/foo'"), "baz\nbar\nfoo", 'runs most recently registered cleanup subs first');
+
     system("rm '$tmpdir/foo'") and die;
+
+    Sbozyp::register_cleanup_sub(sub { my ($status) = @_; system("echo got $status") });
+    ($stdout) = capture { Sbozyp::run_cleanup_subs() };
+    like($stdout, qr/^got \d+$/, 'subs are passed $?');
 };
 
 subtest 'repo_is_cloned()' => sub {
