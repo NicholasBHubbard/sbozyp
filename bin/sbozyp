@@ -13,7 +13,7 @@ use File::Temp;
 use File::Path qw(make_path remove_tree);
 use Getopt::Long qw(GetOptionsFromArray :config no_ignore_case no_bundling);
 use Carp qw(carp confess);
-use POSIX qw(mkfifo WNOHANG);
+use POSIX qw();
 use Pod::Usage qw(pod2usage);
 
 { # most recently registered cleanup subs are run first
@@ -487,7 +487,7 @@ sub sbozyp_unlink {
 
 sub sbozyp_mkfifo {
     my ($path) = @_;
-    defined mkfifo($path, 0700) or sbozyp_die("could not mkfifo at '$path': $!");
+    defined POSIX::mkfifo($path, 0700) or sbozyp_die("could not mkfifo at '$path': $!");
     return $path;
 }
 
