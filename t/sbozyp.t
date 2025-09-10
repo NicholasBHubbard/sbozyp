@@ -473,6 +473,34 @@ subtest 'sbozyp_tee()' => sub {
     is([Sbozyp::sbozyp_readdir($Sbozyp::CONFIG{TMPDIR})], [], 'cleans up tmp file from $CONFIG{TMPDIR} after a failed system command');
 };
 
+subtest 'cleanup_subs' => sub {
+    my $tmpdir = $Sbozyp::CONFIG{TMPDIR};
+
+    Sbozyp::register_cleanup_sub(sub { system("echo foo > '$tmpdir/foo'") });
+    ok(! -f "$tmpdir/foo");
+    Sbozyp::run_cleanup_subs();
+    ok(-f "$tmpdir/foo", 'run_cleanup_subs() runs registered sub');
+
+    system("rm '$tmpdir/foo'") and die;
+    Sbozyp::run_cleanup_subs();
+    ok(! -f "$tmpdir/foo", 'run_cleanup_subs() clears the list of cleanup subs');
+
+    Sbozyp::register_cleanup_sub(sub { print "foo\n"; warn "bar\n" });
+    my ($stdout, $stderr) = capture { Sbozyp::run_cleanup_subs() };
+    ok($stdout eq "foo\n" and $stderr eq "bar\n", 'cleanup subs produce no output to STDOUT or STDERR');
+
+    # doesn't crash
+    Sbozyp::register_cleanup_sub(sub { die 'death' });
+    Sbozyp::run_cleanup_subs();
+
+    Sbozyp::register_cleanup_sub(sub { system("echo foo >> '$tmpdir/foo'") });
+    Sbozyp::register_cleanup_sub(sub { system("echo bar >> '$tmpdir/foo'") });
+    Sbozyp::register_cleanup_sub(sub { system("echo baz >> '$tmpdir/foo'") });
+    Sbozyp::run_cleanup_subs();
+    is(Sbozyp::sbozyp_qx("cat '$tmpdir/foo'"), "baz\nbar\nfoo", 'runs most recently registered cleanup subs first');
+    system("rm '$tmpdir/foo'") and die;
+};
+
 subtest 'repo_is_cloned()' => sub {
     is(0, scalar(Sbozyp::repo_is_cloned()), 'returns 0 if $CONFIG{REPO_ROOT}/$CONFIG{REPO_NAME}/.git does not exist');
     Sbozyp::sbozyp_mkdir( "$Sbozyp::CONFIG{REPO_ROOT}/$Sbozyp::CONFIG{REPO_NAME}/.git");

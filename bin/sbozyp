@@ -16,6 +16,13 @@ use Carp qw(carp confess);
 use POSIX qw(mkfifo WNOHANG);
 use Pod::Usage qw(pod2usage);
 
+{ # most recently registered cleanup subs are run first
+    my @cleanup_subs;
+    sub register_cleanup_sub { my ($sub) = @_; unshift @cleanup_subs, $sub }
+    sub run_cleanup_subs { eval { $_->() } for @cleanup_subs; @cleanup_subs = () }
+    END { run_cleanup_subs() }
+}
+
 $SIG{INT} = $SIG{TERM} = sub { die "\nsbozyp: got a signal to exit ... going down!\n" };
 
 our %CONFIG = (
