@@ -1,3 +1,7 @@
+0.6.0  TBD
+
+   - Add -a install flag to build all packages in queue before installing
+
 0.5.1  2025-09-03
 
    - Added -m query flag to print all packages with no parents
