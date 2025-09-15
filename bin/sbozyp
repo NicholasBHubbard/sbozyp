@@ -124,6 +124,7 @@ sub install_command_main {
     sbozyp_getopts(
         \@_,
         'h|help' => \my $opt_help,
+        'a'      => \my $opt_buildallfirst,
         'f'      => \my $opt_force,
         'i'      => \my $opt_noninteractive,
         'k'      => \my $opt_keeppackage,
@@ -142,13 +143,21 @@ sub install_command_main {
     }
     if (@queue) {
         @queue = manage_install_queue_ui(@queue) unless $opt_noninteractive;
+        my @slackware_pkgs;
         for my $pkg (@queue) {
             my $slackware_pkg = built_slackware_pkg($pkg) // build_slackware_pkg($pkg);
-            install_slackware_pkg($slackware_pkg);
-            sbozyp_unlink($slackware_pkg) unless $opt_keeppackage;
+            push @slackware_pkgs, $slackware_pkg;
+            install_slackware_pkg($slackware_pkg) unless $opt_buildallfirst;
+            sbozyp_unlink($slackware_pkg) unless $opt_keeppackage or $opt_buildallfirst;
+        }
+        if ($opt_buildallfirst) {
+            for my $slackware_pkg (@slackware_pkgs) {
+                install_slackware_pkg($slackware_pkg);
+                sbozyp_unlink($slackware_pkg) unless $opt_keeppackage;
+            }
         }
     } else {
-        print "sbozyp: all packages (and their deps) requested for installation are up to date, invoke with -f option to force installation\n"
+        print "sbozyp: all packages (and their dependencies) requested for installation are up to date, invoke with -f option to force installation\n";
     }
 }
 
@@ -980,20 +989,20 @@ and the SlackBuilds.org repository.
 
 Every command has its own options, these are just the global ones:
 
- -C                  Re-clone SBo repository before running the command
- -F FILE             Use FILE as the configuration file
- -R REPO_NAME        Use SBo repository REPO_NAME instead of REPO_PRIMARY
- -S                  Sync SBo repository before running the command
- -T                  Exit if the SBo repository hasn't been cloned yet
+ -C               Re-clone SBo repository before running the command
+ -F FILE          Use FILE as the configuration file
+ -R REPO_NAME     Use SBo repository REPO_NAME instead of REPO_PRIMARY
+ -S               Sync SBo repository before running the command
+ -T               Exit if the SBo repository hasn't been cloned yet
 
 Commands:
 
- install|in          Install or upgrade packages
- build|bu            Build but don't install packages
- remove|rm           Remove packages
- query|qr            Query for information about a package
- search|se           Search for a package using a Perl regex
- null|nu             Do nothing, useful in conjunction with -C or -S opts
+ install|in       Install or upgrade packages
+ build|bu         Build but don't install packages
+ remove|rm        Remove packages
+ query|qr         Query for information about a package
+ search|se        Search for a package using a Perl regex
+ null|nu          Do nothing, useful in conjunction with -C or -S opts
 
 Examples:
 
@@ -1060,17 +1069,18 @@ Defaults to C<TMPDIR=/tmp>.
 
 =head2 INSTALL
 
- Usage: sbozyp <install|in> [-h] [-f] [-i] [-k] [-n] <pkgname...>
+ Usage: sbozyp <install|in> [-h] [-a] [-f] [-i] [-k] [-n] <pkgname...>
 
 Install or upgrade packages.
 
 Options are:
 
- -h|--help           Print help message
- -f                  Force installation even if package is already up to date
- -i                  No interactive prompt
- -k                  Keep the built package (resides in TMPDIR)
- -n                  Do not install package dependencies
+ -h|--help        Print help message
+ -a               Don't install until all packages to be installed are built
+ -f               Force installation even if package is already up to date
+ -i               No interactive prompt
+ -k               Keep the built package (resides in TMPDIR)
+ -n               Do not install package dependencies
 
 Examples:
 
@@ -1090,9 +1100,9 @@ Build but don't install packages.
 
 Options are:
 
- -h|--help           Print help message
- -f                  Force rebuild the package even if it's already built
- -i                  No confirmation prompt
+ -h|--help        Print help message
+ -f               Force rebuild the package even if it's already built
+ -i               No confirmation prompt
 
 Examples:
 
@@ -1111,8 +1121,8 @@ Remove packages.
 
 Options are:
 
- -h|--help           Print help message
- -i                  No confirmation prompt
+ -h|--help        Print help message
+ -i               No confirmation prompt
 
 Examples:
 
@@ -1135,18 +1145,18 @@ invocation.
 
 Options are:
 
- -h|--help           Print help message
- -a                  Print all installed SBo packages
- -d                  Print PKGNAME's slack-desc file
- -i                  Print PKGNAME's info file
- -m                  Print all installed SBo packages with no dependents
- -n                  Print PKGNAME's recursive dependents
- -o                  Print PKGNAME'S direct dependents
- -p                  If PKGNAME is installed print the installed version
- -q                  Print PKGNAME's dependencies (recursively and in order)
- -r                  Print PKGNAME's README file
- -s                  Print PKGNAME's .SlackBuild file
- -u                  Print all packages that have upgrades available
+ -h|--help        Print help message
+ -a               Print all installed SBo packages
+ -d               Print PKGNAME's slack-desc file
+ -i               Print PKGNAME's info file
+ -m               Print all installed SBo packages with no dependents
+ -n               Print PKGNAME's recursive dependents
+ -o               Print PKGNAME'S direct dependents
+ -p               If PKGNAME is installed print the installed version
+ -q               Print PKGNAME's dependencies (recursively and in order)
+ -r               Print PKGNAME's README file
+ -s               Print PKGNAME's .SlackBuild file
+ -u               Print all packages that have upgrades available
 
 Examples:
 
@@ -1165,10 +1175,10 @@ Search for a package using a Perl regex.
 
 Options are:
 
- -h|--help           Print help message
- -c                  Match case sensitive
- -n                  Match against CATEGORY/PRGNAM instead of just PRGNAM
- -p                  Print just the PRGNAM of matched packages
+ -h|--help        Print help message
+ -c               Match case sensitive
+ -n               Match against CATEGORY/PRGNAM instead of just PRGNAM
+ -p               Print just the PRGNAM of matched packages
 
 Examples:
 
@@ -1187,7 +1197,7 @@ sync (with global -S option) a repository.
 
 Options are:
 
- -h|--help           Print help message
+ -h|--help        Print help message
 
 Examples:
 

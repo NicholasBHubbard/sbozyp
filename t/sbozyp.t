@@ -1402,12 +1402,22 @@ subtest 'install_command_main()' => sub {
     ok(-f "$TEST_DIR/sbozyp-basic-1.0-noarch-1_SBo.tgz", 'does not remove slackware package after installing it if given -k flag');
 
     ($stdout) = capture { Sbozyp::install_command_main('-i', 'sbozyp-basic') };
-    like($stdout, qr/sbozyp: all packages \(and their deps\) requested for installation are up to date/, 'by default skips install with useful message if package is already installed');
+    like($stdout, qr/sbozyp: all packages \(and their dependencies\) requested for installation are up to date/, 'by default skips install with useful message if package is already installed');
 
     ($stdout) = capture { Sbozyp::install_command_main('-i', '-f', 'sbozyp-basic') };
     like($stdout, qr/Installing package sbozyp-basic-1.0-noarch-1_SBo\.tgz/, 're-installs package if it is already installed if using \'-f\' option');
 
     remove_tree "$TEST_DIR/tmp_root" or die;
+
+    Sbozyp::install_command_main('-i', '-a', 'sbozyp-basic', 'sbozyp-recursive-dep-A');
+    ($stdout) = capture { Sbozyp::install_command_main('-i', 'sbozyp-basic') };
+    like($stdout, qr/all packages \(and their dependencies\) requested for installation are up to date/, 'packages are still installed with -a flag');
+    remove_tree "$TEST_DIR/tmp_root" or die;
+    ok(dies { Sbozyp::install_command_main('-i', '-a', 'sbozyp-basic', 'sbozyp-md5sum-mismatch') }, 'package build can fail with -a option');
+    ($stdout) = capture { Sbozyp::query_command_main('-p', 'sbozyp-basic') };
+    is($stdout, '', 'does not install any package if any build fails with -a option');
+
+    if (-d "$TEST_DIR/tmp-root") { remove_tree "$TEST_DIR/tmp_root" or die };
 };
 
 subtest 'null_command_main()' => sub {
