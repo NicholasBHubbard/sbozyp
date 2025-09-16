@@ -32,7 +32,7 @@ our %CONFIG = (
     #REPO_NAME => REPO_PRIMARY
 );
 
- # 'unless caller' allows us to load this file from test code without executing main()
+ # 'unless caller' allows us to import this file from test code without executing main()
 unless (caller) { main(@ARGV) ; exit 0 }
 
 sub main {
