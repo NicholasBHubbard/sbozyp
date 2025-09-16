@@ -38,7 +38,7 @@ unless (caller) { main(@ARGV) ; exit 0 }
 sub main {
     my @argv = @_;
     # process global options
-    Getopt::Long::Configure('pass_through'); # pass_through to ignore the command options
+    Getopt::Long::Configure('pass_through'); # pass_through to ignore the command-specific options
     sbozyp_getopts(
         \@argv,
         'C'   => \my $opt_clone,
@@ -60,10 +60,10 @@ sub main {
     elsif ($cmd =~ /^(?:remove|rm)$/)    { $cmd_main = \&remove_command_main      }
     elsif ($cmd =~ /^(?:search|se)$/)    { $cmd_main = \&search_command_main      }
     else                                 { sbozyp_die("invalid command '$cmd'")   }
-    # set the configuration
-    parse_config_file($opt_configfile); # mutates the global %CONFIG
+    # set the configuration, mutating the global %CONFIG
+    parse_config_file($opt_configfile);
     set_repo_name_or_die($opt_reponame // $CONFIG{REPO_PRIMARY});
-    # initialize the environment
+    # setup the repository locally
     return if ($opt_noinit and !repo_is_cloned());
     sbozyp_mkdir("$CONFIG{REPO_ROOT}/$CONFIG{REPO_NAME}", $CONFIG{TMPDIR});
     if ($opt_clone or !repo_is_cloned()) {
@@ -405,7 +405,7 @@ sub parse_info_file {
     my $fh = sbozyp_open('<', $info_file);
     my $info_file_content = do { local $/; <$fh> }; # slurp the info file
     my %info = $info_file_content =~ /^(\w+)="([^"]*)"/mg;
-    # Multiline values are broken up with newline escapes. Lets squish them into single spaces.
+    # Multiline values are broken up with newline escapes. Let's squish them into single spaces.
     $info{$_} =~ s/\\\n\s+//g for keys %info;
     return %info;
 }
@@ -592,12 +592,12 @@ sub parse_config_file {
     my $fh = sbozyp_open('<', $config_file);
     while (<$fh>) {
         chomp;
-        my $line_copy = $_; # save $_ so we can create a nice error message if things go wrong
+        my $line_copy = $_; # save $_ in case we want to put it into an error message
         s/#.*//;            # no comments
         s/^\s+//;           # no leading whitespace
         s/\s+$//;           # no trailing whitespace
         s/\/+$//;           # no trailing /'s
-        next unless length; # is there anything left?
+        next unless length; # skip if theres nothing left
         my ($k, $v) = split /\s*=\s*/, $_, 2;
         $k !~ /^\s*$/ && $v !~ /^\s*$/ or sbozyp_die("could not parse line $. '$line_copy': '$config_file'");
         $CONFIG{$k} = $v;
