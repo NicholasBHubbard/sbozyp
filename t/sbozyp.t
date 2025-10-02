@@ -156,24 +156,42 @@ subtest 'sbozyp_unlink()' => sub {
     );
 };
 
-subtest 'sbozyp_mkfifo()' => sub {
-    like(dies { Sbozyp::sbozyp_mkfifo("/SBOZYP/NOT/A/VALID/FIFO/LOCATION") },
-         qr/^sbozyp: error: could not mkfifo/,
-         'dies with useful error message if mkfifo() fails'
-    );
-    my $fifo_path = "$TEST_DIR/tmp-fifo";
-    ok(! -f $fifo_path && ! -p $fifo_path, q(fifo doesn't already exist));
-    ok(lives { Sbozyp::sbozyp_mkfifo($fifo_path) }, q(lives if the fifo was created));
-    ok(-p $fifo_path, 'the fifo exists and is a named pipe');
-    Sbozyp::sbozyp_unlink($fifo_path);
-};
-
 subtest 'version_gt()' => sub {
     my $v1 = '0.0.3';
     my $v2 = '0.0.2';
     ok(Sbozyp::version_gt($v1, $v2), 'true if first version is greater than second version');
     ok(!Sbozyp::version_gt($v2, $v1), 'false if first version is less than second version');
     ok(!Sbozyp::version_gt($v1, $v1), 'false if both versions are the same');
+};
+
+subtest 'mergerfs_merged_root()' => sub {
+    skip_all('mergerfs_merged_root() requires root') unless $> == 0;
+    skip_all('mergerfs_merged_root() requires mergerfs to be installed') unless 0 == system('which', 'mergerfs');
+
+    my ($merged_dir_name, $overlay_dir_name);
+    {
+        my $mergerfs = Sbozyp::mergerfs_merged_root();
+        $merged_dir_name = "$mergerfs->{merged}";
+        $overlay_dir_name = "$mergerfs->{overlay}";
+        like($merged_dir_name, qr/^\Q$Sbozyp::CONFIG{TMPDIR}\E\/sbozyp_[^\/]+_merged_/,'proper naming and placement of merged directory');
+        like($overlay_dir_name, qr/^\Q$Sbozyp::CONFIG{TMPDIR}\E\/sbozyp_[^\/]+_overlay_/,'proper naming and placement of overlay directory');
+        ok(-d "$mergerfs->{merged}", 'merged directory exists');
+        ok(-d "$mergerfs->{overlay}", 'overlay directory exists');
+        ok(-d "$mergerfs->{merged}/bin" && -d "$mergerfs->{merged}/dev" && -d "$mergerfs->{merged}/usr", 'merged dir contains root filesystem');
+        my $mount_output = Sbozyp::sbozyp_qx('mount');
+        like($mount_output, qr/\Q$merged_dir_name\E\/dev/s, 'creates bind mount of /dev into the merge dir');
+        like($mount_output, qr/\Q$merged_dir_name\E\/proc/s, 'creates bind mount of /proc into the merge dir');
+        like($mount_output, qr/\Q$merged_dir_name\E\/sys/s, 'creates bind mount of /sys into the merge dir');
+        like($mount_output, qr/\Q$merged_dir_name\E\/run/s, 'creates bind mount of /run into the merge dir');
+        is(0, system("echo foo > $merged_dir_name/dev/null"), 'allows use of merged /dev/null');
+
+        my $tmpfile_fh = File::Temp->new(DIR => $merged_dir_name, TEMPLATE => 'sbozyp.t_tmpfile_mergedir_tmpfileXXXXXX');
+        my $tmpfile_basename = basename("$tmpfile_fh");
+        ok(-f "$merged_dir_name/$tmpfile_basename" && -f "$overlay_dir_name/$tmpfile_basename" && ! -f "/$tmpfile_basename", 'properly overlays root, such that writes go into the overlay and mergedir but not the real root');
+    }
+    ok(! -d $merged_dir_name, 'merged dir removed when $mergerfs hash goes out of scope');
+    ok(! -d $overlay_dir_name, 'overlay dir removed when $mergerfs hash goes out of scope');
+    unlike(scalar(Sbozyp::sbozyp_qx('mount')), qr/\Q$merged_dir_name\E/, 'automatically unmounts the mergerfs when $mergerfs hash goes out of scope');
 };
 
 subtest 'sbozyp_copy()' => sub {
@@ -1286,7 +1304,7 @@ subtest 'build_command_main' => sub {
     ok(Sbozyp::built_slackware_pkg($pkg));
 
     ($stdout) = capture { Sbozyp::build_command_main('-i', 'sbozyp-basic') };
-    like($stdout, qr/^sbozyp: existing package for 'misc\/sbozyp-basic' found at '\Q$Sbozyp::CONFIG{TMPDIR}\E\/sbozyp-basic.+$'$/s);
+    like($stdout, qr/^sbozyp: existing package for 'misc\/sbozyp-basic' found at '\Q$Sbozyp::CONFIG{TMPDIR}\E\/sbozyp-basic.+$/s);
 
     ($stdout) = capture { Sbozyp::build_command_main('-f', '-i', 'sbozyp-basic', 'sbozyp-basic-2.0') };
     like($stdout, qr/sbozyp-basic-1\.0.+created.+sbozyp-basic-2\.0.+created/s, 'builds multiple packages on single invocation');
@@ -1373,6 +1391,26 @@ subtest 'install_command_main()' => sub {
 
     ($stdout) = capture { Sbozyp::install_command_main('-i', '-f', 'sbozyp-basic') };
     like($stdout, qr/Installing package sbozyp-basic-1.0-noarch-1_SBo\.tgz/, 're-installs package if it is already installed if using \'-f\' option');
+
+    remove_tree "$TEST_DIR/tmp_root" or die;
+
+    skip_all('atomic package installation requires mergerfs') unless 0 == system('which', 'mergerfs');
+    ok(!Sbozyp::pkg_installed(Sbozyp::pkg('sbozyp-basic')), 'sbozyp-basic not installed (pre-condition)');
+    ok(dies { Sbozyp::install_command_main('-i', '-f', 'sbozyp-basic', 'sbozyp-build-fail') }, 'dies if package build fails');
+    ok(Sbozyp::pkg_installed(Sbozyp::pkg('sbozyp-basic')), 'by default installs intermediate package before a build failure');
+
+    remove_tree "$TEST_DIR/tmp_root" or die;
+
+    ok(!Sbozyp::pkg_installed(Sbozyp::pkg('sbozyp-basic')), 'sbozyp-basic not installed (pre-condition)');
+    ok(!Sbozyp::pkg_installed(Sbozyp::pkg('sbozyp-readme-extra-deps')), 'sbozyp-readme-extra-deps not installed (pre-condition)');
+    Sbozyp::install_command_main('-i', '-a', '-f', 'sbozyp-basic', 'sbozyp-readme-extra-deps');
+    ok(Sbozyp::pkg_installed(Sbozyp::pkg('sbozyp-basic')) && Sbozyp::pkg_installed(Sbozyp::pkg('sbozyp-readme-extra-deps')), 'installs packages successfully with -a option');
+
+    remove_tree "$TEST_DIR/tmp_root" or die;
+
+    ok(!Sbozyp::pkg_installed(Sbozyp::pkg('sbozyp-basic')), 'sbozyp-basic not installed (pre-condition)');
+    ok(dies { Sbozyp::install_command_main('-i', '-a', '-f', 'sbozyp-basic', 'sbozyp-build-fail') }, 'kills program if build fails with -a flag');
+    ok(!Sbozyp::pkg_installed(Sbozyp::pkg('sbozyp-basic')), 'does not build intermediate packages if any build fails with -a option');
 
     remove_tree "$TEST_DIR/tmp_root" or die;
 };
@@ -1680,7 +1718,7 @@ END
 
     if (Sbozyp::i_am_root()) {
         Sbozyp::main('-F', "$tmp_config_file", 'null');
-        ok(scalar(Sbozyp::repo_is_cloned(), 'automatically clones repo if it does not exist'));
+        ok(scalar(Sbozyp::repo_is_cloned()), 'automatically clones repo if it does not exist');
 
         (undef, $stderr) = capture { Sbozyp::main('-F', "$tmp_config_file", '-C', 'null') };
         like($stderr, qr/^Cloning into/, q(re-clones repo if given '-C' option));

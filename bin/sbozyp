@@ -13,7 +13,7 @@ use File::Temp;
 use File::Path qw(make_path remove_tree);
 use Getopt::Long qw(GetOptionsFromArray :config no_ignore_case no_bundling);
 use Carp qw(carp confess);
-use POSIX qw(mkfifo WNOHANG);
+use POSIX qw();
 use Pod::Usage qw(pod2usage);
 
 $SIG{INT} = $SIG{TERM} = sub { die "\nsbozyp: got a signal to exit ... going down!\n" };
@@ -117,6 +117,7 @@ sub install_command_main {
     sbozyp_getopts(
         \@_,
         'h|help' => \my $opt_help,
+        'a'      => \my $opt_atomicinstall,
         'f'      => \my $opt_force,
         'i'      => \my $opt_noninteractive,
         'k'      => \my $opt_keeppackage,
@@ -125,6 +126,10 @@ sub install_command_main {
     if ($opt_help) { print command_help_msg('install'); return }
     @_ >= 1 or die command_usage('install');
     i_am_root_or_die('the install command requires root');
+    if ($opt_atomicinstall) {
+        my $mergerfs_installed = 0 == system('which mergerfs 2>&1 >/dev/null');
+        sbozyp_die(q(atomic package install requires 'system/mergerfs')) unless $mergerfs_installed;
+    }
     my @pkgs = map { $_ = pkg($_) } @_;
     my @queue; for my $pkg (@pkgs) {
         my @pkg_queue = $opt_nodeps ? ($pkg) : pkg_queue($pkg);
@@ -135,10 +140,29 @@ sub install_command_main {
     }
     if (@queue) {
         @queue = manage_install_queue_ui(@queue) unless $opt_noninteractive;
-        for my $pkg (@queue) {
-            my $slackware_pkg = built_slackware_pkg($pkg) // build_slackware_pkg($pkg);
-            install_slackware_pkg($slackware_pkg);
-            sbozyp_unlink($slackware_pkg) unless $opt_keeppackage;
+        if (@queue <= 1 or !$opt_atomicinstall) {
+            for my $pkg (@queue) {
+                my $slackware_pkg = built_slackware_pkg($pkg) // build_slackware_pkg($pkg);
+                install_slackware_pkg($slackware_pkg);
+                sbozyp_unlink($slackware_pkg) unless $opt_keeppackage;
+            }
+        } else {
+            my $mergerfs = mergerfs_merged_root();
+            if (0 == sbozyp_fork()) {
+                $SIG{__DIE__} = sub { print STDERR @_; POSIX::_exit(1) };
+                sbozyp_chroot($mergerfs->{merged});
+                for my $pkg (@queue) {
+                    my $slackware_pkg = built_slackware_pkg($pkg) // build_slackware_pkg($pkg);
+                    install_slackware_pkg($slackware_pkg);
+                }
+                POSIX::_exit(0);
+            }
+            wait(); exit $? if $? != 0;
+            for my $pkg (@queue) {
+                my $slackware_pkg = built_slackware_pkg($pkg, "$mergerfs->{merged}/$CONFIG{TMPDIR}");
+                install_slackware_pkg($slackware_pkg);
+                sbozyp_copy($slackware_pkg, $CONFIG{TMPDIR}) if $opt_keeppackage;
+            }
         }
     } else {
         print "sbozyp: all packages (and their deps) requested for installation are up to date, invoke with -f option to force installation\n"
@@ -387,7 +411,7 @@ sub find_pkgname { # if $prgnam is a pkgname then just return it back
 sub parse_info_file {
     my ($info_file) = @_;
     my $fh = sbozyp_open('<', $info_file);
-    my $info_file_content = do { local $/; <$fh> }; # slurp the info file
+    my $info_file_content = do { local $/; <$fh> };
     my %info = $info_file_content =~ /^(\w+)="([^"]*)"/mg;
     # Multiline values are broken up with newline escapes. Lets squish them into single spaces.
     $info{$_} =~ s/\\\n\s+//g for keys %info;
@@ -478,16 +502,16 @@ sub sbozyp_unlink {
     unlink $file or sbozyp_die("could not unlink file '$file': $!");
 }
 
-sub sbozyp_mkfifo {
-    my ($path) = @_;
-    defined mkfifo($path, 0700) or sbozyp_die("could not mkfifo at '$path': $!");
-    return $path;
-}
-
 sub sbozyp_fork {
     my $pid = fork();
     defined $pid or sbozyp_die("fork failed: $!");
     return $pid;
+}
+
+sub sbozyp_chroot {
+    my ($dir) = @_;
+    chroot $dir or sbozyp_dir("could not chroot to '$dir': $!");
+    sbozyp_chdir('/');
 }
 
 sub sbozyp_copy {
@@ -897,9 +921,31 @@ sub build_slackware_pkg {
 }
 
 sub built_slackware_pkg {
-    my ($pkg) = @_;
-    my $output = $CONFIG{TMPDIR};
-    return [ glob "$output/$pkg->{PRGNAM}*$pkg->{VERSION}*_SBo*" ]->[0];
+    my ($pkg, @search_dirs) = @_;
+    push @search_dirs, $CONFIG{TMPDIR} unless @search_dirs;
+    for my $search_dir (@search_dirs) {
+        my $slackware_pkg = [ glob "$search_dir/$pkg->{PRGNAM}*$pkg->{VERSION}*_SBo*" ]->[0];
+        return $slackware_pkg if $slackware_pkg;
+    }
+    return;
+}
+
+sub mergerfs_merged_root {
+    require autodie::Scope::Guard;
+    my $merged = File::Temp->newdir(DIR => $CONFIG{TMPDIR}, TEMPLATE => 'sbozyp_root_mergerfs_merged_XXXXXX');
+    my $overlay = File::Temp->newdir(DIR => $CONFIG{TMPDIR}, TEMPLATE => 'sbozyp_root_mergerfs_overlay_XXXXXX');
+    sbozyp_system('mergerfs', '-o', 'cache.files=partial,dropcacheonclose=true,category.action=ff,category.search=ff,category.create=ff,fsname=sbozyp-mergerfs-overlay-root', "$overlay=RW:/=RO", "$merged");
+    for my $virtual_dir (qw(/dev /proc /run /sys)) {
+        my $merged_virtual_dir = "${merged}$virtual_dir";
+        sbozyp_system('mount', '--rbind', $virtual_dir, $merged_virtual_dir);
+        sbozyp_system('mount', '--make-rslave', $merged_virtual_dir);
+    }
+    my $mergerfs = {
+        merged => $merged,
+        overlay => $overlay,
+        _cleanup_guard => autodie::Scope::Guard->new(sub { sbozyp_system('umount', '-R', "$merged") })
+    };
+    return $mergerfs;
 }
 
 # versioncmp() is copy and pasted directly from the Sort::Versions CPAN module.
@@ -964,8 +1010,9 @@ sbozyp - A package manager for Slackware's SlackBuilds.org
 
 Sbozyp is a command-line package manager for the SlackBuilds.org package
 repository. SlackBuilds.org is a collection of third-party SlackBuild scripts
-used to build Slackware packages. Sbozyp assumes an understanding of SlackBuilds
-and the SlackBuilds.org repository.
+used to build Slackware packages. Sbozyp assumes its users have a general
+understanding of Slackware packaging, SlackBuilds, and the SlackBuilds.org
+repository.
 
 =head1 OVERVIEW
 
@@ -973,20 +1020,20 @@ and the SlackBuilds.org repository.
 
 Every command has its own options, these are just the global ones:
 
- -C                  Re-clone SBo repository before running the command
- -F FILE             Use FILE as the configuration file
- -R REPO_NAME        Use SBo repository REPO_NAME instead of REPO_PRIMARY
- -S                  Sync SBo repository before running the command
- -T                  Exit if the SBo repository hasn't been cloned yet
+ -C            Re-clone SBo repository before running the command
+ -F FILE       Use FILE as the configuration file
+ -R REPO_NAME  Use SBo repository REPO_NAME instead of REPO_PRIMARY
+ -S            Sync SBo repository before running the command
+ -T            Exit if the SBo repository hasn't been cloned yet
 
 Commands:
 
- install|in          Install or upgrade packages
- build|bu            Build but don't install packages
- remove|rm           Remove packages
- query|qr            Query for information about a package
- search|se           Search for a package using a Perl regex
- null|nu             Do nothing, useful in conjunction with -C or -S opts
+ install|in    Install or upgrade packages
+ build|bu      Build but don't install packages
+ remove|rm     Remove packages
+ query|qr      Query for information about a package
+ search|se     Search for a package using a Perl regex
+ null|nu       Do nothing, useful in conjunction with -C or -S opts
 
 Examples:
 
@@ -1053,24 +1100,25 @@ Defaults to C<TMPDIR=/tmp>.
 
 =head2 INSTALL
 
- Usage: sbozyp <install|in> [-h] [-f] [-i] [-k] [-n] <pkgname...>
+ Usage: sbozyp <install|in> [-h] [-a] [-f] [-i] [-k] [-n] <pkgname...>
 
 Install or upgrade packages.
 
 Options are:
 
- -h|--help           Print help message
- -f                  Force installation even if package is already up to date
- -i                  No interactive prompt
- -k                  Keep the built package (resides in TMPDIR)
- -n                  Do not install package dependencies
+ -h|--help     Print help message
+ -a            Install packages after all successfully built (requires mergerfs)
+ -f            Force installation even if package is already up to date
+ -i            No interactive prompt
+ -k            Keep the built package (resides in TMPDIR)
+ -n            Do not install package dependencies
 
 Examples:
 
  sbozyp install --help
  sbozyp in password-store
  sbozyp in xclip mu password-store
- sbozyp in -k system/password-store
+ sbozyp in -a -k system/password-store
  sbozyp in -f -i -n password-store
  sbozyp -S -R $REPO in -f password-store
  sbozyp in $(sbozyp -S qr -u | cut -d' ' -f1) ### upgrade all packages
@@ -1083,9 +1131,9 @@ Build but don't install packages.
 
 Options are:
 
- -h|--help           Print help message
- -f                  Force rebuild the package even if it's already built
- -i                  No confirmation prompt
+ -h|--help     Print help message
+ -f            Force rebuild the package even if it's already built
+ -i            No confirmation prompt
 
 Examples:
 
@@ -1104,8 +1152,8 @@ Remove packages.
 
 Options are:
 
- -h|--help           Print help message
- -i                  No confirmation prompt
+ -h|--help     Print help message
+ -i            No confirmation prompt
 
 Examples:
 
@@ -1128,18 +1176,18 @@ invocation.
 
 Options are:
 
- -h|--help           Print help message
- -a                  Print all installed SBo packages
- -d                  Print PKGNAME's slack-desc file
- -i                  Print PKGNAME's info file
- -m                  Print all installed SBo packages with no dependents
- -n                  Print PKGNAME's recursive dependents
- -o                  Print PKGNAME'S direct dependents
- -p                  If PKGNAME is installed print the installed version
- -q                  Print PKGNAME's dependencies (recursively and in order)
- -r                  Print PKGNAME's README file
- -s                  Print PKGNAME's .SlackBuild file
- -u                  Print all packages that have upgrades available
+ -h|--help     Print help message
+ -a            Print all installed SBo packages
+ -d            Print PKGNAME's slack-desc file
+ -i            Print PKGNAME's info file
+ -m            Print all installed SBo packages with no dependents
+ -n            Print PKGNAME's recursive dependents
+ -o            Print PKGNAME'S direct dependents
+ -p            If PKGNAME is installed print the installed version
+ -q            Print PKGNAME's dependencies (recursively and in order)
+ -r            Print PKGNAME's README file
+ -s            Print PKGNAME's .SlackBuild file
+ -u            Print all packages that have upgrades available
 
 Examples:
 
@@ -1158,10 +1206,10 @@ Search for a package using a Perl regex.
 
 Options are:
 
- -h|--help           Print help message
- -c                  Match case sensitive
- -n                  Match against CATEGORY/PRGNAM instead of just PRGNAM
- -p                  Print just the PRGNAM of matched packages
+ -h|--help     Print help message
+ -c            Match case sensitive
+ -n            Match against CATEGORY/PRGNAM instead of just PRGNAM
+ -p            Print just the PRGNAM of matched packages
 
 Examples:
 
@@ -1180,7 +1228,7 @@ sync (with global -S option) a repository.
 
 Options are:
 
- -h|--help           Print help message
+ -h|--help     Print help message
 
 Examples:
 
