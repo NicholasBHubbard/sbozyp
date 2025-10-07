@@ -12,7 +12,6 @@ use File::Basename qw(basename dirname);
 use File::Temp;
 use File::Path qw(make_path remove_tree);
 use Getopt::Long qw(GetOptionsFromArray :config no_ignore_case no_bundling);
-use Carp qw(carp confess);
 use POSIX qw(mkfifo WNOHANG);
 use Pod::Usage qw(pod2usage);
 
@@ -414,16 +413,6 @@ sub sbozyp_getopts {
 sub sbozyp_die {
     my ($msg) = @_;
     die "sbozyp: error: $msg\n";
-}
-
-sub sbozyp_confess {
-    my ($msg) = @_;
-    confess "sbozyp: error: $msg\n";
-}
-
-sub sbozyp_carp {
-    my ($msg) = @_;
-    carp "sbozyp: error: $msg\n";
 }
 
 sub sbozyp_system {
