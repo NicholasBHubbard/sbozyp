@@ -12,7 +12,6 @@ use File::Basename qw(basename dirname);
 use File::Temp;
 use File::Path qw(make_path remove_tree);
 use Getopt::Long qw(GetOptionsFromArray :config no_ignore_case no_bundling);
-use POSIX qw(mkfifo WNOHANG);
 use Pod::Usage qw(pod2usage);
 
 $SIG{INT} = $SIG{TERM} = sub { die "\nsbozyp: got a signal to exit ... going down!\n" };
@@ -465,12 +464,6 @@ sub sbozyp_open {
 sub sbozyp_unlink {
     my ($file) = @_;
     unlink $file or sbozyp_die("could not unlink file '$file': $!");
-}
-
-sub sbozyp_mkfifo {
-    my ($path) = @_;
-    defined mkfifo($path, 0700) or sbozyp_die("could not mkfifo at '$path': $!");
-    return $path;
 }
 
 sub sbozyp_fork {

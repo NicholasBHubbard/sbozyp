@@ -156,18 +156,6 @@ subtest 'sbozyp_unlink()' => sub {
     );
 };
 
-subtest 'sbozyp_mkfifo()' => sub {
-    like(dies { Sbozyp::sbozyp_mkfifo("/SBOZYP/NOT/A/VALID/FIFO/LOCATION") },
-         qr/^sbozyp: error: could not mkfifo/,
-         'dies with useful error message if mkfifo() fails'
-    );
-    my $fifo_path = "$TEST_DIR/tmp-fifo";
-    ok(! -f $fifo_path && ! -p $fifo_path, q(fifo doesn't already exist));
-    ok(lives { Sbozyp::sbozyp_mkfifo($fifo_path) }, q(lives if the fifo was created));
-    ok(-p $fifo_path, 'the fifo exists and is a named pipe');
-    Sbozyp::sbozyp_unlink($fifo_path);
-};
-
 subtest 'version_gt()' => sub {
     my $v1 = '0.0.3';
     my $v2 = '0.0.2';
