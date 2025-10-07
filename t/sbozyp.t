@@ -579,6 +579,17 @@ subtest 'pkg()' => sub {
     );
 };
 
+subtest 'sort_pkgs()' => sub {
+    my $pkg1 = Sbozyp::pkg('sbozyp-recursive-dep-A');
+    my $pkg2 = Sbozyp::pkg('sbozyp-recursive-dep-B');
+    my $pkg3 = Sbozyp::pkg('sbozyp-recursive-dep-C');
+
+    is([Sbozyp::sort_pkgs()], [], 'returns empty list when given empty pkg list');
+    is([Sbozyp::sort_pkgs($pkg1)], [$pkg1], 'returns single item list when given single item list');
+    is([map { $_->{PRGNAM} } Sbozyp::sort_pkgs($pkg2, $pkg3, $pkg1)], ['sbozyp-recursive-dep-A', 'sbozyp-recursive-dep-B', 'sbozyp-recursive-dep-C'], 'returns pkgs sorted');
+    is([map { $_->{PRGNAM} } Sbozyp::sort_pkgs($pkg1, $pkg2, $pkg3, $pkg3, $pkg1, $pkg3, $pkg2, $pkg1)], ['sbozyp-recursive-dep-A', 'sbozyp-recursive-dep-B', 'sbozyp-recursive-dep-C'], 'returns pkgs sorted and removes duplicates');
+};
+
 subtest 'pkg_queue()' => sub {
     is([Sbozyp::pkg_queue(Sbozyp::pkg('misc/sbozyp-recursive-dep-D'))],
        [Sbozyp::pkg('misc/sbozyp-recursive-dep-D')],
