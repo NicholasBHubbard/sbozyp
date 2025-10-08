@@ -662,19 +662,26 @@ sub sync_repo {
     }
 }
 
-sub pkg_queue {
+sub pkg_dependencies {
     my ($pkg) = @_;
-    my @queue = ($pkg);
+    my @deps;
     my $resolve_deps = sub {
         my ($pkg) = @_;
         for my $req (@{$pkg->{REQUIRES}}) {
             my $req_pkg = pkg($req);
-            @queue = grep { $req_pkg->{PKGNAME} ne $_->{PKGNAME} } @queue;
-            unshift @queue, $req_pkg;
+            @deps = grep { $req_pkg->{PKGNAME} ne $_->{PKGNAME} } @deps;
+            unshift @deps, $req_pkg;
             __SUB__->($req_pkg);
         }
     };
     $resolve_deps->($pkg);
+    return @deps;
+}
+
+sub pkg_queue {
+    my ($pkg) = @_;
+    my @deps = pkg_dependencies($pkg);
+    my @queue = (@deps, $pkg);
     return @queue;
 }
 

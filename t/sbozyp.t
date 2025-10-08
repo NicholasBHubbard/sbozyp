@@ -612,6 +612,19 @@ subtest 'pkg_queue()' => sub {
     );
 };
 
+subtest 'pkg_dependencies()' => sub {
+    is([Sbozyp::pkg_dependencies(Sbozyp::pkg('misc/sbozyp-recursive-dep-D'))],
+       [],
+       'returns empty list containing input package when it has no deps'
+    );
+
+    is([Sbozyp::pkg_dependencies(Sbozyp::pkg('misc/sbozyp-recursive-dep-A'))],
+       [Sbozyp::pkg('misc/sbozyp-recursive-dep-F'), Sbozyp::pkg('misc/sbozyp-recursive-dep-E'), Sbozyp::pkg('misc/sbozyp-recursive-dep-C'), Sbozyp::pkg('misc/sbozyp-recursive-dep-D'), Sbozyp::pkg('misc/sbozyp-recursive-dep-B')],
+       'resolves recursive dependencies in order'
+    );
+
+};
+
 subtest 'merge_pkg_queues()' => sub {
     my $pkg1 = Sbozyp::pkg('sbozyp-basic');
     my $pkg2 = Sbozyp::pkg('sbozyp-basic');
