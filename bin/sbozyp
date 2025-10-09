@@ -9,7 +9,7 @@ package Sbozyp;
 our $VERSION = '0.5.1';
 
 use File::Basename qw(basename dirname);
-use File::Temp;
+use File::Temp qw();
 use File::Path qw(make_path remove_tree);
 use Getopt::Long qw(GetOptionsFromArray :config no_ignore_case no_bundling);
 use Pod::Usage qw(pod2usage);
@@ -737,6 +737,34 @@ sub pkgs_no_dependents {
     }
     @pkgs_no_dependents = sort_pkgs(@pkgs_no_dependents);
     return @pkgs_no_dependents;
+}
+
+sub removable_dependencies {
+    my @pkgs = @_;
+    my %pkgs; for my $pkg (@pkgs) {
+        $pkgs{$pkg->{PKGNAME}} = $pkg if defined(pkg_installed($pkg));
+    }
+    my %deps; for my $pkg (values %pkgs) {
+        for my $dep (pkg_dependencies($pkg)) {
+            if (not exists($pkgs{$dep->{PKGNAME}}) and defined(pkg_installed($pkg))) {
+                $deps{$dep->{PKGNAME}} = $dep
+            }
+        }
+    }
+    for my $installed_sbo_pkg (map { pkg($_) } keys %{{ installed_sbo_pkgs() }}) {
+        next if $pkgs{$installed_sbo_pkg->{PKGNAME}};
+        next if $deps{$installed_sbo_pkg->{PKGNAME}};
+        for my $dep (pkg_dependencies($installed_sbo_pkg)) {
+            $deps{$dep->{PKGNAME}} = 0 if exists $deps{$dep->{PKGNAME}};
+        }
+    }
+    my @removable_deps; for my $dep_pkgname (keys %deps) {
+        if (my $dep = $deps{$dep_pkgname}) {
+            push @removable_deps, $dep;
+        }
+    }
+    @removable_deps = sort_pkgs(@removable_deps);
+    return @removable_deps;
 }
 
 sub parse_slackware_pkgname {

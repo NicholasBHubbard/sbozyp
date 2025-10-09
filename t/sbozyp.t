@@ -1010,6 +1010,82 @@ subtest 'pkgs_no_dependents()' => sub {
     remove_tree "$TEST_DIR/tmp_root" or die;
 };
 
+subtest 'removable_dependencies()' => sub {
+    skip_all('removable_dependencies() requires root as we need to install pkgs for testing') unless $> == 0;
+
+    # change the install destination
+    local $ENV{ROOT} = "$TEST_DIR/tmp_root";
+
+    my $pkg_basic = Sbozyp::pkg('sbozyp-basic');
+    my $pkg_a = Sbozyp::pkg('sbozyp-recursive-dep-A'); # depends on B and C
+    my $pkg_b = Sbozyp::pkg('sbozyp-recursive-dep-B'); # depends on D
+    my $pkg_c = Sbozyp::pkg('sbozyp-recursive-dep-C'); # depends on E
+    my $pkg_d = Sbozyp::pkg('sbozyp-recursive-dep-D'); # no depends
+    my $pkg_e = Sbozyp::pkg('sbozyp-recursive-dep-E'); # depends on F
+    my $pkg_f = Sbozyp::pkg('sbozyp-recursive-dep-F'); # no depends
+    my @pkgs = ($pkg_basic, $pkg_a, $pkg_b, $pkg_c, $pkg_d, $pkg_e, $pkg_f);
+
+    Sbozyp::install_slackware_pkg(Sbozyp::build_slackware_pkg($_)) for @pkgs;
+
+    is([Sbozyp::removable_dependencies()], [], 'empty output list when given empty input list');
+    is([Sbozyp::removable_dependencies($pkg_basic)], [], 'returns empty list if pkg has no deps');
+    is([map { $_->{PRGNAM} } Sbozyp::removable_dependencies($pkg_a)],
+       [map { $_->{PRGNAM} } ($pkg_b, $pkg_c, $pkg_d, $pkg_e, $pkg_f)],
+       'finds all deps');
+
+    is([map { $_->{PRGNAM} } Sbozyp::removable_dependencies($pkg_b)],
+       [],
+       'correctly determines that pkg has no removable dependencies (returns them sorted)');
+
+    is([map { $_->{PRGNAM} } Sbozyp::removable_dependencies($pkg_basic, $pkg_b)],
+       [],
+       'takes multiple pks');
+
+    is([map { $_->{PRGNAM} } Sbozyp::removable_dependencies($pkg_c)],
+       [],
+       'understands indirect dependencies');
+
+    is([map { $_->{PRGNAM} } Sbozyp::removable_dependencies($pkg_a, $pkg_basic)],
+       [map { $_->{PRGNAM} } ($pkg_b, $pkg_c, $pkg_d, $pkg_e, $pkg_f)],
+       'finds all deps with multiple pkgs');
+
+    remove_tree "$TEST_DIR/tmp_root" or die; # cleanup for the next test
+
+    for my $pkg ($pkg_b, $pkg_c, $pkg_d, $pkg_e, $pkg_f) { # dont install $pkg_a
+        Sbozyp::install_slackware_pkg(Sbozyp::build_slackware_pkg($pkg));
+    }
+    is([Sbozyp::removable_dependencies($pkg_a)], [], 'ignores top-level pkgs that are not installed');
+
+    remove_tree "$TEST_DIR/tmp_root" or die; # cleanup for the next test
+
+    my $pkg_0 = Sbozyp::pkg('sbozyp-depends-on-recursive-deps'); push @pkgs, $pkg_0;
+    Sbozyp::install_slackware_pkg(Sbozyp::build_slackware_pkg($_)) for @pkgs;
+    is([Sbozyp::removable_dependencies($pkg_a)], [], 'finds depending packages to perform safe ignores');
+    is([map { $_->{PRGNAM} } Sbozyp::removable_dependencies($pkg_0)],
+       [map { $_->{PRGNAM} } ($pkg_a, $pkg_b, $pkg_c, $pkg_d, $pkg_e, $pkg_f)],
+       'finds all deps');
+
+    remove_tree "$TEST_DIR/tmp_root" or die; # cleanup for the next test
+
+    for my $pkg ($pkg_c, $pkg_e, $pkg_f) {
+        Sbozyp::install_slackware_pkg(Sbozyp::build_slackware_pkg($pkg));
+    }
+
+    is([map { $_->{PRGNAM} } Sbozyp::removable_dependencies($pkg_c, $pkg_e, $pkg_f)],
+       [],
+       'ignores deps in top-level pkgs');
+    is([map { $_->{PRGNAM} } Sbozyp::removable_dependencies($pkg_c, $pkg_f)],
+       [map { $_->{PRGNAM} } ($pkg_e)],
+       'finds all deps');
+
+    for my $pkg (@pkgs) {
+        if (my $slackware_pkg = Sbozyp::built_slackware_pkg($pkg)) {
+            unlink $slackware_pkg or die;
+        }
+    }
+    remove_tree "$TEST_DIR/tmp_root" or die; # cleanup for the next test
+};
+
 subtest 'repo_name_repo_num()'  => sub {
     my $repo_num_0 = Sbozyp::repo_name_repo_num('14.1');
     my $repo_num_1 = Sbozyp::repo_name_repo_num('14.2');
