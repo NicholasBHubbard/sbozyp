@@ -665,39 +665,25 @@ sub sync_repo {
     }
 }
 
-sub pkg_dependencies {
+sub pkg_dependencies_direct {
+    my ($pkg) = @_;
+    my @deps = map { pkg($_) } @{$pkg->{REQUIRES}};
+    return @deps;
+}
+
+sub pkg_dependencies_recursive {
     my ($pkg) = @_;
     my @deps;
     my $resolve_deps = sub {
         my ($pkg) = @_;
-        for my $req (@{$pkg->{REQUIRES}}) {
-            my $req_pkg = pkg($req);
-            @deps = grep { $req_pkg->{PKGNAME} ne $_->{PKGNAME} } @deps;
-            unshift @deps, $req_pkg;
-            __SUB__->($req_pkg);
+        for my $dep (pkg_dependencies_direct($pkg)) {
+            @deps = grep { $dep->{PKGNAME} ne $_->{PKGNAME} } @deps;
+            unshift @deps, $dep;
+            __SUB__->($dep);
         }
     };
     $resolve_deps->($pkg);
     return @deps;
-}
-
-sub pkg_queue {
-    my ($pkg) = @_;
-    my @deps = pkg_dependencies($pkg);
-    my @queue = (@deps, $pkg);
-    return @queue;
-}
-
-sub merge_pkg_queues {
-    my @queues = @_;
-    my @queue;
-    my %seen;
-    for my $pkg (@queues) {
-        next if $seen{$pkg->{PKGNAME}};
-        $seen{$pkg->{PKGNAME}} = 1;
-        push @queue, $pkg;
-    }
-    return @queue;
 }
 
 sub pkg_dependents_direct {
@@ -706,8 +692,8 @@ sub pkg_dependents_direct {
     my @installed_sbo_pkgs = keys %{{ installed_sbo_pkgs() }};
     for my $pkgname (@installed_sbo_pkgs) {
         my $pkg_ = pkg($pkgname);
-        my @deps = @{$pkg_->{REQUIRES}};
-        push @dependents, $pkg_ if grep { $pkg->{PRGNAM} eq $_ } @deps;
+        my @deps = pkg_dependencies_direct($pkg_);
+        push @dependents, $pkg_ if grep { $pkg->{PKGNAME} eq $_->{PKGNAME} } @deps;
     }
     @dependents = sort_pkgs(@dependents);
     return @dependents;
@@ -748,9 +734,9 @@ sub removable_dependencies {
         $pkgs{$pkg->{PKGNAME}} = $pkg if defined(pkg_installed($pkg));
     }
     my %deps; for my $pkg (values %pkgs) {
-        for my $dep (pkg_dependencies($pkg)) {
+        for my $dep (pkg_dependencies_direct($pkg)) {
             if (not exists($pkgs{$dep->{PKGNAME}}) and defined(pkg_installed($pkg))) {
-                $deps{$dep->{PKGNAME}} = $dep
+                $deps{$dep->{PKGNAME}} = $dep;
             }
         }
     }
@@ -768,6 +754,25 @@ sub removable_dependencies {
     }
     @removable_deps = sort_pkgs(@removable_deps);
     return @removable_deps;
+}
+
+sub pkg_queue {
+    my ($pkg) = @_;
+    my @deps = pkg_dependencies_recursive($pkg);
+    my @queue = (@deps, $pkg);
+    return @queue;
+}
+
+sub merge_pkg_queues {
+    my @queues = @_;
+    my @queue;
+    my %seen;
+    for my $pkg (@queues) {
+        next if $seen{$pkg->{PKGNAME}};
+        $seen{$pkg->{PKGNAME}} = 1;
+        push @queue, $pkg;
+    }
+    return @queue;
 }
 
 sub parse_slackware_pkgname {
