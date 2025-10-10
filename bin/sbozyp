@@ -89,7 +89,7 @@ sub build_command_main {
         while (1) {
             clear_terminal();
             if ($error_msg) { print "$error_msg\n\n"; $error_msg = '' };
-            print "sbozyp: are you sure you want to build packages: @{[map { q(').$_->{PKGNAME}.q(') } @pkgs]}? y/n\n";
+            sbozyp_print("are you sure you want to build packages: @{[map { q(').$_->{PKGNAME}.q(') } @pkgs]}? y/n\n");
             print '  -> ';
             my $decision = <STDIN>;
             $decision =~ s/^\s+|\s+$//g; # remove leading and trailing whitespace
@@ -103,7 +103,7 @@ sub build_command_main {
     for my $pkg (@pkgs) {
         if (my $slackware_pkg = built_slackware_pkg($pkg)) {
             unless ($opt_force) {
-                print "sbozyp: existing package for '$pkg->{PKGNAME}' found at '$slackware_pkg'\n";
+                sbozyp_print("existing package for '$pkg->{PKGNAME}' found at '$slackware_pkg'\n");
                 next;
             }
         }
@@ -139,7 +139,7 @@ sub install_command_main {
             sbozyp_unlink($slackware_pkg) unless $opt_keeppackage;
         }
     } else {
-        print "sbozyp: all packages (and their deps) requested for installation are up to date, invoke with -f option to force installation\n"
+        sbozyp_print("all packages (and their deps) requested for installation are up to date, invoke with -f option to force installation\n");
     }
 }
 
@@ -323,7 +323,7 @@ sub query_pkg_ui {
     @pkg_files = sort { $score->($a) <=> $score->($b) } @pkg_files;
     while (1) {
         clear_terminal();
-        print "sbozyp: query package '$pkg->{PKGNAME}': select a file to view in your pager (q to quit):\n";
+        sbozyp_print("query package '$pkg->{PKGNAME}': select a file to view in your pager (q to quit):\n");
         for (my $i = 0; $i < @pkg_files; $i++) {
             printf "  %2d  %s\n", $i+1, $pkg_files[$i] =~ s/^$pkgdir\///r;
         }
@@ -420,9 +420,12 @@ sub sbozyp_getopts {
     GetOptionsFromArray(@_) or sbozyp_die($err_prefix.$getopt_err);
 }
 
+sub sbozyp_print {
+    print 'sbozyp: ', @_;
+}
+
 sub sbozyp_die {
-    my ($msg) = @_;
-    die "sbozyp: error: $msg\n";
+    die 'sbozyp: error: ', @_, "\n";
 }
 
 sub sbozyp_system {
@@ -850,7 +853,7 @@ sub manage_install_queue_ui {
     while (1) {
         clear_terminal();
         if ($error_msg) { print "$error_msg\n\n"; $error_msg = '' };
-        print 'sbozyp: INSTALL QUEUE', "\n";
+        sbozyp_print('INSTALL QUEUE', "\n");
         for (my $i = 0; $i < @pkg_queue; $i++) {
             printf "  %2d  %s\n", $i, $pkg_queue[$i]->{PKGNAME};
         }
