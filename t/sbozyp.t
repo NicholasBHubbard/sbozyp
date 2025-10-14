@@ -1043,19 +1043,15 @@ subtest 'removable_dependencies()' => sub {
     is([Sbozyp::removable_dependencies($pkg_basic)], [], 'returns empty list if pkg has no deps');
     is([map { $_->{PRGNAM} } Sbozyp::removable_dependencies($pkg_a)],
        [map { $_->{PRGNAM} } ($pkg_b, $pkg_c, $pkg_d, $pkg_e, $pkg_f)],
-       'finds all deps');
+       'finds all deps, sorted, doesnt include the top level package itself');
 
     is([map { $_->{PRGNAM} } Sbozyp::removable_dependencies($pkg_b)],
-       [],
+       [map { $_->{PRGNAM} } ($pkg_d)],
        'correctly determines that pkg has no removable dependencies (returns them sorted)');
 
-    is([map { $_->{PRGNAM} } Sbozyp::removable_dependencies($pkg_basic, $pkg_b)],
-       [],
-       'takes multiple pks');
-
-    is([map { $_->{PRGNAM} } Sbozyp::removable_dependencies($pkg_c)],
-       [],
-       'understands indirect dependencies');
+    is([map { $_->{PRGNAM} } Sbozyp::removable_dependencies($pkg_e, $pkg_b)],
+       [map { $_->{PRGNAM} } ($pkg_d, $pkg_f)],
+       'accepts multiple pks, and combines their dependencies');
 
     is([map { $_->{PRGNAM} } Sbozyp::removable_dependencies($pkg_a, $pkg_basic)],
        [map { $_->{PRGNAM} } ($pkg_b, $pkg_c, $pkg_d, $pkg_e, $pkg_f)],
@@ -1066,16 +1062,28 @@ subtest 'removable_dependencies()' => sub {
     for my $pkg ($pkg_b, $pkg_c, $pkg_d, $pkg_e, $pkg_f) { # dont install $pkg_a
         Sbozyp::install_slackware_pkg(Sbozyp::build_slackware_pkg($pkg));
     }
-    is([Sbozyp::removable_dependencies($pkg_a)], [], 'ignores top-level pkgs that are not installed');
+    is([map { $_->{PRGNAM} } Sbozyp::removable_dependencies($pkg_a)],
+       [map { $_->{PRGNAM} } ($pkg_b, $pkg_c, $pkg_d, $pkg_e, $pkg_f)],
+       'does not care about if top level pkgs are actually installed');
+
+    my $pkg_0 = Sbozyp::pkg('sbozyp-depends-on-recursive-deps'); # depends on A and B
+    push @pkgs, $pkg_0; Sbozyp::install_slackware_pkg(Sbozyp::build_slackware_pkg($pkg_0));
+
+    say "HERE: $_->{PRGNAM}" for Sbozyp::pkg_dependencies_recursive($pkg_b);
+
+    is([map { $_->{PRGNAM} } Sbozyp::removable_dependencies($pkg_0)],
+       [map { $_->{PRGNAM} } ($pkg_b, $pkg_d)],
+       'skips dependencies that are not installed');
 
     remove_tree "$TEST_DIR/tmp_root" or die; # cleanup for the next test
 
-    my $pkg_0 = Sbozyp::pkg('sbozyp-depends-on-recursive-deps'); push @pkgs, $pkg_0;
     Sbozyp::install_slackware_pkg(Sbozyp::build_slackware_pkg($_)) for @pkgs;
-    is([Sbozyp::removable_dependencies($pkg_a)], [], 'finds depending packages to perform safe ignores');
+
+     is([map { $_->{PRGNAM} } Sbozyp::removable_dependencies($pkg_a)],
+       [map { $_->{PRGNAM} } ($pkg_c, $pkg_e, $pkg_f)],
+       'finds depending packages to perform safe ignores');
     is([map { $_->{PRGNAM} } Sbozyp::removable_dependencies($pkg_0)],
-       [map { $_->{PRGNAM} } ($pkg_a, $pkg_b, $pkg_c, $pkg_d, $pkg_e, $pkg_f)],
-       'finds all deps');
+       [map { $_->{PRGNAM} } ($pkg_a, $pkg_b, $pkg_c, $pkg_d, $pkg_e, $pkg_f)],);
 
     remove_tree "$TEST_DIR/tmp_root" or die; # cleanup for the next test
 
@@ -1088,7 +1096,20 @@ subtest 'removable_dependencies()' => sub {
        'ignores deps in top-level pkgs');
     is([map { $_->{PRGNAM} } Sbozyp::removable_dependencies($pkg_c, $pkg_f)],
        [map { $_->{PRGNAM} } ($pkg_e)],
-       'finds all deps');
+       'skips deps if they are in top level pkgs');
+    is([map { $_->{PRGNAM} } Sbozyp::removable_dependencies($pkg_e)],
+       [map { $_->{PRGNAM} } ($pkg_f)],
+       'smart about indirect safety');
+
+    remove_tree "$TEST_DIR/tmp_root" or die; # cleanup for the next test
+
+    for my $pkg ($pkg_a, $pkg_c, $pkg_d, $pkg_e, $pkg_f) { # dont install $pkg_b
+        Sbozyp::install_slackware_pkg(Sbozyp::build_slackware_pkg($pkg));
+    }
+
+    is([map { $_->{PRGNAM} } Sbozyp::removable_dependencies($pkg_a)],
+       [map { $_->{PRGNAM} } ($pkg_c, $pkg_e, $pkg_f)],
+       'doesnt include deps of uninstalled direct deps');
 
     for my $pkg (@pkgs) {
         if (my $slackware_pkg = Sbozyp::built_slackware_pkg($pkg)) {

@@ -729,26 +729,34 @@ sub pkgs_no_dependents {
 }
 
 sub removable_dependencies {
-    my @pkgs = @_;
-    my %pkgs; for my $pkg (@pkgs) {
-        $pkgs{$pkg->{PKGNAME}} = $pkg if defined(pkg_installed($pkg));
-    }
+    my @pkgs = @_; # we assume all pkgs in @pkgs are actually installed
+    my %pkgs; $pkgs{$_->{PKGNAME}} = $_ for @pkgs;
     my %deps; for my $pkg (values %pkgs) {
         for my $dep (pkg_dependencies_direct($pkg)) {
-            if (not exists($pkgs{$dep->{PKGNAME}}) and defined(pkg_installed($pkg))) {
+            next if exists $pkgs{$dep->{PKGNAME}};
+            if (defined pkg_installed($dep)) {
                 $deps{$dep->{PKGNAME}} = $dep;
+                for my $dep (pkg_dependencies_recursive($dep)) {
+                    next if exists $pkgs{$dep->{PKGNAME}};
+                    $deps{$dep->{PKGNAME}} = $dep if defined pkg_installed($dep);
+                }
             }
         }
     }
     for my $installed_sbo_pkg (map { pkg($_) } keys %{{ installed_sbo_pkgs() }}) {
-        next if $pkgs{$installed_sbo_pkg->{PKGNAME}};
-        next if $deps{$installed_sbo_pkg->{PKGNAME}};
-        for my $dep (pkg_dependencies($installed_sbo_pkg)) {
-            $deps{$dep->{PKGNAME}} = 0 if exists $deps{$dep->{PKGNAME}};
+        next if exists $pkgs{$installed_sbo_pkg->{PKGNAME}};
+        next if exists $deps{$installed_sbo_pkg->{PKGNAME}};
+        for my $dep (pkg_dependencies_direct($installed_sbo_pkg)) {
+            if ($deps{$dep->{PKGNAME}}) {
+                $deps{$dep->{PKGNAME}} = 0;
+                for my $dep (pkg_dependencies_recursive($dep)) {
+                    $deps{$dep->{PKGNAME}} = 0 if exists $deps{$dep->{PKGNAME}};
+                }
+            }
         }
     }
-    my @removable_deps; for my $dep_pkgname (keys %deps) {
-        if (my $dep = $deps{$dep_pkgname}) {
+    my @removable_deps; for my $pkgname (keys %deps) {
+        if (my $dep = $deps{$pkgname}) {
             push @removable_deps, $dep;
         }
     }
