@@ -434,12 +434,20 @@ sub sbozyp_getopts {
     GetOptionsFromArray(@_) or sbozyp_die($err_prefix.$getopt_err);
 }
 
+sub sbozyp_msg_prefix {
+    return 'sbozyp: ';
+}
+
 sub sbozyp_print {
-    print 'sbozyp: ', @_;
+    print sbozyp_msg_prefix(), @_;
+}
+
+sub sbozyp_error_prefix {
+    return 'sbozyp: error: ';
 }
 
 sub sbozyp_die {
-    die 'sbozyp: error: ', @_, "\n";
+    die sbozyp_error_prefix(), @_, "\n";
 }
 
 sub sbozyp_system {
