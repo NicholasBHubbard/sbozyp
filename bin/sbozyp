@@ -340,15 +340,21 @@ sub query_pkg_ui {
     }
 }
 
-sub sort_pkgs {
+sub pkgs_uniq {
     my @pkgs = @_;
-    my %seen; my @_pkgs;
+    my %seen; my @pkgs_uniq;
     for my $pkg (@pkgs) {
         next if $seen{$pkg->{PKGNAME}};
         $seen{$pkg->{PKGNAME}} = 1;
-        push @_pkgs, $pkg;
+        push @pkgs_uniq, $pkg;
     }
-    return sort { $a->{PKGNAME} cmp $b->{PKGNAME} } @_pkgs;
+    return @pkgs_uniq;
+}
+
+sub pkgs_sorted {
+    my @pkgs = @_;
+    my @pkgs_uniq = pkgs_uniq(@pkgs);
+    return sort { $a->{PKGNAME} cmp $b->{PKGNAME} } @pkgs_uniq;
 }
 
 sub pkg_array_minus {
@@ -703,7 +709,7 @@ sub pkg_dependents_direct {
         my @deps = pkg_dependencies_direct($pkg_);
         push @dependents, $pkg_ if grep { $pkg->{PKGNAME} eq $_->{PKGNAME} } @deps;
     }
-    @dependents = sort_pkgs(@dependents);
+    @dependents = pkgs_sorted(@dependents);
     return @dependents;
 }
 
@@ -721,7 +727,7 @@ sub pkg_dependents_recursive {
         }
     };
     $resolve_dependents->(pkg_dependents_direct($pkg));
-    @dependents = sort_pkgs(@dependents);
+    @dependents = pkgs_sorted(@dependents);
     return @dependents;
 }
 
@@ -732,7 +738,7 @@ sub pkgs_no_dependents {
         my $pkg = pkg($pkgname);
         push @pkgs_no_dependents, $pkg if 0 == pkg_dependents_direct($pkg);
     }
-    @pkgs_no_dependents = sort_pkgs(@pkgs_no_dependents);
+    @pkgs_no_dependents = pkgs_sorted(@pkgs_no_dependents);
     return @pkgs_no_dependents;
 }
 
@@ -768,7 +774,7 @@ sub removable_dependencies {
             push @removable_deps, $dep;
         }
     }
-    @removable_deps = sort_pkgs(@removable_deps);
+    @removable_deps = pkgs_sorted(@removable_deps);
     return @removable_deps;
 }
 

@@ -579,15 +579,26 @@ subtest 'pkg()' => sub {
     );
 };
 
-subtest 'sort_pkgs()' => sub {
+subtest 'pkgs_uniq()' => sub {
     my $pkg1 = Sbozyp::pkg('sbozyp-recursive-dep-A');
     my $pkg2 = Sbozyp::pkg('sbozyp-recursive-dep-B');
     my $pkg3 = Sbozyp::pkg('sbozyp-recursive-dep-C');
 
-    is([Sbozyp::sort_pkgs()], [], 'returns empty list when given empty pkg list');
-    is([Sbozyp::sort_pkgs($pkg1)], [$pkg1], 'returns single item list when given single item list');
-    is([map { $_->{PRGNAM} } Sbozyp::sort_pkgs($pkg2, $pkg3, $pkg1)], ['sbozyp-recursive-dep-A', 'sbozyp-recursive-dep-B', 'sbozyp-recursive-dep-C'], 'returns pkgs sorted');
-    is([map { $_->{PRGNAM} } Sbozyp::sort_pkgs($pkg1, $pkg2, $pkg3, $pkg3, $pkg1, $pkg3, $pkg2, $pkg1)], ['sbozyp-recursive-dep-A', 'sbozyp-recursive-dep-B', 'sbozyp-recursive-dep-C'], 'returns pkgs sorted and removes duplicates');
+    is([Sbozyp::pkgs_uniq()], [], 'returns empty list when given empty pkg list');
+    is([Sbozyp::pkgs_uniq($pkg1)], [$pkg1], 'returns single item list when given single item list');
+    is([Sbozyp::pkgs_uniq($pkg2, $pkg1, $pkg3)], [$pkg2, $pkg1, $pkg3], 'retains original order');
+    is([Sbozyp::pkgs_uniq($pkg2, $pkg1, $pkg1, $pkg2, $pkg1, $pkg3, $pkg3, $pkg1)], [$pkg2, $pkg1, $pkg3], 'removes duplicate pkgs, retaining order of first seen');
+};
+
+subtest 'pkgs_sorted()' => sub {
+    my $pkg1 = Sbozyp::pkg('sbozyp-recursive-dep-A');
+    my $pkg2 = Sbozyp::pkg('sbozyp-recursive-dep-B');
+    my $pkg3 = Sbozyp::pkg('sbozyp-recursive-dep-C');
+
+    is([Sbozyp::pkgs_sorted()], [], 'returns empty list when given empty pkg list');
+    is([Sbozyp::pkgs_sorted($pkg1)], [$pkg1], 'returns single item list when given single item list');
+    is([map { $_->{PRGNAM} } Sbozyp::pkgs_sorted($pkg2, $pkg3, $pkg1)], ['sbozyp-recursive-dep-A', 'sbozyp-recursive-dep-B', 'sbozyp-recursive-dep-C'], 'returns pkgs sorted');
+    is([map { $_->{PRGNAM} } Sbozyp::pkgs_sorted($pkg1, $pkg2, $pkg3, $pkg3, $pkg1, $pkg3, $pkg2, $pkg1)], ['sbozyp-recursive-dep-A', 'sbozyp-recursive-dep-B', 'sbozyp-recursive-dep-C'], 'returns pkgs sorted and removes duplicates');
 };
 
 subtest 'pkg_array_minus()' => sub {
