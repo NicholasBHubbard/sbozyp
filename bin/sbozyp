@@ -212,32 +212,38 @@ sub remove_command_main {
     sbozyp_getopts(
         \@_,
         'h|help' => \my $opt_help,
-        'i'      => \my $opt_noninteractive
+        'f'      => \my $opt_nodepsafetycheck,
+        'i'      => \my $opt_noninteractive,
+        'r'      => \my $opt_removedeps
     );
     if ($opt_help) { print command_help_msg('remove'); return }
     @_ >= 1 or die command_usage('remove');
     i_am_root_or_die('the remove command requires root');
-    my @pkgs = map { $_ = pkg($_) } @_;
+    my @pkgs = pkgs_uniq(map { $_ = pkg($_) } @_);
+    unless ($opt_nodepsafetycheck) {
+        my @errors; for my $pkg (@pkgs) {
+            my @dependents = pkg_array_minus([pkg_dependents_direct($pkg)], [@pkgs]);
+            if (@dependents) {
+                my $error = sbozyp_error_prefix()."package '$pkg->{PKGNAME}' is depended on by:\n";
+                $error .= "    $_->{PKGNAME}\n" for @dependents;
+                push @errors, $error;
+            }
+        }
+        die @errors if @errors;
+    }
+    @pkgs = (@pkgs, pkgs_removable_dependencies(@pkgs)) if $opt_removedeps;
     for my $pkg (@pkgs) {
         if (!defined pkg_installed($pkg)) {
             sbozyp_die("the package '$pkg->{PKGNAME}' is not installed");
         }
     }
     if (not $opt_noninteractive) {
-        my $error_msg = '';
-        while (1) {
-            clear_terminal();
-            if ($error_msg) { print "$error_msg\n\n"; $error_msg = '' };
-            print "sbozyp: are you sure you want to remove packages: @{[map { q(').$_->{PKGNAME}.q(') } @pkgs]}? y/n\n";
-            print '  -> ';
-            my $decision = <STDIN>;
-            $decision =~ s/^\s+|\s+$//g; # remove leading and trailing whitespace
-            if    ($decision =~ /^y(?:es)?$/i) { last   }
-            elsif ($decision =~ /^no?$/i)      { return }
-            else {
-                $error_msg = "invalid input: '$decision'";
-            }
-        }
+        sbozyp_print('are you sure you want to remove these packages:', "\n");
+        print '    ', $_->{PKGNAME}, "\n" for @pkgs;
+        print '  (y/n) -> ';
+        my $decision = <STDIN>;
+        $decision =~ s/^\s+|\s+$//g; # remove leading and trailing whitespace
+        return unless $decision =~ /^y(?:es)?$/i;
     }
     remove_slackware_pkg($_->{PRGNAM}) for @pkgs;
 }
@@ -1164,20 +1170,22 @@ Examples:
 
 =head2 REMOVE
 
- Usage: sbozyp <remove|rm> [-h] [-i] <pkgname...>
+ Usage: sbozyp <remove|rm> [-h] [-f] [-i] [-r] <pkgname...>
 
 Remove packages.
 
 Options are:
 
  -h|--help     Print help message
+ -f            Disable removal safety check (DANGEROUS)
  -i            No confirmation prompt
+ -r            Recursively remove package dependencies that are safe to remove
 
 Examples:
 
  sbozyp remove --help
  sbozyp rm xclip mu system/password-store
- sbozyp rm -i password-store
+ sbozyp rm -i -r password-store
  sbozyp -S -R $REPO rm password-store
 
 =head2 QUERY
