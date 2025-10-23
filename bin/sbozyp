@@ -351,6 +351,14 @@ sub sort_pkgs {
     return sort { $a->{PKGNAME} cmp $b->{PKGNAME} } @_pkgs;
 }
 
+sub pkg_array_minus {
+    my ($pkg_aref1, $pkg_aref2) = @_;
+    my @pkgs_minus = grep {
+        my $pkg = $_; !grep { $pkg->{PKGNAME} eq $_->{PKGNAME} } @$pkg_aref2
+    } @$pkg_aref1;
+    return @pkgs_minus;
+}
+
 sub pkg_installed {
     my ($pkg) = @_;
     my %installed_sbo_pkgs = installed_sbo_pkgs(); # hash from PKGNAME to version

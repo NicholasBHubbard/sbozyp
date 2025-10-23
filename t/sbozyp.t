@@ -590,6 +590,40 @@ subtest 'sort_pkgs()' => sub {
     is([map { $_->{PRGNAM} } Sbozyp::sort_pkgs($pkg1, $pkg2, $pkg3, $pkg3, $pkg1, $pkg3, $pkg2, $pkg1)], ['sbozyp-recursive-dep-A', 'sbozyp-recursive-dep-B', 'sbozyp-recursive-dep-C'], 'returns pkgs sorted and removes duplicates');
 };
 
+subtest 'pkg_array_minus()' => sub {
+    my $pkg1 = Sbozyp::pkg('sbozyp-recursive-dep-A');
+    my $pkg2 = Sbozyp::pkg('sbozyp-recursive-dep-B');
+    my $pkg3 = Sbozyp::pkg('sbozyp-recursive-dep-C');
+
+    my $aref1 = [];
+    my $aref2 = [];
+    is([], [Sbozyp::pkg_array_minus($aref1, $aref2)], '0 - 0 = 0');
+
+    $aref1 = [];
+    $aref2 = [$pkg1];
+    is([], [Sbozyp::pkg_array_minus($aref1, $aref2)], '0 - 1 = 0');
+
+    $aref1 = [];
+    $aref2 = [$pkg1, $pkg2, $pkg3];
+    is([], [Sbozyp::pkg_array_minus($aref1, $aref2)], '0 - 3 = 0');
+
+    $aref1 = [$pkg1];
+    $aref2 = [];
+    is([$pkg1], [Sbozyp::pkg_array_minus($aref1, $aref2)], '1 - 0 = 1');
+
+    $aref1 = [$pkg1];
+    $aref2 = [$pkg2];
+    is([$pkg1], [Sbozyp::pkg_array_minus($aref1, $aref2)], 'ignores pkgs in $aref2 not in $aref1');
+
+    $aref1 = [$pkg1];
+    $aref2 = [$pkg1, $pkg2];
+    is([], [Sbozyp::pkg_array_minus($aref1, $aref2)], 'removes pkgs from $aref1 that are in $aref2');
+
+    $aref1 = [$pkg1, $pkg3];
+    $aref2 = [$pkg1, $pkg2];
+    is([$pkg3], [Sbozyp::pkg_array_minus($aref1, $aref2)], 'removes pkgs from $aref1 that are in $aref2');
+};
+
 subtest 'pkg_queue()' => sub {
     is([Sbozyp::pkg_queue(Sbozyp::pkg('misc/sbozyp-recursive-dep-D'))],
        [Sbozyp::pkg('misc/sbozyp-recursive-dep-D')],
