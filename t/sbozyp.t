@@ -1067,8 +1067,8 @@ subtest 'pkgs_no_dependents()' => sub {
     remove_tree "$TEST_DIR/tmp_root" or die;
 };
 
-subtest 'removable_dependencies()' => sub {
-    skip_all('removable_dependencies() requires root as we need to install pkgs for testing') unless $> == 0;
+subtest 'pkgs_removable_dependencies()' => sub {
+    skip_all('pkgs_removable_dependencies() requires root as we need to install pkgs for testing') unless $> == 0;
 
     # change the install destination
     local $ENV{ROOT} = "$TEST_DIR/tmp_root";
@@ -1084,21 +1084,21 @@ subtest 'removable_dependencies()' => sub {
 
     Sbozyp::install_slackware_pkg(Sbozyp::build_slackware_pkg($_)) for @pkgs;
 
-    is([Sbozyp::removable_dependencies()], [], 'empty output list when given empty input list');
-    is([Sbozyp::removable_dependencies($pkg_basic)], [], 'returns empty list if pkg has no deps');
-    is([map { $_->{PRGNAM} } Sbozyp::removable_dependencies($pkg_a)],
+    is([Sbozyp::pkgs_removable_dependencies()], [], 'empty output list when given empty input list');
+    is([Sbozyp::pkgs_removable_dependencies($pkg_basic)], [], 'returns empty list if pkg has no deps');
+    is([map { $_->{PRGNAM} } Sbozyp::pkgs_removable_dependencies($pkg_a)],
        [map { $_->{PRGNAM} } ($pkg_b, $pkg_c, $pkg_d, $pkg_e, $pkg_f)],
        'finds all deps, sorted, doesnt include the top level package itself');
 
-    is([map { $_->{PRGNAM} } Sbozyp::removable_dependencies($pkg_b)],
+    is([map { $_->{PRGNAM} } Sbozyp::pkgs_removable_dependencies($pkg_b)],
        [map { $_->{PRGNAM} } ($pkg_d)],
        'correctly determines that pkg has no removable dependencies (returns them sorted)');
 
-    is([map { $_->{PRGNAM} } Sbozyp::removable_dependencies($pkg_e, $pkg_b)],
+    is([map { $_->{PRGNAM} } Sbozyp::pkgs_removable_dependencies($pkg_e, $pkg_b)],
        [map { $_->{PRGNAM} } ($pkg_d, $pkg_f)],
        'accepts multiple pks, and combines their dependencies');
 
-    is([map { $_->{PRGNAM} } Sbozyp::removable_dependencies($pkg_a, $pkg_basic)],
+    is([map { $_->{PRGNAM} } Sbozyp::pkgs_removable_dependencies($pkg_a, $pkg_basic)],
        [map { $_->{PRGNAM} } ($pkg_b, $pkg_c, $pkg_d, $pkg_e, $pkg_f)],
        'finds all deps with multiple pkgs');
 
@@ -1107,7 +1107,7 @@ subtest 'removable_dependencies()' => sub {
     for my $pkg ($pkg_b, $pkg_c, $pkg_d, $pkg_e, $pkg_f) { # dont install $pkg_a
         Sbozyp::install_slackware_pkg(Sbozyp::build_slackware_pkg($pkg));
     }
-    is([map { $_->{PRGNAM} } Sbozyp::removable_dependencies($pkg_a)],
+    is([map { $_->{PRGNAM} } Sbozyp::pkgs_removable_dependencies($pkg_a)],
        [map { $_->{PRGNAM} } ($pkg_b, $pkg_c, $pkg_d, $pkg_e, $pkg_f)],
        'does not care about if top level pkgs are actually installed');
 
@@ -1116,7 +1116,7 @@ subtest 'removable_dependencies()' => sub {
 
     say "HERE: $_->{PRGNAM}" for Sbozyp::pkg_dependencies_recursive($pkg_b);
 
-    is([map { $_->{PRGNAM} } Sbozyp::removable_dependencies($pkg_0)],
+    is([map { $_->{PRGNAM} } Sbozyp::pkgs_removable_dependencies($pkg_0)],
        [map { $_->{PRGNAM} } ($pkg_b, $pkg_d)],
        'skips dependencies that are not installed');
 
@@ -1124,10 +1124,10 @@ subtest 'removable_dependencies()' => sub {
 
     Sbozyp::install_slackware_pkg(Sbozyp::build_slackware_pkg($_)) for @pkgs;
 
-     is([map { $_->{PRGNAM} } Sbozyp::removable_dependencies($pkg_a)],
+     is([map { $_->{PRGNAM} } Sbozyp::pkgs_removable_dependencies($pkg_a)],
        [map { $_->{PRGNAM} } ($pkg_c, $pkg_e, $pkg_f)],
        'finds depending packages to perform safe ignores');
-    is([map { $_->{PRGNAM} } Sbozyp::removable_dependencies($pkg_0)],
+    is([map { $_->{PRGNAM} } Sbozyp::pkgs_removable_dependencies($pkg_0)],
        [map { $_->{PRGNAM} } ($pkg_a, $pkg_b, $pkg_c, $pkg_d, $pkg_e, $pkg_f)],);
 
     remove_tree "$TEST_DIR/tmp_root" or die; # cleanup for the next test
@@ -1136,13 +1136,13 @@ subtest 'removable_dependencies()' => sub {
         Sbozyp::install_slackware_pkg(Sbozyp::build_slackware_pkg($pkg));
     }
 
-    is([map { $_->{PRGNAM} } Sbozyp::removable_dependencies($pkg_c, $pkg_e, $pkg_f)],
+    is([map { $_->{PRGNAM} } Sbozyp::pkgs_removable_dependencies($pkg_c, $pkg_e, $pkg_f)],
        [],
        'ignores deps in top-level pkgs');
-    is([map { $_->{PRGNAM} } Sbozyp::removable_dependencies($pkg_c, $pkg_f)],
+    is([map { $_->{PRGNAM} } Sbozyp::pkgs_removable_dependencies($pkg_c, $pkg_f)],
        [map { $_->{PRGNAM} } ($pkg_e)],
        'skips deps if they are in top level pkgs');
-    is([map { $_->{PRGNAM} } Sbozyp::removable_dependencies($pkg_e)],
+    is([map { $_->{PRGNAM} } Sbozyp::pkgs_removable_dependencies($pkg_e)],
        [map { $_->{PRGNAM} } ($pkg_f)],
        'smart about indirect safety');
 
@@ -1152,7 +1152,7 @@ subtest 'removable_dependencies()' => sub {
         Sbozyp::install_slackware_pkg(Sbozyp::build_slackware_pkg($pkg));
     }
 
-    is([map { $_->{PRGNAM} } Sbozyp::removable_dependencies($pkg_a)],
+    is([map { $_->{PRGNAM} } Sbozyp::pkgs_removable_dependencies($pkg_a)],
        [map { $_->{PRGNAM} } ($pkg_c, $pkg_e, $pkg_f)],
        'doesnt include deps of uninstalled direct deps');
 

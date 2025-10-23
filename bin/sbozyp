@@ -742,7 +742,7 @@ sub pkgs_no_dependents {
     return @pkgs_no_dependents;
 }
 
-sub removable_dependencies {
+sub pkgs_removable_dependencies {
     my @pkgs = @_; # we assume all pkgs in @pkgs are actually installed
     my %pkgs; $pkgs{$_->{PKGNAME}} = $_ for @pkgs;
     my %deps; for my $pkg (values %pkgs) {
