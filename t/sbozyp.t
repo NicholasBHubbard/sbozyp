@@ -700,6 +700,67 @@ subtest 'pkgs_merged()' => sub {
     );
 };
 
+subtest 'pkgs_confirm_with_user()' => sub {
+    my $stdin; my $stdout; my $output;
+    my $pkg1 = Sbozyp::pkg('sbozyp-basic');
+    my $pkg2 = Sbozyp::pkg('sbozyp-recursive-dep-A');
+
+    open $stdin, '<', \"yes\n" or die;
+    local *STDIN = $stdin;
+    $stdout = capture { $output = Sbozyp::pkgs_confirm_with_user($pkg1, $pkg2) };
+    close $stdin;
+    ok($output, 'accepts yes');
+    is($stdout, "    misc/sbozyp-basic\n    misc/sbozyp-recursive-dep-A\n  (y/n) -> ", 'produces useful output');
+
+    open $stdin, '<', \"y\n" or die;
+    local *STDIN = $stdin;
+    Sbozyp::pkgs_confirm_with_user($pkg1, $pkg2);
+    close $stdin;
+    ok($output, 'accepts y');
+
+    open $stdin, '<', \"  y  \n" or die;
+    local *STDIN = $stdin;
+    Sbozyp::pkgs_confirm_with_user($pkg1, $pkg2);
+    close $stdin;
+    ok($output, 'trims leading and trailing whitespace');
+
+    open $stdin, '<', \"\n" or die;
+    local *STDIN = $stdin;
+    $output = Sbozyp::pkgs_confirm_with_user($pkg1, $pkg2);
+    close $stdin;
+    ok(!$output, 'rejects empty input');
+
+    open $stdin, '<', \"YES\n" or die;
+    local *STDIN = $stdin;
+    $output = Sbozyp::pkgs_confirm_with_user($pkg1, $pkg2);
+    close $stdin;
+    ok(!$output, 'rejects YES');
+
+    open $stdin, '<', \"Y\n" or die;
+    local *STDIN = $stdin;
+    $output = Sbozyp::pkgs_confirm_with_user($pkg1, $pkg2);
+    close $stdin;
+    ok(!$output, 'rejects Y');
+
+    open $stdin, '<', \"no\n" or die;
+    local *STDIN = $stdin;
+    $output = Sbozyp::pkgs_confirm_with_user($pkg1, $pkg2);
+    close $stdin;
+    ok(!$output, 'rejects with no');
+
+    open $stdin, '<', \"n\n" or die;
+    local *STDIN = $stdin;
+    $output = Sbozyp::pkgs_confirm_with_user($pkg1, $pkg2);
+    close $stdin;
+    ok(!$output, 'rejects with n');
+
+    open $stdin, '<', \"foo\n" or die;
+    local *STDIN = $stdin;
+    $output = Sbozyp::pkgs_confirm_with_user($pkg1, $pkg2);
+    close $stdin;
+    ok(!$output, 'rejects with random input');
+};
+
 subtest 'parse_slackware_pkgname()' => sub {
     is([Sbozyp::parse_slackware_pkgname('acpica-20220331-x86_64-1_SBo')],
        ['development/acpica', '20220331'],
@@ -1195,166 +1256,6 @@ subtest 'repo_git_url()' => sub {
     is(Sbozyp::repo_git_url(), 'git://git.slackbuilds.org/slackbuilds.git', 'returns name of current repos url');
 };
 
-subtest 'manage_install_queue_ui()' => sub {
-    # the pkgs picked here are arbitrary ...
-    my $pkg1 = Sbozyp::pkg('sbozyp-basic');
-    my $pkg2 = Sbozyp::pkg('sbozyp-nested-dir');
-    my $pkg3 = Sbozyp::pkg('sbozyp-readme-extra-deps');
-    my @queue = ($pkg1, $pkg2, $pkg3);
-
-    my $stdin; # were gonna mock STDIN for the following tests.
-    my $stdout; # some tests capture STDOUT into this variable
-
-    open $stdin, '<', \"confirm\n" or die;
-    local *STDIN = $stdin;
-    is(\@queue, [Sbozyp::manage_install_queue_ui(@queue)], q('confirm' returns queue as is));
-    close $stdin or die;
-
-    open $stdin, '<', \"c\n" or die;
-    local *STDIN = $stdin;
-    is(\@queue, [Sbozyp::manage_install_queue_ui(@queue)], q(accepts 'c' as abbreviation for 'confirm'));
-    close $stdin or die;
-
-    open $stdin, '<', \"INVALID\nc\n" or die;
-    local *STDIN = $stdin;
-    ($stdout) = capture { Sbozyp::manage_install_queue_ui(@queue) };
-    like($stdout, qr/invalid input/, 'rejects invalid input');
-    close $stdin or die;
-
-    open $stdin, '<', \"quit\n" or die;
-    local *STDIN = $stdin;
-    is([], [Sbozyp::manage_install_queue_ui(@queue)], q('quit' returns empty list));
-    close $stdin or die;
-
-    open $stdin, '<', \"q\n" or die;
-    local *STDIN = $stdin;
-    is([], [Sbozyp::manage_install_queue_ui(@queue)], q(accepts 'q' as abbreviation for 'quit'));
-    close $stdin or die;
-
-    open $stdin, '<', \"swap 0 2\nc\n" or die;
-    local *STDIN = $stdin;
-    is([$pkg3,$pkg2,$pkg1], [Sbozyp::manage_install_queue_ui(@queue)], q(accepts 'swap' as well as just s));
-    close $stdin or die;
-
-    open $stdin, '<', \"s 0 1\nc\n" or die;
-    local *STDIN = $stdin;
-    is([$pkg2,$pkg1,$pkg3], [Sbozyp::manage_install_queue_ui(@queue)], q(accepts 's' as abbreviation for 'swap'));
-    close $stdin or die;
-
-    open $stdin, '<', \"swap 2 0\nc\n" or die;
-    local *STDIN = $stdin;
-    is([$pkg3,$pkg2,$pkg1], [Sbozyp::manage_install_queue_ui(@queue)], q('swap' doesnt care about order of indices));
-    close $stdin or die;
-
-    open $stdin, '<', \"swap 0 3\nc\n" or die;
-    local *STDIN = $stdin;
-    ($stdout) = capture { Sbozyp::manage_install_queue_ui(@queue) };
-    like($stdout, qr/index.*out of range/, 'swap gives error message for index out of range');
-    close $stdin or die;
-
-    open $stdin, '<', \"swap 0 -1\nc\n" or die;
-    local *STDIN = $stdin;
-    ($stdout) = capture { Sbozyp::manage_install_queue_ui(@queue) };
-    like($stdout, qr/invalid input/, 'rejects negative numbers as invalid input');
-    close $stdin or die;
-
-    open $stdin, '<', \"delete 1\nc\n" or die;
-    local *STDIN = $stdin;
-    is([$pkg1,$pkg3], [Sbozyp::manage_install_queue_ui(@queue)], q('delete' deletes pkg at given index));
-    close $stdin or die;
-
-    open $stdin, '<', \"d 1\nc\n" or die;
-    local *STDIN = $stdin;
-    is([$pkg1,$pkg3], [Sbozyp::manage_install_queue_ui(@queue)], q(accepts 'd' as abbreviation for 'delete'));
-    close $stdin or die;
-
-    open $stdin, '<', \"d\nc\n" or die;
-    local *STDIN = $stdin;
-    ($stdout) = capture { Sbozyp::manage_install_queue_ui(@queue) };
-    like($stdout, qr/invalid input/, q('delete' requires arg or else it rejects input));
-    close $stdin or die;
-
-    open $stdin, '<', \"d FOO\nc\n" or die;
-    local *STDIN = $stdin;
-    ($stdout) = capture { Sbozyp::manage_install_queue_ui(@queue) };
-    like($stdout, qr/invalid input/, q('delete' requires arg to be numeric or else it rejects input));
-    close $stdin or die;
-
-    my $pkg4_prgnam = 'sbozyp-recursive-dep-B';
-    my $pkg4_pkgname = 'misc/sbozyp-recursive-dep-B';
-    my $pkg4 = Sbozyp::pkg($pkg4_prgnam); # $pkg4 is used in tests for 'add'
-
-    open $stdin, '<', \"add 1 $pkg4_prgnam\nc\n" or die;
-    local *STDIN = $stdin;
-    is([$pkg1,$pkg4,$pkg2,$pkg3], [Sbozyp::manage_install_queue_ui(@queue)], q('add' adds a pkg named PRGNAM to the queue at INDEX));
-    close $stdin or die;
-
-    open $stdin, '<', \"a 1 $pkg4_prgnam\nc\n" or die;
-    local *STDIN = $stdin;
-    is([$pkg1,$pkg4,$pkg2,$pkg3], [Sbozyp::manage_install_queue_ui(@queue)], q(accepts 'a' as abbreviation for 'add'));
-    close $stdin or die;
-
-    open $stdin, '<', \"a 1 $pkg4_pkgname\nc\n" or die;
-    local *STDIN = $stdin;
-    is([$pkg1,$pkg4,$pkg2,$pkg3], [Sbozyp::manage_install_queue_ui(@queue)], q('add' accepts PKGNAME as well as PRGNAM));
-    close $stdin or die;
-
-    open $stdin, '<', \"a 3 $pkg4_prgnam\nc\n" or die;
-    local *STDIN = $stdin;
-    is([$pkg1,$pkg2,$pkg3,$pkg4], [Sbozyp::manage_install_queue_ui(@queue)], q('add' adds to end of queue when specifying one more than last IDX));
-    close $stdin or die;
-
-    open $stdin, '<', \"a 4 $pkg4_prgnam\nc\n" or die;
-    local *STDIN = $stdin;
-    ($stdout) = capture { Sbozyp::manage_install_queue_ui(@queue) };
-    like($stdout, qr/index '4' is out of range \(0 - 3\)/, q('add' rejects IDX out of range));
-    close $stdin or die;
-
-    open $stdin, '<', \"a 3 NOTAREALPACKAGE\nc\n" or die;
-    local *STDIN = $stdin;
-    ($stdout) = capture { Sbozyp::manage_install_queue_ui(@queue) };
-    like($stdout, qr/could not find a package named 'NOTAREALPACKAGE'/, q('add' rejects non-existent package));
-    close $stdin or die;
-
-    open $stdin, '<', \"a $pkg4_prgnam\nc\n" or die;
-    local *STDIN = $stdin;
-    is([$pkg1,$pkg2,$pkg3,$pkg4], [Sbozyp::manage_install_queue_ui(@queue)], q('add' allows IDX to be left out and defaults to adding to end of the queue));
-    close $stdin or die;
-};
-
-subtest 'query_pkg_ui()' => sub {
-    my $stdin; # were gonna mock STDIN for the following tests.
-    my $stdout; # some tests capture STDOUT into this variable
-
-    my $pkg = Sbozyp::pkg('sbozyp-basic');
-
-    open $stdin, '<', \"q\n" or die;
-    local *STDIN = $stdin;
-    ($stdout) = capture { Sbozyp::query_pkg_ui($pkg) };
-    like($stdout, qr/README.+\.info.+\.SlackBuild.+slack-desc/s,'lists pkg files in consistent order');
-    close $stdin or die;
-
-    local $ENV{PAGER} = 'cat'; # so we can actually capture STDOUT
-
-    open $stdin, '<', \"1\nq\n" or die;
-    local *STDIN = $stdin;
-    ($stdout) = capture { Sbozyp::query_pkg_ui($pkg) };
-    like($stdout, qr/There is nothing special about this package/, 'prints README file if it is selected');
-    close $stdin or die;
-
-    open $stdin, '<', \"3\nq\n" or die;
-    local *STDIN = $stdin;
-    ($stdout) = capture { Sbozyp::query_pkg_ui($pkg) };
-    like($stdout, qr/makepkg/, 'prints .SlackBuild file if it is selected');
-    close $stdin or die;
-
-    open $stdin, '<', \"6\nq\n" or die;
-    local *STDIN = $stdin;
-    ($stdout) = capture { Sbozyp::query_pkg_ui($pkg) };
-    like($stdout, qr/'6' is not a valid option/, 'rejects invalid input with useful message');
-    close $stdin or die;
-};
-
 subtest 'path_to_pkgname()' => sub {
     my $path = "$Sbozyp::CONFIG{REPO_ROOT}/$Sbozyp::CONFIG{REPO_NAME}/office/mu";
     is(Sbozyp::path_to_pkgname($path), 'office/mu', 'returns correct pkgname');
@@ -1420,6 +1321,12 @@ subtest 'build_command_main' => sub {
     close $stdin;
     ok(!Sbozyp::built_slackware_pkg($pkg), q(doesnt build package if user says 'no' at prompt (prompts by default)));
 
+    open $stdin, '<', \"no\n" or die;
+    local *STDIN = $stdin;
+    Sbozyp::build_command_main('sbozyp-basic', 'sbozyp-basic');
+    close $stdin;
+    ok(!Sbozyp::built_slackware_pkg($pkg), q(handles multiple entries of the same package));
+
     open $stdin, '<', \"n\n" or die;
     local *STDIN = $stdin;
     Sbozyp::build_command_main('sbozyp-basic');
@@ -1443,7 +1350,6 @@ subtest 'build_command_main' => sub {
     open $stdin, '<', \"foo\nno\n" or die;
     local *STDIN = $stdin;
     ($stdout) = capture { Sbozyp::build_command_main('sbozyp-basic') };
-    like($stdout, qr/invalid input: 'foo'/, 'gives useful message about invalid prompt input');
     close $stdin;
     ok(!Sbozyp::built_slackware_pkg($pkg));
 
@@ -1580,7 +1486,7 @@ subtest 'query_command_main()' => sub {
     );
 
     like(dies { Sbozyp::query_command_main('-d', '-a', '-i', '-p', 'mu') },
-         qr/sbozyp: error: can only set 1 option.+but 4 were set/,
+         qr/^sbozyp: error: must set exactly 1 query option but 4 were set$/,
          'dies with useful error message if given multiple options'
     );
 
@@ -1589,9 +1495,9 @@ subtest 'query_command_main()' => sub {
          'dies with usage if given more than 1 pkgname arg'
     );
 
-    like(dies { Sbozyp::query_command_main('-d') }, qr/^sbozyp: error: query: option '-d' requires single PKGNAME argument$/, 'dies with useful error if missing PKGNAME arg for option that requires it');
+    like(dies { Sbozyp::query_command_main('-d') }, qr/^sbozyp: error: query option '-d' requires single PKGNAME argument$/, 'dies with useful error if missing PKGNAME arg for option that requires it');
 
-    like(dies { Sbozyp::query_command_main('-a', 'mu') }, qr/^sbozyp: error: query: option '-a' does not take PKGNAME argument$/, 'dies with useful error if given PKGNAME arg for option that doesnt require it');
+    like(dies { Sbozyp::query_command_main('-a', 'mu') }, qr/^sbozyp: error: query option '-a' does not take PKGNAME argument$/, 'dies with useful error if given PKGNAME arg for option that doesnt require it');
 
     ($stdout) = capture { Sbozyp::query_command_main('-d', 'sbozyp-basic') };
     like($stdout, qr/HOW TO EDIT THIS FILE.+sbozyp-basic/s, 'prints packages slack-desc file if given -d option');
@@ -1610,15 +1516,19 @@ subtest 'query_command_main()' => sub {
 
     ($stdout) = capture { Sbozyp::query_command_main('-m') };
     is($stdout, '', 'no output with -m flag if no dependent packages');
-    like(dies { Sbozyp::query_command_main('-m', 'mu') }, qr/^sbozyp: error: query: option '-m' does not take PKGNAME argument$/, 'dies with useful error if given PKGNAME arg with -m');
+    like(dies { Sbozyp::query_command_main('-m', 'mu') }, qr/^sbozyp: error: query option '-m' does not take PKGNAME argument$/, 'dies with useful error if given PKGNAME arg with -m');
 
     ($stdout) = capture { Sbozyp::query_command_main('-o', 'sbozyp-basic') };
     is($stdout, '', 'no output with -o flag if no dependent packages');
-    like(dies { Sbozyp::query_command_main('-o') }, qr/^sbozyp: error: query: option '-o' requires single PKGNAME argument$/, 'dies with useful error if not given PKGNAME arg with -o');
+    like(dies { Sbozyp::query_command_main('-o') }, qr/^sbozyp: error: query option '-o' requires single PKGNAME argument$/, 'dies with useful error if not given PKGNAME arg with -o');
 
     ($stdout) = capture { Sbozyp::query_command_main('-n', 'sbozyp-basic') };
     is($stdout, '', 'no output with -n flag if no dependent packages');
-    like(dies { Sbozyp::query_command_main('-n') }, qr/^sbozyp: error: query: option '-n' requires single PKGNAME argument$/, 'dies with useful error if not given PKGNAME arg with -n');
+    like(dies { Sbozyp::query_command_main('-n') }, qr/^sbozyp: error: query option '-n' requires single PKGNAME argument$/, 'dies with useful error if not given PKGNAME arg with -n');
+
+    ($stdout) = capture { Sbozyp::query_command_main('-b', 'sbozyp-basic') };
+    is($stdout, "$Sbozyp::CONFIG{REPO_ROOT}/$Sbozyp::CONFIG{REPO_NAME}/misc/sbozyp-basic\n", 'prints path to package directory with -b flag');
+    like(dies { Sbozyp::query_command_main('-b') }, qr/^sbozyp: error: query option '-b' requires single PKGNAME argument/, 'dies with useful error if not given PKGNAME arg with -b');
 
     ($stdout) = capture { Sbozyp::query_command_main('-q', 'sbozyp-recursive-dep-A') };
     like($stdout, qr|^misc/sbozyp-recursive-dep-F\nmisc/sbozyp-recursive-dep-E\nmisc/sbozyp-recursive-dep-C\nmisc/sbozyp-recursive-dep-D\nmisc/sbozyp-recursive-dep-B\nmisc/sbozyp-recursive-dep-A\n$|s, 'prints packages dependencies (in order and recursively) if given -q option');
