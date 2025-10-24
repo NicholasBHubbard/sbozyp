@@ -83,22 +83,10 @@ sub build_command_main {
     if ($opt_help) { print command_help_msg('build'); return }
     @_ >= 1 or die command_usage('build');
     i_am_root_or_die('the build command requires root');
-    my @pkgs = map { $_ = pkg($_) } @_;
+    my @pkgs = pkgs_uniq(map { $_ = pkg($_) } @_);
     if (not $opt_noninteractive) {
-        my $error_msg = '';
-        while (1) {
-            clear_terminal();
-            if ($error_msg) { print "$error_msg\n\n"; $error_msg = '' };
-            sbozyp_print("are you sure you want to build packages: @{[map { q(').$_->{PKGNAME}.q(') } @pkgs]}? y/n\n");
-            print '  -> ';
-            my $decision = <STDIN>;
-            $decision =~ s/^\s+|\s+$//g; # remove leading and trailing whitespace
-            if    ($decision =~ /^y(?:es)?$/i) { last   }
-            elsif ($decision =~ /^no?$/i)      { return }
-            else {
-                $error_msg = "invalid input: '$decision'";
-            }
-        }
+        sbozyp_print('are you sure you want to build these packages:', "\n");
+        return unless pkgs_confirm_with_user(@pkgs);
     }
     for my $pkg (@pkgs) {
         if (my $slackware_pkg = built_slackware_pkg($pkg)) {
@@ -123,16 +111,19 @@ sub install_command_main {
     if ($opt_help) { print command_help_msg('install'); return }
     @_ >= 1 or die command_usage('install');
     i_am_root_or_die('the install command requires root');
-    my @pkgs = map { $_ = pkg($_) } @_;
+    my @pkgs = pkgs_uniq(map { $_ = pkg($_) } @_);
     my @queue; for my $pkg (@pkgs) {
         my @pkg_queue = $opt_nodeps ? ($pkg) : pkg_queue($pkg);
         unless ($opt_force) {
             @pkg_queue = grep { !pkg_installed_and_up_to_date($_) } @pkg_queue;
         }
-        @queue = merge_pkg_queues(@queue, @pkg_queue);
+        @queue = pkgs_merged(@queue, @pkg_queue);
     }
     if (@queue) {
-        @queue = manage_install_queue_ui(@queue) unless $opt_noninteractive;
+        if (not $opt_noninteractive) {
+            sbozyp_print('are you sure you want to install these packages:', "\n");
+            return unless pkgs_confirm_with_user(@queue)
+        }
         for my $pkg (@queue) {
             my $slackware_pkg = built_slackware_pkg($pkg) // build_slackware_pkg($pkg);
             install_slackware_pkg($slackware_pkg);
@@ -157,6 +148,7 @@ sub query_command_main {
         \@_,
         'h|help' => \my $opt_help,
         'a'     => \my $opt_listinstalled,
+        'b'     => \my $opt_printpackagedir,
         'd'     => \my $opt_slackdesc,
         'i'     => \my $opt_info,
         'm'     => \my $opt_pkgsnodependents,
@@ -169,40 +161,51 @@ sub query_command_main {
         'u'     => \my $opt_listneedupgrade
     );
     if ($opt_help) { print command_help_msg('query'); return }
-    my $opts_set = 0; for ($opt_listinstalled,$opt_slackdesc,$opt_info,$opt_pkgsnodependents,$opt_recdependents,$opt_directdependents,$opt_pkginstalled,$opt_printqueue,$opt_readme,$opt_slackbuild,$opt_listneedupgrade) { $opts_set++ if defined }
-    if    ($opts_set > 1)  { sbozyp_die("can only set 1 option but $opts_set were set") }
-    elsif ($opts_set == 0) { @_ == 1 or die command_usage('query'); my $pkg = pkg($_[0]); query_pkg_ui($pkg) }
-    else {
-        my $opt = $opt_listinstalled ? '-a' : $opt_slackdesc ? '-d' : $opt_info ? '-i' : $opt_pkgsnodependents ? '-m' : $opt_recdependents ? '-n' : $opt_directdependents ? '-o' : $opt_pkginstalled ? '-p' : $opt_printqueue ? '-q' : $opt_readme ? '-r' : $opt_slackbuild ? '-s' : $opt_listneedupgrade ? '-u' : die;
-        my $pkg;
-        if ($opt_slackdesc || $opt_info || $opt_recdependents || $opt_directdependents || $opt_pkginstalled || $opt_printqueue || $opt_readme || $opt_slackbuild) {
-            @_ == 1 or sbozyp_die("query: option '$opt' requires single PKGNAME argument");
-            $pkg = pkg($_[0]);
-        } else { @_ == 0 or sbozyp_die("query: option '$opt' does not take PKGNAME argument") }
-        # option implementations
-        if ($opt_listinstalled) {
-            my %installed_sbo_pkgs = installed_sbo_pkgs();
-            for my $pkgname (sort keys %installed_sbo_pkgs) {
-                print $pkgname, "\n";
-            }
+    if (@_ > 1) { die command_usage('query') }
+    my $num_opts_set = 0; for ($opt_listinstalled,$opt_printpackagedir,$opt_slackdesc,$opt_info,$opt_pkgsnodependents,$opt_recdependents,$opt_directdependents,$opt_pkginstalled,$opt_printqueue,$opt_readme,$opt_slackbuild,$opt_listneedupgrade) { $num_opts_set++ if defined }
+    if    ($num_opts_set != 1)  { sbozyp_die("must set exactly 1 query option but $num_opts_set were set") }
+    my $opt = $opt_listinstalled ? '-a' : $opt_printpackagedir ? '-b' : $opt_slackdesc ? '-d' : $opt_info ? '-i' : $opt_pkgsnodependents ? '-m' : $opt_recdependents ? '-n' : $opt_directdependents ? '-o' : $opt_pkginstalled ? '-p' : $opt_printqueue ? '-q' : $opt_readme ? '-r' : $opt_slackbuild ? '-s' : $opt_listneedupgrade ? '-u' : die;
+    my $pkg; if ($opt_printpackagedir || $opt_slackdesc || $opt_info || $opt_recdependents || $opt_directdependents || $opt_pkginstalled || $opt_printqueue || $opt_readme || $opt_slackbuild) {
+        @_ == 1 or sbozyp_die("query option '$opt' requires single PKGNAME argument");
+        $pkg = pkg($_[0]);
+    } else {
+        @_ == 0 or sbozyp_die("query option '$opt' does not take PKGNAME argument");
+    }
+    # option implementations
+    if ($opt_listinstalled) {
+        my %installed_sbo_pkgs = installed_sbo_pkgs();
+        for my $pkgname (sort keys %installed_sbo_pkgs) {
+            print $pkgname, "\n";
         }
-        elsif ($opt_slackdesc)        { sbozyp_print_file("$pkg->{PKGDIR}/slack-desc")                         }
-        elsif ($opt_info)             { sbozyp_print_file("$pkg->{PKGDIR}/$pkg->{PRGNAM}.info")                }
-        elsif ($opt_pkgsnodependents) { print "$_->{PKGNAME}\n" for pkgs_no_dependents()                       }
-        elsif ($opt_recdependents)    { print "$_->{PKGNAME}\n" for pkg_dependents_recursive($pkg)             }
-        elsif ($opt_directdependents) { print "$_->{PKGNAME}\n" for pkg_dependents_direct($pkg)                }
-        elsif ($opt_pkginstalled)     { if (defined(my $version = pkg_installed($pkg))) { print "$version\n" } }
-        elsif ($opt_printqueue)       { print "$_->{PKGNAME}\n" for pkg_queue($pkg)                            }
-        elsif ($opt_readme)           { sbozyp_print_file("$pkg->{PKGDIR}/README")                             }
-        elsif ($opt_slackbuild)       { sbozyp_print_file("$pkg->{PKGDIR}/$pkg->{PRGNAM}.SlackBuild")          }
-        elsif ($opt_listneedupgrade)  {
-            my %installed_sbo_pkgs = installed_sbo_pkgs();
-            for my $pkgname (sort keys %installed_sbo_pkgs) {
-                my $installed_version = $installed_sbo_pkgs{$pkgname};
-                my $available_version = pkg($pkgname)->{VERSION};
-                if (version_gt($available_version, $installed_version)) {
-                    print "$pkgname $installed_version -> $available_version\n"
-                }
+    } elsif ($opt_printpackagedir) {
+        print $pkg->{PKGDIR}, "\n";
+    } elsif ($opt_slackdesc) {
+        sbozyp_print_file("$pkg->{PKGDIR}/slack-desc");
+    } elsif ($opt_info) {
+        sbozyp_print_file("$pkg->{PKGDIR}/$pkg->{PRGNAM}.info");
+    } elsif ($opt_pkgsnodependents) {
+        print "$_->{PKGNAME}\n" for pkgs_no_dependents();
+    } elsif ($opt_recdependents) {
+        print "$_->{PKGNAME}\n" for pkg_dependents_recursive($pkg);
+    } elsif ($opt_directdependents) {
+        print "$_->{PKGNAME}\n" for pkg_dependents_direct($pkg);
+    } elsif ($opt_pkginstalled) {
+        if (defined(my $version = pkg_installed($pkg))) {
+            print "$version\n";
+        }
+    } elsif ($opt_printqueue) {
+        print "$_->{PKGNAME}\n" for pkg_queue($pkg);
+    } elsif ($opt_readme) {
+        sbozyp_print_file("$pkg->{PKGDIR}/README");
+    } elsif ($opt_slackbuild) {
+        sbozyp_print_file("$pkg->{PKGDIR}/$pkg->{PRGNAM}.SlackBuild");
+    } elsif ($opt_listneedupgrade) {
+        my %installed_sbo_pkgs = installed_sbo_pkgs();
+        for my $pkgname (sort keys %installed_sbo_pkgs) {
+            my $installed_version = $installed_sbo_pkgs{$pkgname};
+            my $available_version = pkg($pkgname)->{VERSION};
+            if (version_gt($available_version, $installed_version)) {
+                print "$pkgname $installed_version -> $available_version\n"
             }
         }
     }
@@ -239,11 +242,7 @@ sub remove_command_main {
     }
     if (not $opt_noninteractive) {
         sbozyp_print('are you sure you want to remove these packages:', "\n");
-        print '    ', $_->{PKGNAME}, "\n" for @pkgs;
-        print '  (y/n) -> ';
-        my $decision = <STDIN>;
-        $decision =~ s/^\s+|\s+$//g; # remove leading and trailing whitespace
-        return unless $decision =~ /^y(?:es)?$/i;
+        return unless pkgs_confirm_with_user(@pkgs);
     }
     remove_slackware_pkg($_->{PRGNAM}) for @pkgs;
 }
@@ -312,38 +311,13 @@ sub pkg {
     return $pkg
 }
 
-sub query_pkg_ui {
-    my ($pkg) = @_;
-    my $pkgdir = $pkg->{PKGDIR};
-    my @pkg_files = sbozyp_find_files_recursive($pkgdir);
-    my $score = sub { # for a consistent listing order
-        my ($file) = @_;
-        my $bn = basename($file);
-        $bn =~ /^README$/      and return 0;
-        $bn =~ /\.info$/       and return 1;
-        $bn =~ /\.SlackBuild$/ and return 2;
-        $bn =~ /^doinst\.sh/   and return 3;
-        $bn =~ /^slack-desc$/  and return 4;
-        return 5;
-    };
-    @pkg_files = sort { $score->($a) <=> $score->($b) } @pkg_files;
-    while (1) {
-        clear_terminal();
-        sbozyp_print("query package '$pkg->{PKGNAME}': select a file to view in your pager (q to quit):\n");
-        for (my $i = 0; $i < @pkg_files; $i++) {
-            printf "  %2d  %s\n", $i+1, $pkg_files[$i] =~ s/^$pkgdir\///r;
-        }
-        print '  -> ';
-        my $decision = <STDIN>;
-        $decision =~ s/^\s+|\s+$//g; # remove leading and trailing whitespace
-        if ($decision =~ /^(?:q|quit)$/) {
-            last;
-        } elsif ($decision =~ /^\d+$/ and $decision > 0 and my $file = $pkg_files[$decision-1]) {
-            sbozyp_system($ENV{PAGER} // 'less', $file);
-        } else {
-            print "  '$decision' is not a valid option\n";
-        }
-    }
+sub pkgs_confirm_with_user {
+    my @pkgs = @_;
+    print '    ', $_->{PKGNAME}, "\n" for @pkgs;
+    print '  (y/n) -> ';
+    my $user_input = <STDIN>;
+    $user_input =~ s/^\s+|\s+$//g;
+    return $user_input =~ /^y(?:es)?$/ ? 1 : 0;
 }
 
 sub pkgs_uniq {
@@ -802,18 +776,6 @@ sub pkg_queue {
     my ($pkg) = @_;
     my @deps = pkg_dependencies_recursive($pkg);
     my @queue = (@deps, $pkg);
-    return @queue;
-}
-
-sub merge_pkg_queues {
-    my @queues = @_;
-    my @queue;
-    my %seen;
-    for my $pkg (@queues) {
-        next if $seen{$pkg->{PKGNAME}};
-        $seen{$pkg->{PKGNAME}} = 1;
-        push @queue, $pkg;
-    }
     return @queue;
 }
 
