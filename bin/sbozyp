@@ -279,7 +279,7 @@ sub search_command_main {
 
 sub pkg {
     my ($prgnam) = @_;
-    my $pkgname = find_pkgname($prgnam) // sbozyp_die("could not find a package named '$prgnam'");
+    my $pkgname = prgnam_to_pkgname($prgnam) // sbozyp_die("could not find a package named '$prgnam'");
     state %pkg_cache; if (my $pkg = $pkg_cache{$pkgname}) { return $pkg }
     my $info_file = "$CONFIG{REPO_ROOT}/$CONFIG{REPO_NAME}/$pkgname/@{[basename($pkgname)]}.info";
     my %info = parse_info_file($info_file);
@@ -299,7 +299,7 @@ sub pkg {
         MD5SUM          => [split ' ', $info{MD5SUM}],
         DOWNLOAD_x86_64 => [split ' ', $info{DOWNLOAD_x86_64}],
         MD5SUM_x86_64   => [split ' ', $info{MD5SUM_x86_64}],
-        REQUIRES        => [grep { find_pkgname($_) } split(' ', $info{REQUIRES})], # removes %README% specifier and non-existent packages
+        REQUIRES        => [grep { prgnam_to_pkgname($_) } split(' ', $info{REQUIRES})], # removes %README% specifier and non-existent packages
         HAS_EXTRA_DEPS  => scalar(grep { $_ eq '%README%' } split(' ', $info{REQUIRES})),
         ARCH_UNSUPPORTED  => do {
             my @urls = split(' ', arch() eq 'x86_64' ? $info{DOWNLOAD_x86_64} : $info{DOWNLOAD});
@@ -363,6 +363,12 @@ sub pkgs_sorted {
     return sort { $a->{PKGNAME} cmp $b->{PKGNAME} } @pkgs_uniq;
 }
 
+sub pkgs_merged {
+    my @pkgs = @_;
+    my @pkgs_merged = pkgs_uniq(@pkgs);
+    return @pkgs_merged;
+}
+
 sub pkg_array_minus {
     my ($pkg_aref1, $pkg_aref2) = @_;
     my @pkgs_minus = grep {
@@ -402,7 +408,7 @@ sub all_pkgnames {
     return @all_pkgnames;
 }
 
-sub find_pkgname { # if $prgnam is a pkgname then just return it back
+sub prgnam_to_pkgname { # if $prgnam is already a pkgname just return it back
     my ($prgnam) = @_;
     $prgnam or return;
     return $prgnam if $prgnam =~ m,^[^/]+/[^/]+$, && -d "$CONFIG{REPO_ROOT}/$CONFIG{REPO_NAME}/$prgnam";
@@ -814,7 +820,7 @@ sub merge_pkg_queues {
 sub parse_slackware_pkgname {
     my ($slackware_pkgname) = @_;
     my ($prgnam, $version) = $slackware_pkgname =~ /^([\w-]+)-([^-]*)-[^-]*-\d+_SBo$/;
-    my $pkgname = find_pkgname($prgnam);
+    my $pkgname = prgnam_to_pkgname($prgnam);
     return ($pkgname => $version);
 }
 
@@ -861,7 +867,7 @@ sub installed_sbo_pkgs {
     return %installed_sbo_pkgs;
 }
 
-sub prepare_pkg {
+sub pkg_prepare_for_build {
     my ($pkg) = @_;
     my $arch = arch();
     if (my $arch_problem = $pkg->{ARCH_UNSUPPORTED}) {
@@ -954,7 +960,7 @@ sub remove_slackware_pkg {
 sub build_slackware_pkg {
     my ($pkg) = @_;
     local $ENV{OUTPUT} = $CONFIG{TMPDIR}; # all SlackBuilds use the $OUTPUT env var to determine output pkg location
-    my $staging_dir = prepare_pkg($pkg);
+    my $staging_dir = pkg_prepare_for_build($pkg);
     my $slackbuild = $pkg->{PRGNAM} . '.SlackBuild';
     my $cmd = sbozyp_open('-|', "cd '$staging_dir' && chmod +x ./$slackbuild && ./$slackbuild");
     my $slackware_pkg;

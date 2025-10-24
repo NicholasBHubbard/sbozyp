@@ -512,17 +512,17 @@ subtest 'all_pkgnames()' => sub {
     ok(!scalar(grep /\.git/, @all_pkgnames), 'ignores .git');
 };
 
-subtest 'find_pkgname()' => sub {
-    is(Sbozyp::find_pkgname('sbozyp-basic'), 'misc/sbozyp-basic', 'finds pkgname');
-    is(Sbozyp::find_pkgname('misc/sbozyp-basic'), 'misc/sbozyp-basic', 'accepts full pkgname');
-    ok(!defined Sbozyp::find_pkgname('NOTAPACKAGE'), 'returns undef if given non-existent prgnam');
-    ok(!defined Sbozyp::find_pkgname('FOO/NOTAPACKAGE'), 'returns undef if given non-existent pkgname');
-    ok(!defined Sbozyp::find_pkgname('perl/NOTAPACKAGE'), 'rejects pkgname with valid category');
-    ok(!defined Sbozyp::find_pkgname('perl/mu'), 'rejects non-existent pkgname with valid category and valid prgnam');
-    ok(!defined Sbozyp::find_pkgname('MU'), 'case sensitive');
-    ok(!defined Sbozyp::find_pkgname(''), 'rejects empty string');
-    ok(!defined Sbozyp::find_pkgname(' '), 'rejects blank string');
-    ok(!defined Sbozyp::find_pkgname(), 'rejects undef');
+subtest 'prgnam_to_pkgname()' => sub {
+    is(Sbozyp::prgnam_to_pkgname('sbozyp-basic'), 'misc/sbozyp-basic', 'finds pkgname');
+    is(Sbozyp::prgnam_to_pkgname('misc/sbozyp-basic'), 'misc/sbozyp-basic', 'accepts full pkgname');
+    ok(!defined Sbozyp::prgnam_to_pkgname('NOTAPACKAGE'), 'returns undef if given non-existent prgnam');
+    ok(!defined Sbozyp::prgnam_to_pkgname('FOO/NOTAPACKAGE'), 'returns undef if given non-existent pkgname');
+    ok(!defined Sbozyp::prgnam_to_pkgname('perl/NOTAPACKAGE'), 'rejects pkgname with valid category');
+    ok(!defined Sbozyp::prgnam_to_pkgname('perl/mu'), 'rejects non-existent pkgname with valid category and valid prgnam');
+    ok(!defined Sbozyp::prgnam_to_pkgname('MU'), 'case sensitive');
+    ok(!defined Sbozyp::prgnam_to_pkgname(''), 'rejects empty string');
+    ok(!defined Sbozyp::prgnam_to_pkgname(' '), 'rejects blank string');
+    ok(!defined Sbozyp::prgnam_to_pkgname(), 'rejects undef');
 };
 
 subtest 'parse_info_file()' => sub {
@@ -682,18 +682,18 @@ subtest 'pkg_dependencies_recursive()' => sub {
 
 };
 
-subtest 'merge_pkg_queues()' => sub {
+subtest 'pkgs_merged()' => sub {
     my $pkg1 = Sbozyp::pkg('sbozyp-basic');
     my $pkg2 = Sbozyp::pkg('sbozyp-basic');
     my $pkg3 = Sbozyp::pkg('sbozyp-nested-dir');
 
-    my @queue = Sbozyp::merge_pkg_queues($pkg1, $pkg3, $pkg1, $pkg3, $pkg3, $pkg1, $pkg3);
+    my @queue = Sbozyp::pkgs_merged($pkg1, $pkg3, $pkg1, $pkg3, $pkg3, $pkg1, $pkg3);
     is(\@queue,
        [$pkg1, $pkg3],
        'removes all duplicate pkgs, leaving only the first occurence'
     );
 
-    @queue = Sbozyp::merge_pkg_queues($pkg1, $pkg2);
+    @queue = Sbozyp::pkgs_merged($pkg1, $pkg2);
     is(\@queue,
        [$pkg1],
        'removes duplicate pkgs by PKGNAME'
@@ -739,16 +739,16 @@ subtest 'parse_slackware_pkgname()' => sub {
     ok(!defined Sbozyp::parse_slackware_pkgname('acpica-20220331-x86_64-1'), q(rejects pkgname without '_SBo' tag));
 };
 
-subtest 'prepare_pkg()' => sub {
+subtest 'pkg_prepare_for_build()' => sub {
     my $pkg = Sbozyp::pkg('sbozyp-basic');
-    my $staging_dir = Sbozyp::prepare_pkg($pkg);
+    my $staging_dir = Sbozyp::pkg_prepare_for_build($pkg);
     is([Sbozyp::sbozyp_readdir($staging_dir)],
        ["$staging_dir/README","$staging_dir/SbozypFakeRelease-1.0.tar.gz","$staging_dir/sbozyp-basic.SlackBuild","$staging_dir/sbozyp-basic.info","$staging_dir/slack-desc"],
        'returns tmp dir containing all of the pkgs files and its downloaded source code'
     );
 
     $pkg = Sbozyp::pkg('sbozyp-nested-dir');
-    $staging_dir = Sbozyp::prepare_pkg($pkg);
+    $staging_dir = Sbozyp::pkg_prepare_for_build($pkg);
     is([do { my @files; File::Find::find(sub { push @files, $File::Find::name if -f $File::Find::name }, "$staging_dir"); sort @files }],
        ["$staging_dir/README","$staging_dir/SbozypFakeRelease-1.0.tar.gz","$staging_dir/nested-dir/bar.txt","$staging_dir/nested-dir/foo.txt","$staging_dir/sbozyp-nested-dir.SlackBuild","$staging_dir/sbozyp-nested-dir.info","$staging_dir/slack-desc"],
        'includes files in nested directories of the package'
@@ -756,7 +756,7 @@ subtest 'prepare_pkg()' => sub {
 
     if (Sbozyp::arch() eq 'x86_64') {
         $pkg = Sbozyp::pkg('sbozyp-unsupported-not-x86_64');
-        $staging_dir = Sbozyp::prepare_pkg($pkg);
+        $staging_dir = Sbozyp::pkg_prepare_for_build($pkg);
         is([Sbozyp::sbozyp_readdir($staging_dir)],
            ["$staging_dir/README","$staging_dir/SbozypFakeRelease-1.0.tar.gz","$staging_dir/sbozyp-unsupported-not-x86_64.SlackBuild","$staging_dir/sbozyp-unsupported-not-x86_64.info","$staging_dir/slack-desc"],
            'properly prepares package only supported on x86_64'
@@ -764,12 +764,12 @@ subtest 'prepare_pkg()' => sub {
     }
 
     $pkg = Sbozyp::pkg('sbozyp-nonexistent-url');
-    ok(dies { Sbozyp::prepare_pkg($pkg) },
+    ok(dies { Sbozyp::pkg_prepare_for_build($pkg) },
        'dies if packages download url does not exist'
     );
 
     $pkg = Sbozyp::pkg('sbozyp-md5sum-mismatch');
-    like(dies { Sbozyp::prepare_pkg($pkg) },
+    like(dies { Sbozyp::pkg_prepare_for_build($pkg) },
          qr|^sbozyp: error: md5sum mismatch for 'https://github\.com/NicholasBHubbard/sbozyp/archive/refs/tags/SbozypFakeRelease-1\.0\.tar\.gz': expected '29b3a308d97831774aa926e94c00a59f': got '1973a308d90831774a0922e9ec0085ff'$|,
          'dies with useful error message if there is an md5sum mismatch'
     );
