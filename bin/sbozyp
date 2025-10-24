@@ -1071,7 +1071,7 @@ Build but don't install packages.
 Options are:
 
  -h|--help     Print help message
- -f            Force rebuild the package even if it's already built
+ -f            Force rebuilding the package even if it's already built
  -i            No confirmation prompt
 
 Examples:
@@ -1109,7 +1109,7 @@ Examples:
 
 Query for package related information.
 
-Exactly one option can be used in a single query command.
+Exactly one option must be used in a single query command.
 
 Options are:
 
