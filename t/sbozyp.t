@@ -574,7 +574,7 @@ subtest 'pkg()' => sub {
     is(Sbozyp::pkg('sbozyp-non-existent-dep')->{REQUIRES}, ['sbozyp-basic'], 'removes non-existent packages from REQUIRES');
 
     like(dies { Sbozyp::pkg('FOO') },
-         qr/^sbozyp: error: could not find a package named 'FOO'$/,
+         qr/^sbozyp: error: could not find a package named FOO$/,
          'dies with useful error message if passed invalid prgnam'
     );
 };
@@ -850,7 +850,7 @@ subtest 'build_slackware_pkg()' => sub {
          'SlackBuild output goes to STDOUT'
     );
     like(dies { Sbozyp::build_slackware_pkg(Sbozyp::pkg('sbozyp-build-fail')) },
-         qr/^sbozyp: error: failed to build 'misc\/sbozyp-build-fail'$/,
+         qr/^sbozyp: error: failed to build misc\/sbozyp-build-fail$/,
          'dies with useful error message if the SlackBuild fails'
     );
 
@@ -1305,12 +1305,12 @@ subtest 'build_command_main' => sub {
     unlink Sbozyp::built_slackware_pkg($pkg) or die;
 
     like(dies { Sbozyp::build_command_main('NOTAPACKAGE') },
-         qr/^sbozyp: error: could not find a package named 'NOTAPACKAGE'$/,
+         qr/^sbozyp: error: could not find a package named NOTAPACKAGE$/,
          'dies with useful error message if given a non-existent package'
     );
 
     like(dies { Sbozyp::build_command_main('sbozyp-basic', 'NOTAPACKAGE') },
-         qr/^sbozyp: error: could not find a package named 'NOTAPACKAGE'$/,
+         qr/^sbozyp: error: could not find a package named NOTAPACKAGE$/,
          'dies with useful error message if given a non-existent package along with a existing package'
     );
     ok(!Sbozyp::built_slackware_pkg($pkg));
@@ -1358,7 +1358,7 @@ subtest 'build_command_main' => sub {
     ok(Sbozyp::built_slackware_pkg($pkg));
 
     ($stdout) = capture { Sbozyp::build_command_main('-i', 'sbozyp-basic') };
-    like($stdout, qr/^sbozyp: existing package for 'misc\/sbozyp-basic' found at '\Q$Sbozyp::CONFIG{TMPDIR}\E\/sbozyp-basic.+$'$/s);
+    like($stdout, qr/^sbozyp: existing package for misc\/sbozyp-basic found at '\Q$Sbozyp::CONFIG{TMPDIR}\E\/sbozyp-basic.+$'$/s);
 
     ($stdout) = capture { Sbozyp::build_command_main('-f', '-i', 'sbozyp-basic', 'sbozyp-basic-2.0') };
     like($stdout, qr/sbozyp-basic-1\.0.+created.+sbozyp-basic-2\.0.+created/s, 'builds multiple packages on single invocation');
@@ -1398,7 +1398,7 @@ subtest 'install_command_main()' => sub {
     );
 
     like(dies { Sbozyp::install_command_main('NOTAPACKAGE') },
-         qr/could not find a package named 'NOTAPACKAGE'/,
+         qr/could not find a package named NOTAPACKAGE/,
          'dies with useful message if the package does not exist'
     );
 
@@ -1433,7 +1433,7 @@ subtest 'install_command_main()' => sub {
     remove_tree "$TEST_DIR/tmp_root" or die;
 
     like(dies { Sbozyp::install_command_main('sbozyp-basic', 'mu', 'NOTAPACKAGE') },
-         qr/^sbozyp: error: could not find a package named 'NOTAPACKAGE'$/,
+         qr/^sbozyp: error: could not find a package named NOTAPACKAGE$/,
          'accepts multiple package name args and dies if any are not valid packages'
     );
 
@@ -1599,12 +1599,12 @@ subtest 'remove_command_main()' => sub {
     );
 
     like(dies { Sbozyp::remove_command_main('NOTAPACKAGE') },
-         qr/^sbozyp: error: could not find a package named 'NOTAPACKAGE'$/,
+         qr/^sbozyp: error: could not find a package named NOTAPACKAGE$/,
          'dies with useful error message if given a non-existent package'
     );
 
     like(dies { Sbozyp::remove_command_main('sbozyp-basic') },
-         qr/^sbozyp: error: the package 'misc\/sbozyp-basic' is not installed$/,
+         qr/^sbozyp: error: the package misc\/sbozyp-basic is not installed$/,
          'dies with useful error message if attempting to remove a package that is not installed'
      );
 
@@ -1655,7 +1655,7 @@ subtest 'remove_command_main()' => sub {
         Sbozyp::install_slackware_pkg(Sbozyp::build_slackware_pkg($pkg_d));
 
         like(dies { Sbozyp::remove_command_main('-i', 'sbozyp-recursive-dep-B') },
-             qr/^sbozyp: error: package 'misc\/sbozyp-recursive-dep-B' is depended on by:\n.+sbozyp-depends-on-recursive-deps\n.+sbozyp-recursive-dep-A/s,
+             qr/^sbozyp: error: package misc\/sbozyp-recursive-dep-B is depended on by:\n.+sbozyp-depends-on-recursive-deps\n.+sbozyp-recursive-dep-A/s,
              q(by default doesnt remove packages that have dependents));
 
         Sbozyp::remove_command_main('-i', '-f', 'sbozyp-recursive-dep-B');
