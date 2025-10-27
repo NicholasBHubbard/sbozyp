@@ -858,12 +858,12 @@ sub pkg_prepare_for_build {
 
 sub install_slackware_pkg {
     my ($slackware_pkg) = @_;
-    sbozyp_system("upgradepkg --reinstall --install-new '$slackware_pkg'");
+    sbozyp_system('upgradepkg', '--reinstall', '--install-new', $slackware_pkg);
 }
 
 sub remove_slackware_pkg {
     my ($slackware_pkg) = @_;
-    sbozyp_system("removepkg '$slackware_pkg'");
+    sbozyp_system('removepkg', $slackware_pkg);
 }
 
 sub build_slackware_pkg {
