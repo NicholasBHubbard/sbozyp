@@ -822,7 +822,7 @@ sub installed_sbo_pkgs {
     if (-d "$root/var/lib/pkgtools/packages") {
         %installed_sbo_pkgs = map {
             my ($pkgname, $version) = parse_slackware_pkgname(basename($_));
-            # If $pkgname is undef then this repo doesnt have the package. We only manage packages in the current repo.
+            # If $pkgname is undef then the current repo doesnt have the package. We only manage packages in the current repo.
             defined $pkgname ? ($pkgname, $version) : ();
         } grep /_SBo$/, sbozyp_readdir("$root/var/lib/pkgtools/packages");
     }
