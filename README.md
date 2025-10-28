@@ -2,7 +2,9 @@
 
 sbozyp is a package manager for Slackware's [SlackBuilds.org](https://slackbuilds.org/).
 
-The goal of sbozyp is to strike a balance between working like a "normal" package manager such as apt or dnf, while still being transparent and manual in a traditional Slackware-like way. I created sbozyp because I wanted to and do not claim that it is better, worse, or the same compared to its alternatives.
+The goal of sbozyp is to strike a balance between working like a "normal" package manager such as apt or dnf, while still being transparent and manual in a traditional Slackware-like way.
+
+I created sbozyp because I wanted to and do not claim that it is better, worse, or the same compared to its alternatives.
 
 # USER MANUAL
 
