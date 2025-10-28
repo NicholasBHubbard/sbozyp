@@ -12,7 +12,7 @@ The user manual can be viewed online [here](https://metacpan.org/release/NHUBBAR
 
 # FEATURES
 
-* Built in dependency resolution
+* Dependency resolution
 * Multiple repository support
 * Pure CLI user interface (no ncurses)
 * Safe recursive package removal
