@@ -162,6 +162,18 @@ subtest 'version_gt()' => sub {
     ok(Sbozyp::version_gt($v1, $v2), 'true if first version is greater than second version');
     ok(!Sbozyp::version_gt($v2, $v1), 'false if first version is less than second version');
     ok(!Sbozyp::version_gt($v1, $v1), 'false if both versions are the same');
+
+    $v1 = '0.3';
+    $v2 = '0.2';
+    ok(Sbozyp::version_gt($v1, $v2), 'works for 2 decimal versions');
+    ok(!Sbozyp::version_gt($v2, $v1), 'works for 2 decimal versions');
+    ok(!Sbozyp::version_gt($v1, $v1), 'works for 2 decimal versions');
+
+    $v1 = '3';
+    $v2 = '2';
+    ok(Sbozyp::version_gt($v1, $v2), 'works for integer versions');
+    ok(!Sbozyp::version_gt($v2, $v1), 'works for integer versions');
+    ok(!Sbozyp::version_gt($v1, $v1), 'works for integer versions');
 };
 
 subtest 'sbozyp_copy()' => sub {

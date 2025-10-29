@@ -889,48 +889,49 @@ sub built_slackware_pkg {
     return [ glob "$output/$pkg->{PRGNAM}*$pkg->{VERSION}*_SBo*" ]->[0];
 }
 
-# versioncmp() is copy and pasted directly from the Sort::Versions CPAN module.
-# We copy and paste this here as we don't wish for sbozyp to have any deps.
-# Note that sbotools also uses Sort::Versions for version comparisons.
-sub versioncmp ($$) {
-    my @A = ($_[0] =~ /([-.]|\d+|[^-.\d]+)/g);
-    my @B = ($_[1] =~ /([-.]|\d+|[^-.\d]+)/g);
-
-    my ($A, $B);
-    while (@A and @B) {
-        $A = shift @A;
-        $B = shift @B;
-        if ($A eq '-' and $B eq '-') {
-            next;
-        } elsif ( $A eq '-' ) {
-            return -1;
-        } elsif ( $B eq '-') {
-            return 1;
-        } elsif ($A eq '.' and $B eq '.') {
-            next;
-        } elsif ( $A eq '.' ) {
-            return -1;
-        } elsif ( $B eq '.' ) {
-            return 1;
-        } elsif ($A =~ /^\d+$/ and $B =~ /^\d+$/) {
-            if ($A =~ /^0/ || $B =~ /^0/) {
-                return $A cmp $B if $A cmp $B;
-            } else {
-                return $A <=> $B if $A <=> $B;
-            }
-        } else {
-            $A = uc $A;
-            $B = uc $B;
-            return $A cmp $B if $A cmp $B;
-        }
-    }
-    @A <=> @B;
-}
-
+# The internal algorithm of version_gt() is copy and pasted directly from the
+# Sort::Versions CPAN module's versioncmp() function. We copy and paste this
+# here instead of depending on Sort::Versions as we don't wish for sbozyp to
+# have any dependencies. Note that sbotools also uses Sort::Versions for version
+# comparisons.
 sub version_gt {
     my ($v1, $v2) = @_;
-    my $cmp = versioncmp($v1, $v2);
-    return $cmp == 1;
+    my @v1 = ($v1 =~ /([-.]|\d+|[^-.\d]+)/g);
+    my @v2 = ($v2 =~ /([-.]|\d+|[^-.\d]+)/g);
+    while (@v1 and @v2) {
+        $v1 = shift @v1;
+        $v2 = shift @v2;
+        if ($v1 eq '-' and $v2 eq '-') {
+            next;
+        } elsif ( $v1 eq '-' ) {
+            return 0;
+        } elsif ( $v2 eq '-') {
+            return 1;
+        } elsif ($v1 eq '.' and $v2 eq '.') {
+            next;
+        } elsif ( $v1 eq '.' ) {
+            return 0;
+        } elsif ( $v2 eq '.' ) {
+            return 1;
+        } elsif ($v1 =~ /^\d+$/ and $v2 =~ /^\d+$/) {
+            if ($v1 =~ /^0/ || $v2 =~ /^0/) {
+                my $cmp = $v1 cmp $v2;
+                return 0 if $cmp < 0;
+                return 1 if $cmp > 0;
+            } else {
+                my $cmp = $v1 <=> $v2;
+                return 0 if $cmp < 0;
+                return 1 if $cmp > 0;
+            }
+        } else {
+            $v1 = uc $v1;
+            $v2 = uc $v2;
+            my $cmp = $v1 cmp $v2;
+            return 0 if $cmp < 0;
+            return 1 if $cmp > 0;
+        }
+    }
+    return @v1 > @v2 ? 1 : 0;
 }
 
 1;
