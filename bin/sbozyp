@@ -977,7 +977,7 @@ the C<-F> option.
 
 =head2 REPOSITORY DEFINITIONS
 
-You can define as many repositories as you wish in the configuration file. A
+You can define as many repositories as you want in the configuration file. A
 repository definition requires these 3 variables to be set ($N is any
 non-negative integer):
 
@@ -999,12 +999,14 @@ with the C<-R> option. You can also make this repository the default (used when
 C<-R> is omitted) by setting C<REPO_PRIMARY=fifteenpoint0> in your configuration
 file.
 
+Repo names should never contain any forward slash characters (C</>).
+
 =head2 OTHER CONFIGURATION VARIABLES
 
 =head3 REPO_PRIMARY
 
-The repo to use by default when not specifying one with the C<-R> flag. There
-is no default value for this variable.
+The name of the repo to use by default when not specifying one with the C<-R>
+flag. There is no default value for this variable.
 
 =head3 REPO_ROOT
 
