@@ -1539,7 +1539,7 @@ subtest 'main_query()' => sub {
     like(dies { Sbozyp::main_query('-n') }, qr/^sbozyp: error: query option '-n' requires single PKGNAME argument$/, 'dies with useful error if not given PKGNAME arg with -n');
 
     ($stdout) = capture { Sbozyp::main_query('-b', 'sbozyp-basic') };
-    is($stdout, "$Sbozyp::CONFIG{REPO_ROOT}/$Sbozyp::CONFIG{REPO_NAME}/misc/sbozyp-basic\n", 'prints path to package directory with -b flag');
+    is($stdout, "$Sbozyp::CONFIG{REPO_ROOT}/$Sbozyp::CONFIG{REPO_NAME}/misc/sbozyp-basic/\n", 'prints path to package directory with -b flag');
     like(dies { Sbozyp::main_query('-b') }, qr/^sbozyp: error: query option '-b' requires single PKGNAME argument/, 'dies with useful error if not given PKGNAME arg with -b');
 
     ($stdout) = capture { Sbozyp::main_query('-q', 'sbozyp-recursive-dep-A') };

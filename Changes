@@ -1,3 +1,7 @@
+0.7.0  TBD
+
+   - Query option '-b' outputs trailing /
+
 0.6.3  2025-10-24
 
    - Minor change in printed PKGNAME's not being single quoted

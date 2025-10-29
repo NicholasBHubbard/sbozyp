@@ -205,7 +205,7 @@ sub main_query {
             print $pkgname, "\n";
         }
     } elsif ($opt_printpackagedir) {
-        print $pkg->{PKGDIR}, "\n";
+        print $pkg->{PKGDIR}, '/', "\n";
     } elsif ($opt_slackdesc) {
         sbozyp_print_file("$pkg->{PKGDIR}/slack-desc");
     } elsif ($opt_info) {
