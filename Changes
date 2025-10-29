@@ -1,6 +1,7 @@
 0.7.0  TBD
 
    - Query option '-b' outputs trailing /
+   - Various performance optimizations
 
 0.6.3  2025-10-24
 
