@@ -511,8 +511,8 @@ Sbozyp::clone_repo(); # so the rest of the tests can go on
 # add our mock packages to the SBo 14.1 repo we just cloned in the sync_repo() subtest
 Sbozyp::sbozyp_copy("$FindBin::Bin/mock-packages", "$Sbozyp::CONFIG{REPO_ROOT}/$Sbozyp::CONFIG{REPO_NAME}/misc");
 
-subtest 'all_categories()' => sub {
-    is([Sbozyp::all_categories()],
+subtest 'all_pkg_categories()' => sub {
+    is([Sbozyp::all_pkg_categories()],
        ['academic','accessibility','audio','business','desktop','development','games','gis','graphics','ham','haskell','libraries','misc','multimedia','network','office','perl','python','ruby','system'],
        'returns correct package categories (sorted)'
     );
