@@ -44,12 +44,12 @@ sub main {
     my $cmd_main;
     if    ($cmd =~ /^(?:--help|-h)$/)    { print command_help_msg('main'); return }
     elsif ($cmd =~ /^(?:--version|-V)$/) { print $VERSION, "\n" ; return          }
-    elsif ($cmd =~ /^(?:build|bu)$/)     { $cmd_main = \&build_command_main       }
-    elsif ($cmd =~ /^(?:install|in)$/)   { $cmd_main = \&install_command_main     }
-    elsif ($cmd =~ /^(?:null|nu)$/)      { $cmd_main = \&null_command_main        }
-    elsif ($cmd =~ /^(?:query|qr)$/)     { $cmd_main = \&query_command_main       }
-    elsif ($cmd =~ /^(?:remove|rm)$/)    { $cmd_main = \&remove_command_main      }
-    elsif ($cmd =~ /^(?:search|se)$/)    { $cmd_main = \&search_command_main      }
+    elsif ($cmd =~ /^(?:build|bu)$/)     { $cmd_main = \&main_build               }
+    elsif ($cmd =~ /^(?:install|in)$/)   { $cmd_main = \&main_install             }
+    elsif ($cmd =~ /^(?:null|nu)$/)      { $cmd_main = \&main_null                }
+    elsif ($cmd =~ /^(?:query|qr)$/)     { $cmd_main = \&main_query               }
+    elsif ($cmd =~ /^(?:remove|rm)$/)    { $cmd_main = \&main_remove              }
+    elsif ($cmd =~ /^(?:search|se)$/)    { $cmd_main = \&main_search              }
     else                                 { sbozyp_die("invalid command '$cmd'")   }
     # set the configuration
     parse_config_file($opt_configfile); # mutates the global %CONFIG
@@ -73,33 +73,7 @@ sub main {
             #                     COMMANDS                     #
             ####################################################
 
-sub build_command_main {
-    sbozyp_getopts(
-        \@_,
-        'h|help' => \my $opt_help,
-        'f'      => \my $opt_force,
-        'i'      => \my $opt_noninteractive
-    );
-    if ($opt_help) { print command_help_msg('build'); return }
-    @_ >= 1 or die command_usage('build');
-    i_am_root_or_die('the build command requires root');
-    my @pkgs = pkgs_uniq(map { $_ = pkg($_) } @_);
-    if (not $opt_noninteractive) {
-        sbozyp_print('are you sure you want to build these packages:', "\n");
-        return unless pkgs_confirm_with_user(@pkgs);
-    }
-    for my $pkg (@pkgs) {
-        if (my $slackware_pkg = built_slackware_pkg($pkg)) {
-            unless ($opt_force) {
-                sbozyp_print("existing package for $pkg->{PKGNAME} found at '$slackware_pkg'\n");
-                next;
-            }
-        }
-        build_slackware_pkg($pkg);
-    }
-}
-
-sub install_command_main {
+sub main_install {
     sbozyp_getopts(
         \@_,
         'h|help' => \my $opt_help,
@@ -134,16 +108,69 @@ sub install_command_main {
     }
 }
 
-sub null_command_main {
+sub main_build {
     sbozyp_getopts(
         \@_,
         'h|help' => \my $opt_help,
+        'f'      => \my $opt_force,
+        'i'      => \my $opt_noninteractive
     );
-    if ($opt_help) { print command_help_msg('null'); return }
-    @_ == 0 or die command_usage('null');
+    if ($opt_help) { print command_help_msg('build'); return }
+    @_ >= 1 or die command_usage('build');
+    i_am_root_or_die('the build command requires root');
+    my @pkgs = pkgs_uniq(map { $_ = pkg($_) } @_);
+    if (not $opt_noninteractive) {
+        sbozyp_print('are you sure you want to build these packages:', "\n");
+        return unless pkgs_confirm_with_user(@pkgs);
+    }
+    for my $pkg (@pkgs) {
+        if (my $slackware_pkg = built_slackware_pkg($pkg)) {
+            unless ($opt_force) {
+                sbozyp_print("existing package for $pkg->{PKGNAME} found at '$slackware_pkg'\n");
+                next;
+            }
+        }
+        build_slackware_pkg($pkg);
+    }
 }
 
-sub query_command_main {
+sub main_remove {
+    sbozyp_getopts(
+        \@_,
+        'h|help' => \my $opt_help,
+        'f'      => \my $opt_nodepsafetycheck,
+        'i'      => \my $opt_noninteractive,
+        'r'      => \my $opt_removedeps
+    );
+    if ($opt_help) { print command_help_msg('remove'); return }
+    @_ >= 1 or die command_usage('remove');
+    i_am_root_or_die('the remove command requires root');
+    my @pkgs = pkgs_uniq(map { $_ = pkg($_) } @_);
+    unless ($opt_nodepsafetycheck) {
+        my @errors; for my $pkg (@pkgs) {
+            my @dependents = pkg_array_minus([pkg_dependents_direct($pkg)], [@pkgs]);
+            if (@dependents) {
+                my $error = sbozyp_error_prefix()."package $pkg->{PKGNAME} is depended on by:\n";
+                $error .= "    $_->{PKGNAME}\n" for @dependents;
+                push @errors, $error;
+            }
+        }
+        die @errors if @errors;
+    }
+    @pkgs = (@pkgs, pkgs_removable_dependencies(@pkgs)) if $opt_removedeps;
+    for my $pkg (@pkgs) {
+        if (!defined pkg_installed($pkg)) {
+            sbozyp_die("the package $pkg->{PKGNAME} is not installed");
+        }
+    }
+    if (not $opt_noninteractive) {
+        sbozyp_print('are you sure you want to remove these packages:', "\n");
+        return unless pkgs_confirm_with_user(@pkgs);
+    }
+    remove_slackware_pkg($_->{PRGNAM}) for @pkgs;
+}
+
+sub main_query {
     sbozyp_getopts(
         \@_,
         'h|help' => \my $opt_help,
@@ -211,43 +238,7 @@ sub query_command_main {
     }
 }
 
-sub remove_command_main {
-    sbozyp_getopts(
-        \@_,
-        'h|help' => \my $opt_help,
-        'f'      => \my $opt_nodepsafetycheck,
-        'i'      => \my $opt_noninteractive,
-        'r'      => \my $opt_removedeps
-    );
-    if ($opt_help) { print command_help_msg('remove'); return }
-    @_ >= 1 or die command_usage('remove');
-    i_am_root_or_die('the remove command requires root');
-    my @pkgs = pkgs_uniq(map { $_ = pkg($_) } @_);
-    unless ($opt_nodepsafetycheck) {
-        my @errors; for my $pkg (@pkgs) {
-            my @dependents = pkg_array_minus([pkg_dependents_direct($pkg)], [@pkgs]);
-            if (@dependents) {
-                my $error = sbozyp_error_prefix()."package $pkg->{PKGNAME} is depended on by:\n";
-                $error .= "    $_->{PKGNAME}\n" for @dependents;
-                push @errors, $error;
-            }
-        }
-        die @errors if @errors;
-    }
-    @pkgs = (@pkgs, pkgs_removable_dependencies(@pkgs)) if $opt_removedeps;
-    for my $pkg (@pkgs) {
-        if (!defined pkg_installed($pkg)) {
-            sbozyp_die("the package $pkg->{PKGNAME} is not installed");
-        }
-    }
-    if (not $opt_noninteractive) {
-        sbozyp_print('are you sure you want to remove these packages:', "\n");
-        return unless pkgs_confirm_with_user(@pkgs);
-    }
-    remove_slackware_pkg($_->{PRGNAM}) for @pkgs;
-}
-
-sub search_command_main {
+sub main_search {
     sbozyp_getopts(
         \@_,
         'h|help' => \my $opt_help,
@@ -272,8 +263,17 @@ sub search_command_main {
     }
 }
 
+sub main_null {
+    sbozyp_getopts(
+        \@_,
+        'h|help' => \my $opt_help,
+    );
+    if ($opt_help) { print command_help_msg('null'); return }
+    @_ == 0 or die command_usage('null');
+}
+
             ####################################################
-            #            IMPLEMENTATION SUBROUTINES            #
+            #                 PACKAGE OPERATIONS               #
             ####################################################
 
 sub pkg {
@@ -311,15 +311,6 @@ sub pkg {
     return $pkg
 }
 
-sub pkgs_confirm_with_user {
-    my @pkgs = @_;
-    print '    ', $_->{PKGNAME}, "\n" for @pkgs;
-    print '  (y/n) -> ';
-    my $user_input = <STDIN>;
-    $user_input =~ s/^\s+|\s+$//g;
-    return $user_input =~ /^y(?:es)?$/ ? 1 : 0;
-}
-
 sub pkgs_uniq {
     my @pkgs = @_;
     my %seen; my @pkgs_uniq;
@@ -331,16 +322,16 @@ sub pkgs_uniq {
     return @pkgs_uniq;
 }
 
-sub pkgs_sorted {
-    my @pkgs = @_;
-    my @pkgs_uniq = pkgs_uniq(@pkgs);
-    return sort { $a->{PKGNAME} cmp $b->{PKGNAME} } @pkgs_uniq;
-}
-
 sub pkgs_merged {
     my @pkgs = @_;
     my @pkgs_merged = pkgs_uniq(@pkgs);
     return @pkgs_merged;
+}
+
+sub pkgs_sorted {
+    my @pkgs = @_;
+    my @pkgs_uniq = pkgs_uniq(@pkgs);
+    return sort { $a->{PKGNAME} cmp $b->{PKGNAME} } @pkgs_uniq;
 }
 
 sub pkg_array_minus {
@@ -349,6 +340,15 @@ sub pkg_array_minus {
         my $pkg = $_; !grep { $pkg->{PKGNAME} eq $_->{PKGNAME} } @$pkg_aref2
     } @$pkg_aref1;
     return @pkgs_minus;
+}
+
+sub pkgs_confirm_with_user {
+    my @pkgs = @_;
+    print '    ', $_->{PKGNAME}, "\n" for @pkgs;
+    print '  (y/n) -> ';
+    my $user_input = <STDIN>;
+    $user_input =~ s/^\s+|\s+$//g;
+    return $user_input =~ /^y(?:es)?$/ ? 1 : 0;
 }
 
 sub pkg_installed {
@@ -414,7 +414,7 @@ sub arch {
 }
 
 sub sbozyp_getopts {
-    my $err_prefix = (caller(1))[3] =~ /([^:_]+)_command_main$/ ? "$1: " : '';
+    my $err_prefix = (caller(1))[3] =~ /main_([a-z]+)$/ ? "$1: " : '';
     my $getopt_err;
     local $SIG{__WARN__} = sub { chomp($getopt_err = lcfirst $_[0]) };
     GetOptionsFromArray(@_) or sbozyp_die($err_prefix.$getopt_err);
@@ -443,12 +443,6 @@ sub sbozyp_system {
         sbozyp_die("the following system command exited with status $exit_status: @cmd");
     }
     return $exit_status;
-}
-
-sub clear_terminal {
-    print "\033[2J";    # clear the screen
-    # print "\033[3J";    # clear the scrollback
-    print "\033[0;0H";  # jump to 0,0
 }
 
 sub sbozyp_qx {

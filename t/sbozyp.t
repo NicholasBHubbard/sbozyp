@@ -1295,33 +1295,33 @@ subtest 'set_repo_name_or_die()' => sub {
             #               COMMAND MAIN TESTS                 #
             ####################################################
 
-subtest 'build_command_main' => sub {
-    skip_all('build_command_main() requires root') unless $> == 0;
+subtest 'main_build' => sub {
+    skip_all('main_build() requires root') unless $> == 0;
 
     my ($stdout, $stderr); # were gonna capture STDOUT and STDERR into these for some tests
     my $stdin;  # were gonna mock user input in some of these tests.
 
-    ($stdout) = capture { Sbozyp::build_command_main('--help', 'mu') };
+    ($stdout) = capture { Sbozyp::main_build('--help', 'mu') };
     like($stdout, qr/^Usage: sbozyp <build\|bu>.+Options are.+Examples:/s, q(outputs help message if given '--help' option));
 
-    ($stdout) = capture { Sbozyp::build_command_main('-h') };
+    ($stdout) = capture { Sbozyp::main_build('-h') };
     like($stdout, qr/^Usage: sbozyp <build\|bu>.+Options are.+Examples:/s, q(accepts '-h' instead of '--help'));
 
     my $pkg = Sbozyp::pkg('sbozyp-basic');
     my $pkg2 = Sbozyp::pkg('sbozyp-basic-2.0');
 
     ok(!Sbozyp::built_slackware_pkg($pkg));
-    ($stdout) = capture { Sbozyp::build_command_main('-i', 'sbozyp-basic') };
+    ($stdout) = capture { Sbozyp::main_build('-i', 'sbozyp-basic') };
     like($stdout, qr/Slackware package \Q$Sbozyp::CONFIG{TMPDIR}\E\/sbozyp-basic.+created/, q(prints path to built package to stdout));
     ok(Sbozyp::built_slackware_pkg($pkg), 'builds the package (non-interactively with -i flag)');
     unlink Sbozyp::built_slackware_pkg($pkg) or die;
 
-    like(dies { Sbozyp::build_command_main('NOTAPACKAGE') },
+    like(dies { Sbozyp::main_build('NOTAPACKAGE') },
          qr/^sbozyp: error: could not find a package named NOTAPACKAGE$/,
          'dies with useful error message if given a non-existent package'
     );
 
-    like(dies { Sbozyp::build_command_main('sbozyp-basic', 'NOTAPACKAGE') },
+    like(dies { Sbozyp::main_build('sbozyp-basic', 'NOTAPACKAGE') },
          qr/^sbozyp: error: could not find a package named NOTAPACKAGE$/,
          'dies with useful error message if given a non-existent package along with a existing package'
     );
@@ -1329,50 +1329,50 @@ subtest 'build_command_main' => sub {
 
     open $stdin, '<', \"no\n" or die;
     local *STDIN = $stdin;
-    Sbozyp::build_command_main('sbozyp-basic');
+    Sbozyp::main_build('sbozyp-basic');
     close $stdin;
     ok(!Sbozyp::built_slackware_pkg($pkg), q(doesnt build package if user says 'no' at prompt (prompts by default)));
 
     open $stdin, '<', \"no\n" or die;
     local *STDIN = $stdin;
-    Sbozyp::build_command_main('sbozyp-basic', 'sbozyp-basic');
+    Sbozyp::main_build('sbozyp-basic', 'sbozyp-basic');
     close $stdin;
     ok(!Sbozyp::built_slackware_pkg($pkg), q(handles multiple entries of the same package));
 
     open $stdin, '<', \"n\n" or die;
     local *STDIN = $stdin;
-    Sbozyp::build_command_main('sbozyp-basic');
+    Sbozyp::main_build('sbozyp-basic');
     close $stdin;
     ok(!Sbozyp::built_slackware_pkg($pkg), q(accepts 'n' instead of 'no' at prompt));
 
     open $stdin, '<', \"yes\n" or die;
     local *STDIN = $stdin;
-    Sbozyp::build_command_main('sbozyp-basic');
+    Sbozyp::main_build('sbozyp-basic');
     close $stdin;
     ok(Sbozyp::built_slackware_pkg($pkg), q(does build package if user says 'yes' at prompt (prompts by default)));
     unlink Sbozyp::built_slackware_pkg($pkg) or die;
 
     open $stdin, '<', \"y\n" or die;
     local *STDIN = $stdin;
-    Sbozyp::build_command_main('sbozyp-basic');
+    Sbozyp::main_build('sbozyp-basic');
     close $stdin;
     ok(Sbozyp::built_slackware_pkg($pkg), q(accepts 'y' instead of 'yes' at prompt));
     unlink Sbozyp::built_slackware_pkg($pkg) or die;
 
     open $stdin, '<', \"foo\nno\n" or die;
     local *STDIN = $stdin;
-    ($stdout) = capture { Sbozyp::build_command_main('sbozyp-basic') };
+    ($stdout) = capture { Sbozyp::main_build('sbozyp-basic') };
     close $stdin;
     ok(!Sbozyp::built_slackware_pkg($pkg));
 
-    ($stdout) = capture { Sbozyp::build_command_main('-f', '-i', 'sbozyp-basic') };
+    ($stdout) = capture { Sbozyp::main_build('-f', '-i', 'sbozyp-basic') };
     like($stdout, qr/Slackware package \Q$Sbozyp::CONFIG{TMPDIR}\E\/sbozyp-basic.+created/, q(rebuilds package if already built with '-f' option));
     ok(Sbozyp::built_slackware_pkg($pkg));
 
-    ($stdout) = capture { Sbozyp::build_command_main('-i', 'sbozyp-basic') };
+    ($stdout) = capture { Sbozyp::main_build('-i', 'sbozyp-basic') };
     like($stdout, qr/^sbozyp: existing package for misc\/sbozyp-basic found at '\Q$Sbozyp::CONFIG{TMPDIR}\E\/sbozyp-basic.+$'$/s);
 
-    ($stdout) = capture { Sbozyp::build_command_main('-f', '-i', 'sbozyp-basic', 'sbozyp-basic-2.0') };
+    ($stdout) = capture { Sbozyp::main_build('-f', '-i', 'sbozyp-basic', 'sbozyp-basic-2.0') };
     like($stdout, qr/sbozyp-basic-1\.0.+created.+sbozyp-basic-2\.0.+created/s, 'builds multiple packages on single invocation');
 
     # cleanup
@@ -1383,42 +1383,42 @@ subtest 'build_command_main' => sub {
     }
 };
 
-subtest 'install_command_main()' => sub {
-    skip_all('install_command_main() requires root') unless $> == 0;
+subtest 'main_install()' => sub {
+    skip_all('main_install() requires root') unless $> == 0;
 
     local $ENV{ROOT} = "$TEST_DIR/tmp_root"; # were gonna install some packages
 
     my ($stdout, $stderr); # were gonna capture STDOUT and STDERR into these for some tests
 
-    ($stdout) = capture { Sbozyp::install_command_main('-h') };
+    ($stdout) = capture { Sbozyp::main_install('-h') };
     like($stdout, qr/Usage.+Install or upgrade packages.+\-h.+Print help message/s, 'prints help message if given -h option');
 
-    ($stdout) = capture { Sbozyp::install_command_main('--help') };
+    ($stdout) = capture { Sbozyp::main_install('--help') };
     like($stdout, qr/Usage.+Install or upgrade packages.+\-h.+Print help message/s, 'prints help message if given --help option');
 
-    ($stdout) = capture { Sbozyp::install_command_main('-i', '--help', 'mu') };
+    ($stdout) = capture { Sbozyp::main_install('-i', '--help', 'mu') };
     like($stdout, qr/Usage.+Install or upgrade packages.+\-h.+Print help message/s, 'prints help message if given --help option regardless of other options');
 
-    like(dies { Sbozyp::install_command_main('-H', 'mu') },
+    like(dies { Sbozyp::main_install('-H', 'mu') },
          qr/^sbozyp: error: install: unknown option: H/,
          'dies with useful message if given invalid option'
     );
 
-    like(dies { Sbozyp::install_command_main() },
+    like(dies { Sbozyp::main_install() },
          qr/^Usage/,
          'dies with usage if not given a package name'
     );
 
-    like(dies { Sbozyp::install_command_main('NOTAPACKAGE') },
+    like(dies { Sbozyp::main_install('NOTAPACKAGE') },
          qr/could not find a package named NOTAPACKAGE/,
          'dies with useful message if the package does not exist'
     );
 
-    Sbozyp::install_command_main('-i', 'sbozyp-basic');
+    Sbozyp::main_install('-i', 'sbozyp-basic');
     ok(Sbozyp::pkg_installed(Sbozyp::pkg('sbozyp-basic')), 'installs a package');
     ok(! -f "$TEST_DIR/sbozyp-basic-1.0-noarch-1_SBo.tgz", 'removes slackware package after installing it if not given -k option');
 
-    Sbozyp::install_command_main('-i', 'sbozyp-recursive-dep-A');
+    Sbozyp::main_install('-i', 'sbozyp-recursive-dep-A');
     ok(   Sbozyp::pkg_installed(Sbozyp::pkg('sbozyp-recursive-dep-A'))
        && Sbozyp::pkg_installed(Sbozyp::pkg('sbozyp-recursive-dep-B'))
        && Sbozyp::pkg_installed(Sbozyp::pkg('sbozyp-recursive-dep-C'))
@@ -1428,7 +1428,7 @@ subtest 'install_command_main()' => sub {
     );
     remove_tree "$TEST_DIR/tmp_root" or die; # cleanup for the next test
 
-    Sbozyp::install_command_main('-i', '-n', 'sbozyp-recursive-dep-A');
+    Sbozyp::main_install('-i', '-n', 'sbozyp-recursive-dep-A');
     ok(   Sbozyp::pkg_installed(Sbozyp::pkg('sbozyp-recursive-dep-A'))
        && not(Sbozyp::pkg_installed(Sbozyp::pkg('sbozyp-recursive-dep-B')))
        && not(Sbozyp::pkg_installed(Sbozyp::pkg('sbozyp-recursive-dep-C')))
@@ -1439,110 +1439,110 @@ subtest 'install_command_main()' => sub {
 
     remove_tree "$TEST_DIR/tmp_root" or die;
 
-    Sbozyp::install_command_main('-i', 'sbozyp-basic', 'sbozyp-readme-extra-deps');
+    Sbozyp::main_install('-i', 'sbozyp-basic', 'sbozyp-readme-extra-deps');
     ok(Sbozyp::pkg_installed(Sbozyp::pkg('sbozyp-basic')) && Sbozyp::pkg_installed(Sbozyp::pkg('sbozyp-readme-extra-deps')), 'accepts multiple package arguments to install');
 
     remove_tree "$TEST_DIR/tmp_root" or die;
 
-    like(dies { Sbozyp::install_command_main('sbozyp-basic', 'mu', 'NOTAPACKAGE') },
+    like(dies { Sbozyp::main_install('sbozyp-basic', 'mu', 'NOTAPACKAGE') },
          qr/^sbozyp: error: could not find a package named NOTAPACKAGE$/,
          'accepts multiple package name args and dies if any are not valid packages'
     );
 
-    Sbozyp::install_command_main('-i', '-k', 'sbozyp-basic');
+    Sbozyp::main_install('-i', '-k', 'sbozyp-basic');
     ok(-f "$TEST_DIR/sbozyp-basic-1.0-noarch-1_SBo.tgz", 'does not remove slackware package after installing it if given -k flag');
 
-    ($stdout) = capture { Sbozyp::install_command_main('-i', 'sbozyp-basic') };
+    ($stdout) = capture { Sbozyp::main_install('-i', 'sbozyp-basic') };
     like($stdout, qr/sbozyp: all packages \(and their deps\) requested for installation are up to date/, 'by default skips install with useful message if package is already installed');
 
-    ($stdout) = capture { Sbozyp::install_command_main('-i', '-f', 'sbozyp-basic') };
+    ($stdout) = capture { Sbozyp::main_install('-i', '-f', 'sbozyp-basic') };
     like($stdout, qr/Installing package sbozyp-basic-1.0-noarch-1_SBo\.tgz/, 're-installs package if it is already installed if using \'-f\' option');
 
     remove_tree "$TEST_DIR/tmp_root" or die;
 };
 
-subtest 'null_command_main()' => sub {
+subtest 'main_null()' => sub {
     my ($stdout, $stderr); # were gonna capture STDOUT and STDERR into these for some tests
 
-    ($stdout) = capture { Sbozyp::null_command_main('--help', 'mu') };
+    ($stdout) = capture { Sbozyp::main_null('--help', 'mu') };
     like($stdout, qr/^Usage: sbozyp <null\|nu>.+Do nothing.+Options are.+Examples:/s, q(outputs help message if given '--help' option));
 
-    ($stdout) = capture { Sbozyp::null_command_main('-h') };
+    ($stdout) = capture { Sbozyp::main_null('-h') };
     like($stdout, qr/^Usage: sbozyp <null\|nu>.+Do nothing.+Options are.+Examples:/s, q(accepts '-h' instead of '--help'));
 
-    ok(lives { Sbozyp::null_command_main() }, 'lives and does nothing if given no args');
+    ok(lives { Sbozyp::main_null() }, 'lives and does nothing if given no args');
 
-    like(dies { Sbozyp::null_command_main('foo') },
+    like(dies { Sbozyp::main_null('foo') },
          qr/^Usage: sbozyp <null\|nu> \[-h\]$/,
          'dies with usage if given an arg'
     );
 };
 
-subtest 'query_command_main()' => sub {
+subtest 'main_query()' => sub {
     local $ENV{ROOT} = "$TEST_DIR/tmp_root";
 
     my ($stdout, $stderr); # were gonna capture STDOUT and STDERR into these for some tests
 
-    ($stdout) = capture { Sbozyp::query_command_main('-h', 'mu') };
+    ($stdout) = capture { Sbozyp::main_query('-h', 'mu') };
     like($stdout, qr/^Usage.+Query for package related information.+Options are/s, q(outputs help message if given '-h' option));
 
-    ($stdout) = capture { Sbozyp::query_command_main('--help', 'mu') };
+    ($stdout) = capture { Sbozyp::main_query('--help', 'mu') };
     like($stdout, qr/^Usage.+Query for package related information.+Options are/s, q(outputs help message if given '--help' option));
 
-    ($stdout) = capture { Sbozyp::query_command_main('--help') };
+    ($stdout) = capture { Sbozyp::main_query('--help') };
     like($stdout, qr/^Usage.+Query for package related information.+Options are/s, q(--help options doesn't require a pkgname arg to be given));
 
-    like(dies { Sbozyp::query_command_main('-Z', 'mu') },
+    like(dies { Sbozyp::main_query('-Z', 'mu') },
          qr/sbozyp: error: query: unknown option: Z/,
          'dies with useful error if given an invalid option'
     );
 
-    like(dies { Sbozyp::query_command_main('-d', '-a', '-i', '-p', 'mu') },
+    like(dies { Sbozyp::main_query('-d', '-a', '-i', '-p', 'mu') },
          qr/^sbozyp: error: must set exactly 1 query option but 4 were set$/,
          'dies with useful error message if given multiple options'
     );
 
-    like(dies { Sbozyp::query_command_main('mu', 'sbozyp-basic') },
+    like(dies { Sbozyp::main_query('mu', 'sbozyp-basic') },
          qr/^Usage:/,
          'dies with usage if given more than 1 pkgname arg'
     );
 
-    like(dies { Sbozyp::query_command_main('-d') }, qr/^sbozyp: error: query option '-d' requires single PKGNAME argument$/, 'dies with useful error if missing PKGNAME arg for option that requires it');
+    like(dies { Sbozyp::main_query('-d') }, qr/^sbozyp: error: query option '-d' requires single PKGNAME argument$/, 'dies with useful error if missing PKGNAME arg for option that requires it');
 
-    like(dies { Sbozyp::query_command_main('-a', 'mu') }, qr/^sbozyp: error: query option '-a' does not take PKGNAME argument$/, 'dies with useful error if given PKGNAME arg for option that doesnt require it');
+    like(dies { Sbozyp::main_query('-a', 'mu') }, qr/^sbozyp: error: query option '-a' does not take PKGNAME argument$/, 'dies with useful error if given PKGNAME arg for option that doesnt require it');
 
-    ($stdout) = capture { Sbozyp::query_command_main('-d', 'sbozyp-basic') };
+    ($stdout) = capture { Sbozyp::main_query('-d', 'sbozyp-basic') };
     like($stdout, qr/HOW TO EDIT THIS FILE.+sbozyp-basic/s, 'prints packages slack-desc file if given -d option');
 
-    ($stdout) = capture { Sbozyp::query_command_main('sbozyp-basic', '-d') };
+    ($stdout) = capture { Sbozyp::main_query('sbozyp-basic', '-d') };
     like($stdout, qr/HOW TO EDIT THIS FILE.+sbozyp-basic/s, 'option can come after pkgname arg');
 
-    ($stdout) = capture { Sbozyp::query_command_main('-i', 'sbozyp-basic') };
+    ($stdout) = capture { Sbozyp::main_query('-i', 'sbozyp-basic') };
     like($stdout, qr/PRGNAM="sbozyp-basic".+VERSION=.+REQUIRES/s, 'prints .info file if given -i option');
 
-    ($stdout) = capture { Sbozyp::query_command_main('-r', 'sbozyp-basic') };
+    ($stdout) = capture { Sbozyp::main_query('-r', 'sbozyp-basic') };
     like($stdout, qr/This is a mock package to be used in sbozyp test code.+There is nothing special/s, 'prints README file if given -r option');
 
-    ($stdout) = capture { Sbozyp::query_command_main('-s', 'sbozyp-basic') };
+    ($stdout) = capture { Sbozyp::main_query('-s', 'sbozyp-basic') };
     like($stdout, qr/Slackware build script for sbozyp-basic.+make/s, 'prints .SlackBuild file if given -s option');
 
-    ($stdout) = capture { Sbozyp::query_command_main('-m') };
+    ($stdout) = capture { Sbozyp::main_query('-m') };
     is($stdout, '', 'no output with -m flag if no dependent packages');
-    like(dies { Sbozyp::query_command_main('-m', 'mu') }, qr/^sbozyp: error: query option '-m' does not take PKGNAME argument$/, 'dies with useful error if given PKGNAME arg with -m');
+    like(dies { Sbozyp::main_query('-m', 'mu') }, qr/^sbozyp: error: query option '-m' does not take PKGNAME argument$/, 'dies with useful error if given PKGNAME arg with -m');
 
-    ($stdout) = capture { Sbozyp::query_command_main('-o', 'sbozyp-basic') };
+    ($stdout) = capture { Sbozyp::main_query('-o', 'sbozyp-basic') };
     is($stdout, '', 'no output with -o flag if no dependent packages');
-    like(dies { Sbozyp::query_command_main('-o') }, qr/^sbozyp: error: query option '-o' requires single PKGNAME argument$/, 'dies with useful error if not given PKGNAME arg with -o');
+    like(dies { Sbozyp::main_query('-o') }, qr/^sbozyp: error: query option '-o' requires single PKGNAME argument$/, 'dies with useful error if not given PKGNAME arg with -o');
 
-    ($stdout) = capture { Sbozyp::query_command_main('-n', 'sbozyp-basic') };
+    ($stdout) = capture { Sbozyp::main_query('-n', 'sbozyp-basic') };
     is($stdout, '', 'no output with -n flag if no dependent packages');
-    like(dies { Sbozyp::query_command_main('-n') }, qr/^sbozyp: error: query option '-n' requires single PKGNAME argument$/, 'dies with useful error if not given PKGNAME arg with -n');
+    like(dies { Sbozyp::main_query('-n') }, qr/^sbozyp: error: query option '-n' requires single PKGNAME argument$/, 'dies with useful error if not given PKGNAME arg with -n');
 
-    ($stdout) = capture { Sbozyp::query_command_main('-b', 'sbozyp-basic') };
+    ($stdout) = capture { Sbozyp::main_query('-b', 'sbozyp-basic') };
     is($stdout, "$Sbozyp::CONFIG{REPO_ROOT}/$Sbozyp::CONFIG{REPO_NAME}/misc/sbozyp-basic\n", 'prints path to package directory with -b flag');
-    like(dies { Sbozyp::query_command_main('-b') }, qr/^sbozyp: error: query option '-b' requires single PKGNAME argument/, 'dies with useful error if not given PKGNAME arg with -b');
+    like(dies { Sbozyp::main_query('-b') }, qr/^sbozyp: error: query option '-b' requires single PKGNAME argument/, 'dies with useful error if not given PKGNAME arg with -b');
 
-    ($stdout) = capture { Sbozyp::query_command_main('-q', 'sbozyp-recursive-dep-A') };
+    ($stdout) = capture { Sbozyp::main_query('-q', 'sbozyp-recursive-dep-A') };
     like($stdout, qr|^misc/sbozyp-recursive-dep-F\nmisc/sbozyp-recursive-dep-E\nmisc/sbozyp-recursive-dep-C\nmisc/sbozyp-recursive-dep-D\nmisc/sbozyp-recursive-dep-B\nmisc/sbozyp-recursive-dep-A\n$|s, 'prints packages dependencies (in order and recursively) if given -q option');
 
     if ($> == 0) { # need to be root to install a package
@@ -1550,14 +1550,14 @@ subtest 'query_command_main()' => sub {
         my $pkg = Sbozyp::pkg('sbozyp-basic');
         Sbozyp::install_slackware_pkg(Sbozyp::build_slackware_pkg($pkg));
 
-        ok(lives { Sbozyp::query_command_main('-p', 'sbozyp-nested-dir') },
+        ok(lives { Sbozyp::main_query('-p', 'sbozyp-nested-dir') },
              'does not die if package is not installed with -p option'
         );
 
-        ($stdout) = capture { Sbozyp::query_command_main('-p', 'sbozyp-basic') };
+        ($stdout) = capture { Sbozyp::main_query('-p', 'sbozyp-basic') };
         like($stdout, qr/^1\.0$/s, 'outputs installed version and does not die if package is installed with -p option');
 
-        ($stdout) = capture { Sbozyp::query_command_main('-a') };
+        ($stdout) = capture { Sbozyp::main_query('-a') };
         like($stdout, qr/^misc\/sbozyp-basic$/s, 'outputs installed SBo pkgs if given -a option');
 
         my $pkg_a = Sbozyp::pkg('sbozyp-recursive-dep-A'); # depends on B
@@ -1566,13 +1566,13 @@ subtest 'query_command_main()' => sub {
         Sbozyp::install_slackware_pkg(Sbozyp::build_slackware_pkg($pkg_a));
         Sbozyp::install_slackware_pkg(Sbozyp::build_slackware_pkg($pkg_b));
         Sbozyp::install_slackware_pkg(Sbozyp::build_slackware_pkg($pkg_c));
-        ($stdout) = capture { Sbozyp::query_command_main('-o', 'sbozyp-recursive-dep-B') };
+        ($stdout) = capture { Sbozyp::main_query('-o', 'sbozyp-recursive-dep-B') };
         is($stdout, "misc/sbozyp-depends-on-recursive-deps\nmisc/sbozyp-recursive-dep-A\n", '-o outputs all dependent package names sorted');
 
-        ($stdout) = capture { Sbozyp::query_command_main('-n', 'sbozyp-recursive-dep-B') };
+        ($stdout) = capture { Sbozyp::main_query('-n', 'sbozyp-recursive-dep-B') };
         is($stdout, "misc/sbozyp-depends-on-recursive-deps\nmisc/sbozyp-recursive-dep-A\n", '-n outputs all dependent package names sorted');
 
-        ($stdout) = capture { Sbozyp::query_command_main('-m') };
+        ($stdout) = capture { Sbozyp::main_query('-m') };
         is($stdout, "misc/sbozyp-basic\nmisc/sbozyp-depends-on-recursive-deps\n", '-m outputs all packages without dependents (sorted)');
 
         # TODO: test -u option. Need to figure out how to mock a package upgrade situation
@@ -1587,35 +1587,35 @@ subtest 'query_command_main()' => sub {
     }
 };
 
-subtest 'remove_command_main()' => sub {
-    skip_all('remove_command_main() requires root') unless $> == 0;
+subtest 'main_remove()' => sub {
+    skip_all('main_remove() requires root') unless $> == 0;
 
     local $ENV{ROOT} = "$TEST_DIR/tmp_root"; # were gonna install some packages
 
     my $stdout; # were gonna capture STDOUT into this variable for some of these tests
     my $stdin;  # were gonna mock user input in some of these tests.
 
-    ($stdout) = capture { Sbozyp::remove_command_main('-h') };
+    ($stdout) = capture { Sbozyp::main_remove('-h') };
     like($stdout, qr/^Usage: sbozyp <remove\|rm>.+Remove packages.+Options are/s, q('-h' option prints a help string to STDOUT));
 
-    ($stdout) = capture { Sbozyp::remove_command_main('--help') };
+    ($stdout) = capture { Sbozyp::main_remove('--help') };
     like($stdout, qr/^Usage: sbozyp <remove\|rm>.+Remove packages.+Options are/s, q(also accepts '--help' instead of '-h'));
 
-    ($stdout) = capture { Sbozyp::remove_command_main('--help', 'FOOBARBAZ') };
+    ($stdout) = capture { Sbozyp::main_remove('--help', 'FOOBARBAZ') };
     like($stdout, qr/^Usage: sbozyp <remove\|rm>.+Remove packages.+Options are/s, q(ignores other arg if given '--help' option));
 
 
-    like(dies { Sbozyp::remove_command_main() },
+    like(dies { Sbozyp::main_remove() },
          qr/^Usage:/,
          'dies with usage if not give pkgname arg'
     );
 
-    like(dies { Sbozyp::remove_command_main('NOTAPACKAGE') },
+    like(dies { Sbozyp::main_remove('NOTAPACKAGE') },
          qr/^sbozyp: error: could not find a package named NOTAPACKAGE$/,
          'dies with useful error message if given a non-existent package'
     );
 
-    like(dies { Sbozyp::remove_command_main('sbozyp-basic') },
+    like(dies { Sbozyp::main_remove('sbozyp-basic') },
          qr/^sbozyp: error: the package misc\/sbozyp-basic is not installed$/,
          'dies with useful error message if attempting to remove a package that is not installed'
      );
@@ -1627,31 +1627,31 @@ subtest 'remove_command_main()' => sub {
 
     open $stdin, '<', \"no\n" or die;
     local *STDIN = $stdin;
-    Sbozyp::remove_command_main('sbozyp-basic', 'sbozyp-recursive-dep-A');
+    Sbozyp::main_remove('sbozyp-basic', 'sbozyp-recursive-dep-A');
     close $stdin;
     ok(defined(Sbozyp::pkg_installed($pkg1) && defined(Sbozyp::pkg_installed($pkg2))), 'prompts user if they really want to remove the package, and if they say no then does not remove');
 
     open $stdin, '<', \"\n" or die;
     local *STDIN = $stdin;
-    Sbozyp::remove_command_main('sbozyp-basic', 'sbozyp-recursive-dep-A');
+    Sbozyp::main_remove('sbozyp-basic', 'sbozyp-recursive-dep-A');
     close $stdin;
     ok(defined(Sbozyp::pkg_installed($pkg1) && defined(Sbozyp::pkg_installed($pkg2))), 'prompt rejects empty string');
 
     open $stdin, '<', \"foo\n" or die;
     local *STDIN = $stdin;
-    Sbozyp::remove_command_main('sbozyp-basic', 'sbozyp-recursive-dep-A');
+    Sbozyp::main_remove('sbozyp-basic', 'sbozyp-recursive-dep-A');
     close $stdin;
     ok(defined(Sbozyp::pkg_installed($pkg1) && defined(Sbozyp::pkg_installed($pkg2))), 'prompt rejects non yes value');
 
     open $stdin, '<', \"yes\n" or die;
     local *STDIN = $stdin;
-    Sbozyp::remove_command_main('sbozyp-basic', 'sbozyp-recursive-dep-A');
+    Sbozyp::main_remove('sbozyp-basic', 'sbozyp-recursive-dep-A');
     close $stdin;
     ok(!defined(Sbozyp::pkg_installed($pkg1) && !defined(Sbozyp::pkg_installed($pkg2))), 'prompts user if the really want to remove the packages, and if they say yes then removes the packages');
 
     # install it again ...
     Sbozyp::install_slackware_pkg(Sbozyp::build_slackware_pkg($pkg1));
-    Sbozyp::remove_command_main('-i', 'sbozyp-basic');
+    Sbozyp::main_remove('-i', 'sbozyp-basic');
     ok(!defined(Sbozyp::pkg_installed($pkg1)), q(if given '-i' option then does not prompt user for confirmation and just goes ahead and removes the package));
 
     remove_tree("$TEST_DIR/tmp_root") or die;
@@ -1666,29 +1666,29 @@ subtest 'remove_command_main()' => sub {
         Sbozyp::install_slackware_pkg(Sbozyp::build_slackware_pkg($pkg_b));
         Sbozyp::install_slackware_pkg(Sbozyp::build_slackware_pkg($pkg_d));
 
-        like(dies { Sbozyp::remove_command_main('-i', 'sbozyp-recursive-dep-B') },
+        like(dies { Sbozyp::main_remove('-i', 'sbozyp-recursive-dep-B') },
              qr/^sbozyp: error: package misc\/sbozyp-recursive-dep-B is depended on by:\n.+sbozyp-depends-on-recursive-deps\n.+sbozyp-recursive-dep-A/s,
              q(by default doesnt remove packages that have dependents));
 
-        Sbozyp::remove_command_main('-i', '-f', 'sbozyp-recursive-dep-B');
+        Sbozyp::main_remove('-i', '-f', 'sbozyp-recursive-dep-B');
         ok(not(defined(Sbozyp::pkg_installed($pkg_b))), q(skips dependency safety check when passed '-f' flag));
         Sbozyp::install_slackware_pkg(Sbozyp::build_slackware_pkg($pkg_b));
 
-        Sbozyp::remove_command_main('-i', $pkg_a->{PKGNAME}, $pkg_b->{PKGNAME}, $pkg_0->{PKGNAME});
+        Sbozyp::main_remove('-i', $pkg_a->{PKGNAME}, $pkg_b->{PKGNAME}, $pkg_0->{PKGNAME});
         ok((not(defined(Sbozyp::pkg_installed($pkg_a))) && not(defined(Sbozyp::pkg_installed($pkg_b))) && not(defined(Sbozyp::pkg_installed($pkg_0)))),
            'dependent check ignores dependents that are being specified for removal');
         Sbozyp::install_slackware_pkg(Sbozyp::build_slackware_pkg($pkg_a));
         Sbozyp::install_slackware_pkg(Sbozyp::build_slackware_pkg($pkg_b));
         Sbozyp::install_slackware_pkg(Sbozyp::build_slackware_pkg($pkg_0));
 
-        Sbozyp::remove_command_main('-i', '-r', $pkg_0->{PRGNAM});
+        Sbozyp::main_remove('-i', '-r', $pkg_0->{PRGNAM});
         ok((not(defined(Sbozyp::pkg_installed($pkg_a))) && not(defined(Sbozyp::pkg_installed($pkg_b))) && not(defined(Sbozyp::pkg_installed($pkg_0)))),
            q(removes recursive dependencies when given '-r' flag));
         Sbozyp::install_slackware_pkg(Sbozyp::build_slackware_pkg($pkg_a));
         Sbozyp::install_slackware_pkg(Sbozyp::build_slackware_pkg($pkg_b));
         Sbozyp::install_slackware_pkg(Sbozyp::build_slackware_pkg($pkg_0));
 
-        Sbozyp::remove_command_main('-i', '-f', '-r', $pkg_a->{PRGNAM});
+        Sbozyp::main_remove('-i', '-f', '-r', $pkg_a->{PRGNAM});
         ok((not(defined(Sbozyp::pkg_installed($pkg_a))) && defined(Sbozyp::pkg_installed($pkg_b)) && defined(Sbozyp::pkg_installed($pkg_0) && defined(Sbozyp::pkg_installed($pkg_d)))),
            q(safe about removing dependencies with '-r' flag (see pkgs_removable_dependencies())));
         Sbozyp::install_slackware_pkg(Sbozyp::build_slackware_pkg($pkg_a));
@@ -1697,52 +1697,52 @@ subtest 'remove_command_main()' => sub {
     } remove_tree("$TEST_DIR/tmp_root") or die;
 };
 
-subtest 'search_command_main()' => sub {
+subtest 'main_search()' => sub {
     my $stdout; # were gonna capture STDOUT into this variable for some of these tests
 
-    ($stdout) = capture { Sbozyp::search_command_main('--help') };
+    ($stdout) = capture { Sbozyp::main_search('--help') };
     like($stdout, qr/^Usage.+Search for a package using a Perl regex.+Options are/s, q('-h' option prints a help string to STDOUT));
 
-    ($stdout) = capture { Sbozyp::search_command_main('--help') };
+    ($stdout) = capture { Sbozyp::main_search('--help') };
     like($stdout, qr/^Usage.+Search for a package using a Perl regex.+Options are/s, q(also accepts '--help'));
 
-    ($stdout) = capture { Sbozyp::search_command_main('--help', 'fooregex') };
+    ($stdout) = capture { Sbozyp::main_search('--help', 'fooregex') };
     like($stdout, qr/^Usage.+Search for a package using a Perl regex.+Options are/s, q(prints help even if args are given afterwards));
 
-    ($stdout) = capture { Sbozyp::search_command_main('^mu$') };
+    ($stdout) = capture { Sbozyp::main_search('^mu$') };
     like($stdout, qr/office\/mu\n$/s, 'returns matched package');
 
-    ($stdout) = capture { Sbozyp::search_command_main('^MU$') };
+    ($stdout) = capture { Sbozyp::main_search('^MU$') };
     like($stdout, qr/office\/mu\n$/s, 'case-insensitive by default');
 
-    like(dies { Sbozyp::search_command_main('-c','^MU$') },
+    like(dies { Sbozyp::main_search('-c','^MU$') },
          qr/^sbozyp: error: no packages match the regex '\^MU\$'$/,
          q(matches case-sensitive when given '-c' option)
     );
 
-    ($stdout) = capture { Sbozyp::search_command_main('-p', '^mu$') };
+    ($stdout) = capture { Sbozyp::main_search('-p', '^mu$') };
     like($stdout, qr/^mu\n$/s, 'returns just prgnam of matched package if given -p flag');
 
-    ($stdout) = capture { Sbozyp::search_command_main('^mu(pdf)?$') };
+    ($stdout) = capture { Sbozyp::main_search('^mu(pdf)?$') };
     is($stdout, "office/mu\noffice/mupdf\n", 'returns results sorted');
 
-    ($stdout) = capture { Sbozyp::search_command_main('-p', '^mu(pdf)?$') };
+    ($stdout) = capture { Sbozyp::main_search('-p', '^mu(pdf)?$') };
     is($stdout, "mu\nmupdf\n", 'returns results sorted with -p flag');
 
-    like(dies { Sbozyp::search_command_main('.+','^MU$') },
+    like(dies { Sbozyp::main_search('.+','^MU$') },
          qr/^Usage:/,
          'dies with usage if given multiple args'
     );
 
-    like(dies { Sbozyp::search_command_main('office/mu') },
+    like(dies { Sbozyp::main_search('office/mu') },
          qr/^sbozyp.+no packages match the regex/,
          'by default does not match package categories'
     );
 
-    ($stdout) = capture { Sbozyp::search_command_main('-n', 'office/mu') };
+    ($stdout) = capture { Sbozyp::main_search('-n', 'office/mu') };
     like($stdout, qr/office\/mu/s, q(matches against PKGNAME instead of just PRGNAM if given '-n' option));
 
-    ($stdout) = capture { Sbozyp::search_command_main('mu') };
+    ($stdout) = capture { Sbozyp::main_search('mu') };
     ok(10 < split("\n",$stdout), 'returns all packages that match the regex');
 };
 
