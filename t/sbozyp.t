@@ -27,14 +27,6 @@ my $TEST_DIR = File::Temp->newdir(DIR => '/tmp', TEMPLATE => 'sbozyp.t_XXXXXX', 
             #                       TESTS                      #
             ####################################################
 
-subtest 'is_multilib_system()' => sub {
-    if (-f '/etc/profile.d/32dev.sh') {
-        ok(Sbozyp::is_multilib_system(), 'true if system is multilib');
-    } else {
-        ok(!Sbozyp::is_multilib_system(), 'false if system is not multilib');
-    }
-};
-
 subtest 'arch()' => sub {
     chomp(my $arch = `uname -m`);
     is(Sbozyp::arch(), $arch, 'returns the systems architecture');
@@ -233,51 +225,6 @@ subtest 'sbozyp_readdir()' => sub {
     );
 };
 
-subtest 'sbozyp_find_files_recursive()' => sub {
-    make_path("$TEST_DIR/foo/bar/baz") or die;
-    open my $fh, '>', "$TEST_DIR/foo/foo_f" or die;
-    close $fh or die;
-    open $fh, '>', "$TEST_DIR/foo/bar_f" or die;
-    close $fh or die;
-    open $fh, '>', "$TEST_DIR/foo/bar/foo_f" or die;
-    close $fh or die;
-    open $fh, '>', "$TEST_DIR/foo/bar/baz/baz_f" or die;
-    close $fh or die;
-    open $fh, '>', "$TEST_DIR/foo/bar/baz/quux_f" or die;
-    close $fh or die;
-
-    is([Sbozyp::sbozyp_find_files_recursive("$TEST_DIR/foo")],
-       ["$TEST_DIR/foo/bar/baz/baz_f","$TEST_DIR/foo/bar/baz/quux_f","$TEST_DIR/foo/bar/foo_f","$TEST_DIR/foo/bar_f","$TEST_DIR/foo/foo_f"],
-       'returns all files in directory recursively'
-    );
-
-    like(dies { Sbozyp::sbozyp_find_files_recursive("$TEST_DIR/bar") },
-         qr/^sbozyp: error: could not opendir '\Q$TEST_DIR\E\/bar': No such file or directory$/,
-         'dies with useful error message if cannot opendir()'
-    );
-
-    like(dies { Sbozyp::sbozyp_find_files_recursive("$TEST_DIR/foo/bar_f") },
-         qr/^sbozyp: error: could not opendir '\Q$TEST_DIR\E\/foo\/bar_f': Not a directory$/,
-         'dies with useful error message if passed a plain file'
-    );
-
-    remove_tree("$TEST_DIR/foo") or die;
-};
-
-subtest 'sbozyp_chdir()' => sub {
-    my $orig_dir = getcwd(); # save this so we can switch back
-
-    Sbozyp::sbozyp_chdir($TEST_DIR);
-    is(getcwd(), "$TEST_DIR", 'successfully changes working directory');
-
-    chdir $orig_dir or die;
-
-    like(dies { Sbozyp::sbozyp_chdir("$TEST_DIR/foo") },
-         qr/^sbozyp: error: could not chdir to '\Q$TEST_DIR\E\/foo': No such file or directory$/,
-         'dies with useful error message if cannot chdir()'
-     );
-};
-
 subtest 'sbozyp_mkdir()' => sub {
     my @dirs = Sbozyp::sbozyp_mkdir("$TEST_DIR/foo/bar/baz","$TEST_DIR/foo/quux");
     ok(-d "$TEST_DIR/foo/bar/baz" && -d "$TEST_DIR/foo/quux", 'creates entire path for all args');
@@ -294,17 +241,6 @@ subtest 'sbozyp_mkdir()' => sub {
     );
 
     unlink "$TEST_DIR/foo" or die;
-};
-
-subtest 'sbozyp_rmdir()' => sub {
-    mkdir "$TEST_DIR/tmp" or die;
-    Sbozyp::sbozyp_rmdir("$TEST_DIR/tmp");
-    ok(! -d "$TEST_DIR/tmp", 'removes one level directory');
-    Sbozyp::sbozyp_mkdir("$TEST_DIR/tmp/multi");
-    dies { Sbozyp::sbozyp_rmdir("$TEST_DIR/tmp/multi") };
-    ok (-d "$TEST_DIR/tmp", 'only removes one level directory');
-    # cleanup
-    rmdir "$TEST_DIR/tmp" or die;
 };
 
 subtest 'sbozyp_rmdir_rec()' => sub {
@@ -457,27 +393,11 @@ END
 # set REPO_NAME to REPO_PRIMARY ('14.1') for the rest of the tests. Normally this happens in main(), which we havent tested yet.
 $Sbozyp::CONFIG{REPO_NAME} = $Sbozyp::CONFIG{REPO_PRIMARY};
 
-# the sbozyp_tee() subtest must come after the parse_config_file() subtest, as sbozyp_tee()'s implementation uses CONFIG{TMPDIR} which is set in the parse_config_file() subtest.
-subtest 'sbozyp_tee()' => sub {
-    my $teed_stdout;
-    my ($real_stdout) = capture { $teed_stdout = Sbozyp::sbozyp_tee('echo -e "foo\nbar\nbaz"') };
-    is($teed_stdout, $real_stdout, 'captures stdout');
-    is(Sbozyp::sbozyp_tee('1>&2 echo foo'), '', 'returns empty string if command produces no output to STDOUT');
-    ($real_stdout) = capture { $teed_stdout = Sbozyp::sbozyp_tee('echo foo && echo bar ; echo baz') };
-    is($teed_stdout, $real_stdout, 'captures stdout of shell command with meta chars');
-    is([Sbozyp::sbozyp_readdir($Sbozyp::CONFIG{TMPDIR})], [], 'cleans up tmp file from $CONFIG{TMPDIR}');
-    like(dies { Sbozyp::sbozyp_tee('false') },
-         qr/^sbozyp: error: the following system command exited with status 1: bash -c set -o pipefail && \( false \) \| tee '[^']+'$/,
-         'dies with useful error message is system command fails'
-    );
-    is([Sbozyp::sbozyp_readdir($Sbozyp::CONFIG{TMPDIR})], [], 'cleans up tmp file from $CONFIG{TMPDIR} after a failed system command');
-};
-
 subtest 'repo_is_cloned()' => sub {
     is(0, scalar(Sbozyp::repo_is_cloned()), 'returns 0 if $CONFIG{REPO_ROOT}/$CONFIG{REPO_NAME}/.git does not exist');
     Sbozyp::sbozyp_mkdir( "$Sbozyp::CONFIG{REPO_ROOT}/$Sbozyp::CONFIG{REPO_NAME}/.git");
     is(1, scalar(Sbozyp::repo_is_cloned()), 'returns 1 if $CONFIG{REPO_ROOT}/$CONFIG{REPO_NAME}/.git does exist');
-    Sbozyp::sbozyp_rmdir( "$Sbozyp::CONFIG{REPO_ROOT}/$Sbozyp::CONFIG{REPO_NAME}/.git");
+    rmdir("$Sbozyp::CONFIG{REPO_ROOT}/$Sbozyp::CONFIG{REPO_NAME}/.git") or die;
 };
 
 subtest 'clone_repo()' => sub {
@@ -501,7 +421,7 @@ subtest 'sync_repo()' => sub {
     Sbozyp::sbozyp_rmdir_rec("$Sbozyp::CONFIG{REPO_ROOT}/$Sbozyp::CONFIG{REPO_NAME}");
     mkdir("$Sbozyp::CONFIG{REPO_ROOT}/$Sbozyp::CONFIG{REPO_NAME}") or die;
     like(dies { Sbozyp::sync_repo() },
-         qr/^sbozyp: error: cannot sync non-existent git repository at '$Sbozyp::CONFIG{REPO_ROOT}\/$Sbozyp::CONFIG{REPO_NAME}'$/,
+         qr/^sbozyp: error: cannot sync non-existent git repository at '$Sbozyp::CONFIG{REPO_ROOT}\/$Sbozyp::CONFIG{REPO_NAME}\/'$/,
          'dies with useful error message if trying to sync non-existent repository'
     );
 
@@ -522,6 +442,7 @@ subtest 'all_pkgnames()' => sub {
     my @all_pkgnames = Sbozyp::all_pkgnames();
     ok(scalar(grep { $_ eq 'office/mu' } @all_pkgnames), 'returns list of pkgnames');
     ok(!scalar(grep /\.git/, @all_pkgnames), 'ignores .git');
+    is([@all_pkgnames], [sort @all_pkgnames], 'returns pkgnames sorted');
 };
 
 subtest 'prgnam_to_pkgname()' => sub {
@@ -933,6 +854,10 @@ subtest 'remove_slackware_pkg()' => sub {
         unlink $slackware_pkg or die;
     }
     remove_tree("$TEST_DIR/tmp_root") or die;
+};
+
+subtest 'repo_dir()' => sub {
+    is(Sbozyp::repo_dir(), "$Sbozyp::CONFIG{REPO_ROOT}/$Sbozyp::CONFIG{REPO_NAME}/", 'returns complete path to local SBo repo with trailing /');
 };
 
 subtest 'installed_sbo_pkgs()' => sub {
@@ -1811,12 +1736,13 @@ END
          q(dies with useful error if given invalid repo with the '-R' option)
     );
 
-    ($stdout, $stderr) = capture { Sbozyp::main('-T', '-R', '15.0', 'install', 'mu') };
-    ok(($stdout eq "" and $stderr eq "" and ! -d "$Sbozyp::CONFIG{REPO_ROOT}/$Sbozyp::CONFIG{REPO_NAME}"), '-T option makes main do nothing and exit if repo is not cloned');
-
     # test that everything is initialized properly as it would be on a fresh system:
 
     Sbozyp::sbozyp_rmdir_rec($Sbozyp::CONFIG{REPO_ROOT});
+
+    ($stdout, $stderr) = capture { Sbozyp::main('-T', '-R', '15.0', 'install', 'mu') };
+    is($stdout.$stderr, "", '-T option makes main do nothing and exit if repo is not cloned');
+    ok(! -d $Sbozyp::CONFIG{REPO_ROOT}, 'does not clone repo if given -T option');
 
     if (Sbozyp::i_am_root()) {
         Sbozyp::main('-F', "$tmp_config_file", 'null');

@@ -8,6 +8,7 @@ package Sbozyp;
 
 our $VERSION = '0.6.3';
 
+use Digest::MD5 qw();
 use File::Basename qw(basename dirname);
 use File::Temp qw();
 use File::Path qw(make_path remove_tree);
@@ -55,8 +56,8 @@ sub main {
     parse_config_file($opt_configfile); # mutates the global %CONFIG
     set_repo_name_or_die($opt_reponame // $CONFIG{REPO_PRIMARY});
     # initialize the environment
-    return if ($opt_noinit and !repo_is_cloned());
-    sbozyp_mkdir("$CONFIG{REPO_ROOT}/$CONFIG{REPO_NAME}", $CONFIG{TMPDIR});
+    return if $opt_noinit and !repo_is_cloned();
+    sbozyp_mkdir(repo_dir(), $CONFIG{TMPDIR});
     if ($opt_clone or !repo_is_cloned()) {
         i_am_root_or_die('need root to clone repo');
         clone_repo();
@@ -280,15 +281,15 @@ sub pkg {
     my ($prgnam) = @_;
     my $pkgname = prgnam_to_pkgname($prgnam) // sbozyp_die("could not find a package named $prgnam");
     state %pkg_cache; if (my $pkg = $pkg_cache{$pkgname}) { return $pkg }
-    my $info_file = "$CONFIG{REPO_ROOT}/$CONFIG{REPO_NAME}/$pkgname/@{[basename($pkgname)]}.info";
+    my $info_file = repo_dir()."$pkgname/@{[basename($pkgname)]}.info";
     my %info = parse_info_file($info_file);
     my $pkg = {
         PKGNAME         => $pkgname,
-        PKGDIR          => "$CONFIG{REPO_ROOT}/$CONFIG{REPO_NAME}/$pkgname",
+        PKGDIR          => repo_dir().$pkgname,
         INFO_FILE       => $info_file,
-        SLACKBUILD_FILE => "$CONFIG{REPO_ROOT}/$CONFIG{REPO_NAME}/$pkgname/".basename($pkgname).'.SlackBuild',
-        DESC_FILE       => "$CONFIG{REPO_ROOT}/$CONFIG{REPO_NAME}/$pkgname/slack-desc",
-        README_FILE     => "$CONFIG{REPO_ROOT}/$CONFIG{REPO_NAME}/$pkgname/README",
+        SLACKBUILD_FILE => repo_dir().$pkgname.'/'.basename($pkgname).'.SlackBuild',
+        DESC_FILE       => repo_dir().$pkgname.'/slack-desc',
+        README_FILE     => repo_dir().$pkgname.'/README',
         PRGNAM          => $info{PRGNAM},
         VERSION         => $info{VERSION},
         HOMEPAGE        => $info{HOMEPAGE},
@@ -389,33 +390,44 @@ sub installed_sbo_pkgs {
 }
 
 sub all_pkg_categories {
-    state @all_pkg_categories = sort map {
-        basename($_);
-    } sbozyp_qx("find '$CONFIG{REPO_ROOT}/$CONFIG{REPO_NAME}' -mindepth 1 -maxdepth 1 -type d -not -path '*/.*'");
+    state @all_pkg_categories = do {
+        my $repo_dir = repo_dir();
+        sort map { basename($_) } grep {
+            basename($_) !~ /^\./ && -d $_;
+        } sbozyp_readdir($repo_dir);
+    };
     return @all_pkg_categories;
 }
 
 sub all_pkgnames {
-    state @all_pkgnames = sort map {
-        my ($pkgname) = $_ =~ m,/([^/]+/[^/]+)$,;
-    } sbozyp_qx("find '$CONFIG{REPO_ROOT}/$CONFIG{REPO_NAME}' -mindepth 2 -maxdepth 2 -type d -not -path '*/.*'");
+    state @all_pkgnames = do {
+        my $repo_dir = repo_dir();
+        my @all_pkgnames;
+        for my $category (all_pkg_categories()) {
+            my @all_category_pkgnames = map { path_to_pkgname($_) } sbozyp_readdir("$repo_dir/$category");
+            push @all_pkgnames, @all_category_pkgnames;
+        }
+        sort @all_pkgnames;
+    };
     return @all_pkgnames;
 }
 
-sub prgnam_to_pkgname { # if $prgnam is already a pkgname just return it back
-    my ($prgnam) = @_;
-    $prgnam or return;
-    return $prgnam if $prgnam =~ m,^[^/]+/[^/]+$, && -d "$CONFIG{REPO_ROOT}/$CONFIG{REPO_NAME}/$prgnam";
+sub prgnam_to_pkgname { # if $prgnam is already a pkgname its just returned back
+    my ($prgnam) = @_; $prgnam or return;
     my $pkgname;
+    return $prgnam if $prgnam =~ m,^[^/]+/[^/]+$, && -d repo_dir().$prgnam;
     for my $category (all_pkg_categories()) {
-        $pkgname = "$category/$prgnam" if -d "$CONFIG{REPO_ROOT}/$CONFIG{REPO_NAME}/$category/$prgnam";
+        if (-d repo_dir()."$category/$prgnam") {
+            $pkgname = "$category/$prgnam";
+            last;
+        }
     }
     return $pkgname;
 }
 
 sub path_to_pkgname {
     my ($path) = @_;
-    my $pkgname = basename(dirname($path)) . '/' . basename($path);
+    my $pkgname = basename(dirname($path)).'/'.basename($path);
     return $pkgname;
 }
 
@@ -554,7 +566,11 @@ sub pkg_prepare_for_build {
         my $md5 = $url_md5{$url};
         sbozyp_system('wget', '-P', $staging_dir, $url);
         my $file = basename($url);
-        my $got_md5 = sbozyp_qx("md5sum '$staging_dir/$file' | cut -d' ' -f1");
+        my $got_md5 = do {
+            my $fh = sbozyp_open('<', "$staging_dir/$file");
+            binmode($fh);
+            Digest::MD5->new->addfile($fh)->hexdigest;
+        };
         if ($md5 ne $got_md5) {
             sbozyp_die("md5sum mismatch for '$url': expected '$md5': got '$got_md5'");
         }
@@ -647,30 +663,38 @@ sub repo_git_url {
     return $repo_git_url;
 }
 
+sub repo_dir {
+    state $repo_dir = do {
+        my $repo_root = $CONFIG{REPO_ROOT};
+        $repo_root =~ s,/+,/,g; $repo_root =~ s,/+$,,;
+        $repo_root.'/'.$CONFIG{REPO_NAME}.'/';
+    };
+    return $repo_dir;
+}
+
 sub repo_is_cloned {
-    my $local_git_repo = "$CONFIG{REPO_ROOT}/$CONFIG{REPO_NAME}";
-    return -d "$local_git_repo/.git" ? 1 : 0;
+    return -d repo_dir().'.git' ? 1 : 0;
 }
 
 sub clone_repo {
-    my $local_git_repo = "$CONFIG{REPO_ROOT}/$CONFIG{REPO_NAME}";
+    my $repo_dir = repo_dir();
     if (repo_is_cloned()) {
-        sbozyp_rmdir_rec($local_git_repo);
-        sbozyp_mkdir($local_git_repo);
+        sbozyp_rmdir_rec($repo_dir);
+        sbozyp_mkdir($repo_dir);
     }
     my $repo_git_branch = repo_git_branch();
     my $repo_git_url = repo_git_url();
-    sbozyp_system('git', 'clone', '--branch', $repo_git_branch, '--single-branch', $repo_git_url, $local_git_repo);
+    sbozyp_system('git', 'clone', '--branch', $repo_git_branch, '--single-branch', $repo_git_url, $repo_dir);
 }
 
 sub sync_repo {
-    my $local_git_repo = "$CONFIG{REPO_ROOT}/$CONFIG{REPO_NAME}";
+    my $repo_dir= repo_dir();
     if (repo_is_cloned()) {
         my $repo_git_branch = repo_git_branch();
-        sbozyp_system("git -C '$local_git_repo' fetch 1>&2");
-        sbozyp_system("git -C '$local_git_repo' reset --hard 'origin/$repo_git_branch' 1>&2");
+        sbozyp_system("git -C '$repo_dir' fetch 1>&2");
+        sbozyp_system("git -C '$repo_dir' reset --hard 'origin/$repo_git_branch' 1>&2");
     } else {
-        sbozyp_die("cannot sync non-existent git repository at '$local_git_repo'");
+        sbozyp_die("cannot sync non-existent git repository at '$repo_dir'");
     }
 }
 
@@ -758,11 +782,6 @@ sub sbozyp_qx {
     return wantarray ? @output : $output;
 }
 
-sub is_multilib_system {
-    my $is_multilib_system = -f '/etc/profile.d/32dev.sh';
-    return $is_multilib_system;
-}
-
 sub arch {
     state $arch = sbozyp_qx('uname -m');
     return $arch;
@@ -838,13 +857,6 @@ sub sbozyp_mkdir {
     return @dirs;
 }
 
-sub sbozyp_rmdir {
-    my ($dir) = @_;
-    if (-d $dir) {
-        rmdir $dir or sbozyp_die("could not rmdir '$dir': $!");
-    }
-}
-
 sub sbozyp_rmdir_rec {
     my ($dir) = @_;
     if (-d $dir) {
@@ -870,27 +882,6 @@ sub sbozyp_readdir {
     return @files;
 }
 
-sub sbozyp_find_files_recursive {
-    my ($dir) = @_;
-    my @files;
-    my $find_files_recursive = sub {
-        for my $f (@_) {
-            if (-f $f) {
-                push @files, $f;
-            } else {
-                __SUB__->(sbozyp_readdir($f));
-            }
-        }
-    };
-    $find_files_recursive->(sbozyp_readdir($dir));
-    return sort(@files);
-}
-
-sub sbozyp_chdir {
-    my ($dir) = @_;
-    chdir $dir or sbozyp_die("could not chdir to '$dir': $!");
-}
-
 sub sbozyp_open {
     my ($mode, $path) = @_;
     open(my $fh, $mode, $path) or sbozyp_die("could not open file '$path': $!");
@@ -900,22 +891,6 @@ sub sbozyp_open {
 sub sbozyp_unlink {
     my ($file) = @_;
     unlink $file or sbozyp_die("could not unlink file '$file': $!");
-}
-
-sub sbozyp_fork {
-    my $pid = fork();
-    defined $pid or sbozyp_die("fork failed: $!");
-    return $pid;
-}
-
-sub sbozyp_tee {
-    my ($cmd) = @_;
-    my $tmp = File::Temp->new(DIR=>$CONFIG{TMPDIR}, TEMPLATE=>'sbozyp_tee_XXXXXX');
-    $cmd = "set -o pipefail && ( $cmd ) | tee '$tmp'";
-    sbozyp_system('bash', '-c', $cmd);
-    seek $tmp, 0, 0;
-    my $stdout = do { local $/; <$tmp> };
-    return $stdout;
 }
 
 sub sbozyp_print_file {
