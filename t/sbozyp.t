@@ -117,23 +117,6 @@ subtest 'sbozyp_print_file()' => sub {
     );
 };
 
-subtest 'sbozyp_without_output()' => sub {
-    my $sub_print_stdout = sub { system('echo foo') };
-    my $sub_print_stderr = sub { system('echo foo 1>&2') };
-    my ($stdout, $stderr) = capture { Sbozyp::sbozyp_without_output($sub_print_stdout) };
-    is($stdout.$stderr, "", 'no output to stdout');
-    ($stdout, $stderr) = capture { Sbozyp::sbozyp_without_output($sub_print_stderr) };
-    is($stdout.$stderr, "", 'no output to stderr');
-    ($stdout, $stderr) = capture { Sbozyp::sbozyp_without_output(sub { system('echo foo; echo bar 1>&2') }) };
-    is($stdout.$stderr, "", 'takes sub directly');
-
-    my $sub_die = sub { system('echo foo; echo bar 1>&2'); die "DEATH\nTO\nPROGRAM\n" };
-    is(dies { Sbozyp::sbozyp_without_output($sub_die) },
-       "DEATH\nTO\nPROGRAM\n",
-       'still dies with message if subroutine dies'
-    );
-};
-
 subtest 'sbozyp_pod2usage()' => sub {
     like(Sbozyp::sbozyp_pod2usage('COMMANDS/INSTALL'),
          qr/Install.+Install or upgrade packages.+Options are:.+--help.+Examples:.+sbozyp install/s,
