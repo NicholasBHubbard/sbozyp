@@ -18,6 +18,7 @@ The user manual can be viewed online [here](https://metacpan.org/release/NHUBBAR
 * Safe recursive package removal
 * Advanced package querying capabilities
 * Requires zero dependencies on a full Slackware install
+* Bash and Zsh completion
 * Supports Slackware 15.0, current, and greater
 
 # INSTALL / UPGRADE
@@ -45,13 +46,11 @@ Note that if you remove sbozyp, any SlackBuilds.org repositories in your `$REPO_
 
 # PRE-1.0 RELEASE
 
-sbozyp is still in pre-1.0 release, meaning the author can and will make backwards compatibility breaking changes without updating the major version. Please consult the [Changes](./Changes) file for information about what comes with a new release before updating. Eventually sbozyp will have a 1.0 release, when the author thinks the program is of the highest possible quality, and they do not foresee a future need to make a backwards compatibility breaking change. At this point sbozyp will be made available on SlackBuilds.org, meaning it will be able to update itself.
+sbozyp is still in pre-1.0 release, meaning I can and will make backwards compatibility breaking changes without updating the major version. Please consult the [Changes](./Changes) file for information about what comes with a new release before updating. There will have a 1.0 release when I think the program is of the highest possible quality and do not foresee a future need to make a backwards compatibility breaking change. At this point sbozyp will be made available on SlackBuilds.org, meaning it will be able to update itself.
 
 # CONTRIBUTING
 
 Do not hesitate to open an [issue](https://github.com/NicholasBHubbard/sbozyp/issues/new) or [pull request](https://github.com/NicholasBHubbard/sbozyp/compare)!
-
-sbozyp is supposed to be enjoyable to use, so if you are not enjoying sbozyp then something is wrong and we should work together to fix it.
 
 Running the test code:
 
