@@ -50,7 +50,7 @@ sbozyp is still in pre-1.0 release, meaning I can and will make backwards compat
 
 # CONTRIBUTING
 
-Do not hesitate to open an [issue](https://github.com/NicholasBHubbard/sbozyp/issues/new) or [pull request](https://github.com/NicholasBHubbard/sbozyp/compare)!
+Do not hesitate to open an [issue](https://github.com/NicholasBHubbard/sbozyp/issues/new) or [pull request](https://github.com/NicholasBHubbard/sbozyp/pulls)!
 
 Running the test code:
 
