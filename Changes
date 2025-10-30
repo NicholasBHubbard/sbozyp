@@ -1,4 +1,4 @@
-0.8.0  TBD
+0.8.0  2025-10-30
 
    - Remove $HOME/.sbozyp.conf configuration file
    - Make repo sync output more verbose
