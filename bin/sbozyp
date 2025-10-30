@@ -414,14 +414,19 @@ sub all_pkgnames {
 
 sub prgnam_to_pkgname { # if $prgnam is already a pkgname its just returned back
     my ($prgnam) = @_; $prgnam or return;
+    state %pkgname_cache; if (my $pkgname = $pkgname_cache{$prgnam}) { return $pkgname }
     my $pkgname;
-    return $prgnam if $prgnam =~ m,^[^/]+/[^/]+$, && -d repo_dir().$prgnam;
-    for my $category (all_pkg_categories()) {
-        if (-d repo_dir()."$category/$prgnam") {
-            $pkgname = "$category/$prgnam";
-            last;
+    if ($prgnam =~ m,^[^/]+/[^/]+$, && -d repo_dir().$prgnam) {
+        $pkgname = $prgnam;
+    } else {
+        for my $category (all_pkg_categories()) {
+            if (-d repo_dir()."$category/$prgnam") {
+                $pkgname = "$category/$prgnam";
+                last;
+            }
         }
     }
+    $pkgname_cache{$prgnam} = $pkgname;
     return $pkgname;
 }
 
