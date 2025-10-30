@@ -46,7 +46,7 @@ Note that if you remove sbozyp, any SlackBuilds.org repositories in your `$REPO_
 
 # PRE-1.0 RELEASE
 
-sbozyp is still in pre-1.0 release, meaning I can and will make backwards compatibility breaking changes without updating the major version. Please consult the [Changes](./Changes) file for information about what comes with a new release before updating. There will be a 1.0 release when I think the program is of the highest possible quality and do not foresee a future need to make a backwards compatibility breaking change. At this point sbozyp will be made available on SlackBuilds.org, meaning it will be able to update itself.
+sbozyp is still in pre-1.0 release, meaning I can and will make backwards compatibility breaking changes without updating the major version. Please consult the [Changes](./Changes) file for information about what comes with a new release before updating. There will be a 1.0 release when I think the program is of the highest possible quality and do not foresee a future need to make a backwards compatibility breaking change. At that point sbozyp will be made available on SlackBuilds.org, meaning it will be able to update itself.
 
 # CONTRIBUTING
 
