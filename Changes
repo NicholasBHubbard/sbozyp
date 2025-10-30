@@ -1,3 +1,7 @@
+0.7.1  2025-10-29
+
+   - Minor performance optimization
+   
 0.7.0  2025-10-29
 
    - Query option '-b' outputs trailing /
