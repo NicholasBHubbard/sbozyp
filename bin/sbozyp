@@ -696,7 +696,7 @@ sub sync_repo {
     my $repo_dir = repo_dir();
     if (repo_is_cloned()) {
         my $repo_git_branch = repo_git_branch();
-        sbozyp_system("git -C '$repo_dir' fetch 1>&2");
+        sbozyp_system("git -C '$repo_dir' fetch --verbose 1>&2");
         sbozyp_system("git -C '$repo_dir' reset --hard 'origin/$repo_git_branch' 1>&2");
     } else {
         sbozyp_die("cannot sync non-existent git repository at '$repo_dir'");
