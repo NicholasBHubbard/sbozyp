@@ -904,6 +904,20 @@ sub sbozyp_print_file {
     print while <$fh>;
 }
 
+sub sbozyp_without_output {
+    my ($sub) = @_;
+    my $orig_stdout = sbozyp_open('>&', \*STDOUT);
+    my $orig_stderr = sbozyp_open('>&', \*STDOUT);
+    open(STDOUT, '>', '/dev/null');
+    open(STDERR, '>', '/dev/null');
+    my $result = eval { $sub->() };
+    my $error = $@;
+    open(STDOUT, '>&', $orig_stdout);
+    open(STDERR, '>&', $orig_stderr);
+    die $error if $error;
+    return $result;
+}
+
 sub sbozyp_error_prefix {
     return 'sbozyp: error: ';
 }
