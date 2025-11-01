@@ -17,9 +17,9 @@ The user manual can be viewed online [here](https://metacpan.org/release/NHUBBAR
 * Pure CLI user interface (no ncurses)
 * Safe recursive package removal
 * Advanced package querying capabilities
-* Requires zero dependencies on a full Slackware install
 * Bash and Zsh completion
 * Supports Slackware 15.0, current, and greater
+* Requires zero dependencies on a full Slackware install
 
 # INSTALL / UPGRADE
 
