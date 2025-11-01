@@ -36,7 +36,7 @@ sub main {
         'C'   => \my $opt_clone,
         'F=s' => \my $opt_configfile,
         'R=s' => \my $opt_reponame,
-        'S'   => \my $opt_sync,
+        'S'   => \my $opt_syncrepo,
         'T'   => \my $opt_noinitrepo
     );
     Getopt::Long::Configure('nopass_through');
@@ -62,7 +62,7 @@ sub main {
         i_am_root_or_die('need root to clone repo');
         clone_repo();
     }
-    if ($opt_sync) {
+    if ($opt_syncrepo) {
         i_am_root_or_die('need root to sync repo');
         sync_repo();
     }
