@@ -522,7 +522,7 @@ sub pkgs_no_dependents {
 sub pkgs_removable_dependencies {
     my @pkgs = @_; # we assume all pkgs in @pkgs are actually installed
     my %pkgs; $pkgs{$_->{PKGNAME}} = $_ for @pkgs;
-    my %deps; for my $pkg (values %pkgs) {
+    my %deps; for my $pkg (@pkgs) {
         for my $dep (pkg_dependencies_direct($pkg)) {
             next if exists $pkgs{$dep->{PKGNAME}};
             if (defined pkg_installed($dep)) {
