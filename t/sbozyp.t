@@ -1471,8 +1471,8 @@ subtest 'main_query()' => sub {
     like(dies { Sbozyp::main_query('-b') }, qr/^sbozyp: error: query option '-b' requires single PKGNAME argument/, 'dies with useful error if not given PKGNAME arg with -b');
 
     ($stdout) = capture { Sbozyp::main_query('-c') };
-    is($stdout, "$Sbozyp::CONFIG{REPO_ROOT}/$Sbozyp::CONFIG{REPO_NAME}/\n", 'prints repo dir to stdout (with trailing /)');
-    like(dies { Sbozyp::main_query('-c', 'sbozyp-basic') }, qr/^sbozyp: error: query option '-c' does not take PKGNAME argument$/, 'dies with useful error if not given PKGNAME arg with -n');
+    is($stdout, "$Sbozyp::CONFIG{REPO_ROOT}/$Sbozyp::CONFIG{REPO_NAME}/\n", '-c option prints repo dir to stdout (with trailing /)');
+    like(dies { Sbozyp::main_query('-c', 'sbozyp-basic') }, qr/^sbozyp: error: query option '-c' does not take PKGNAME argument$/, 'dies with useful error if not given PKGNAME arg with -c');
 
     ($stdout) = capture { Sbozyp::main_query('-q', 'sbozyp-recursive-dep-A') };
     like($stdout, qr|^misc/sbozyp-recursive-dep-F\nmisc/sbozyp-recursive-dep-E\nmisc/sbozyp-recursive-dep-C\nmisc/sbozyp-recursive-dep-D\nmisc/sbozyp-recursive-dep-B\nmisc/sbozyp-recursive-dep-A\n$|s, 'prints packages dependencies (in order and recursively) if given -q option');
