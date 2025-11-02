@@ -559,7 +559,7 @@ sub pkg_prepare_for_build {
     my ($pkg) = @_;
     my $arch = arch();
     if (my $arch_problem = $pkg->{ARCH_UNSUPPORTED}) {
-        sbozyp_die("$pkg->{PKGNAME} is $arch_problem on $arch")
+        sbozyp_die("$pkg->{PKGNAME} is $arch_problem on $arch");
     }
     my %url_md5;
     if ($arch eq 'x86_64' and my @urls = @{$pkg->{DOWNLOAD_x86_64}}) {
