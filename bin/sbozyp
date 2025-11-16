@@ -357,7 +357,7 @@ sub pkgs_confirm_with_user {
 
 sub pkg_installed {
     my ($pkg) = @_;
-    my %installed_sbo_pkgs = installed_sbo_pkgs(); # hash from PKGNAME to version
+    my %installed_sbo_pkgs = installed_sbo_pkgs();
     my $version = $installed_sbo_pkgs{$pkg->{PKGNAME}};
     return $version;
 }
