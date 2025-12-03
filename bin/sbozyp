@@ -939,8 +939,15 @@ sbozyp - A package manager for Slackware's SlackBuilds.org
 
 Sbozyp is a command-line package manager for the SlackBuilds.org package
 repository. SlackBuilds.org is a collection of third-party SlackBuild scripts
-used to build Slackware packages. Sbozyp assumes an understanding of SlackBuilds
-and the SlackBuilds.org repository.
+used to build Slackware packages.
+
+Sbozyp assumes its users have an understanding of SlackBuilds and the
+SlackBuilds.org repository. While sbozyp provides conveniences to make it easier
+to build, install, and remove packages, users should always understand every
+package they consider installing by reading its README file.
+
+Sbozyp does not handle optional dependencies or setting build-time options.
+Users must deal with these special cases manually.
 
 =head1 OVERVIEW
 
