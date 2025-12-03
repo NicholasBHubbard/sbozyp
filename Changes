@@ -1,6 +1,8 @@
-0.9.0  TBD
+1.0.0  2025-12-03
 
+   - Finally ready for first stable release!
    - Added '-c' query option to print repo path
+   - Documentation upgrades
 
 0.8.0  2025-10-30
 
