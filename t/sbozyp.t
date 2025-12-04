@@ -1346,17 +1346,17 @@ subtest 'main_install()' => sub {
     ok(Sbozyp::pkg_installed(Sbozyp::pkg('sbozyp-basic')), 'installs a package');
     ok(! -f "$TEST_DIR/sbozyp-basic-1.0-noarch-1_SBo.tgz", 'removes slackware package after installing it if not given -k option');
 
-    Sbozyp::main_install('-i', 'sbozyp-recursive-dep-A');
+    Sbozyp::main_install('-i', '-r', 'sbozyp-recursive-dep-A');
     ok(   Sbozyp::pkg_installed(Sbozyp::pkg('sbozyp-recursive-dep-A'))
        && Sbozyp::pkg_installed(Sbozyp::pkg('sbozyp-recursive-dep-B'))
        && Sbozyp::pkg_installed(Sbozyp::pkg('sbozyp-recursive-dep-C'))
        && Sbozyp::pkg_installed(Sbozyp::pkg('sbozyp-recursive-dep-D'))
        && Sbozyp::pkg_installed(Sbozyp::pkg('sbozyp-recursive-dep-E')),
-       'installs a package along with its dependencies'
+       'installs a package along with its dependencies when given -r'
     );
     remove_tree "$TEST_DIR/tmp_root" or die; # cleanup for the next test
 
-    Sbozyp::main_install('-i', '-n', 'sbozyp-recursive-dep-A');
+    Sbozyp::main_install('-i', 'sbozyp-recursive-dep-A');
     ok(   Sbozyp::pkg_installed(Sbozyp::pkg('sbozyp-recursive-dep-A'))
        && not(Sbozyp::pkg_installed(Sbozyp::pkg('sbozyp-recursive-dep-B')))
        && not(Sbozyp::pkg_installed(Sbozyp::pkg('sbozyp-recursive-dep-C')))
@@ -1367,23 +1367,23 @@ subtest 'main_install()' => sub {
 
     remove_tree "$TEST_DIR/tmp_root" or die;
 
-    Sbozyp::main_install('-i', 'sbozyp-basic', 'sbozyp-readme-extra-deps');
+    Sbozyp::main_install('-i', '-r', 'sbozyp-basic', 'sbozyp-readme-extra-deps');
     ok(Sbozyp::pkg_installed(Sbozyp::pkg('sbozyp-basic')) && Sbozyp::pkg_installed(Sbozyp::pkg('sbozyp-readme-extra-deps')), 'accepts multiple package arguments to install');
 
     remove_tree "$TEST_DIR/tmp_root" or die;
 
-    like(dies { Sbozyp::main_install('sbozyp-basic', 'mu', 'NOTAPACKAGE') },
+    like(dies { Sbozyp::main_install('sbozyp-basic', '-r', 'mu', 'NOTAPACKAGE') },
          qr/^sbozyp: error: could not find a package named NOTAPACKAGE$/,
          'accepts multiple package name args and dies if any are not valid packages'
     );
 
-    Sbozyp::main_install('-i', '-k', 'sbozyp-basic');
+    Sbozyp::main_install('-i', '-r', '-k', 'sbozyp-basic');
     ok(-f "$TEST_DIR/sbozyp-basic-1.0-noarch-1_SBo.tgz", 'does not remove slackware package after installing it if given -k flag');
 
-    ($stdout) = capture { Sbozyp::main_install('-i', 'sbozyp-basic') };
+    ($stdout) = capture { Sbozyp::main_install('-i', '-r', 'sbozyp-basic') };
     like($stdout, qr/sbozyp: all packages \(and their deps\) requested for installation are up to date/, 'by default skips install with useful message if package is already installed');
 
-    ($stdout) = capture { Sbozyp::main_install('-i', '-f', 'sbozyp-basic') };
+    ($stdout) = capture { Sbozyp::main_install('-i', '-f', '-r', 'sbozyp-basic') };
     like($stdout, qr/Installing package sbozyp-basic-1.0-noarch-1_SBo\.tgz/, 're-installs package if it is already installed if using \'-f\' option');
 
     remove_tree "$TEST_DIR/tmp_root" or die;

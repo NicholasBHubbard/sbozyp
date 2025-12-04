@@ -6,7 +6,7 @@ use v5.34.0; # The Perl version on Slackware 15.0 (sbozyp's min supported versio
 
 package Sbozyp;
 
-our $VERSION = '1.0.1';
+our $VERSION = '1.1.0';
 
 use Digest::MD5 qw();
 use File::Basename qw(basename dirname);
@@ -81,14 +81,14 @@ sub main_install {
         'f'      => \my $opt_force,
         'i'      => \my $opt_noninteractive,
         'k'      => \my $opt_keeppackage,
-        'n'      => \my $opt_nodeps
+        'r'      => \my $opt_installdeps
     );
     if ($opt_help) { print command_help_msg('install'); return }
     @_ >= 1 or die command_usage('install');
     i_am_root_or_die('the install command requires root');
     my @pkgs = pkgs_uniq(map { $_ = pkg($_) } @_);
     my @queue; for my $pkg (@pkgs) {
-        my @pkg_queue = $opt_nodeps ? ($pkg) : pkg_queue($pkg);
+        my @pkg_queue = $opt_installdeps ? pkg_queue($pkg) : ($pkg);
         unless ($opt_force) {
             @pkg_queue = grep { !pkg_installed_and_up_to_date($_) } @pkg_queue;
         }
@@ -1036,7 +1036,7 @@ Defaults to C<TMPDIR=/tmp>.
 
 =head2 INSTALL
 
- Usage: sbozyp <install|in> [-h] [-f] [-i] [-k] [-n] <pkgname...>
+ Usage: sbozyp <install|in> [-h] [-f] [-i] [-k] [-r] <pkgname...>
 
 Install or upgrade packages.
 
@@ -1046,17 +1046,17 @@ Options are:
  -f            Force installation even if package is already up to date
  -i            No interactive prompt
  -k            Keep the built package (resides in TMPDIR)
- -n            Do not install package dependencies
+ -r            Install package dependencies recursively
 
 Examples:
 
  sbozyp install --help
  sbozyp in password-store
- sbozyp in xclip mu password-store
- sbozyp in -k system/password-store
- sbozyp in -f -i -n password-store
- sbozyp -S -R $REPO in -f password-store
- sbozyp in $(sbozyp -S qr -u | cut -d' ' -f1) ### upgrade all packages
+ sbozyp in -r xclip mu password-store
+ sbozyp in -k -r system/password-store
+ sbozyp in -f -i -r password-store
+ sbozyp -S -R $REPO in -f -r password-store
+ sbozyp in -r $(sbozyp -S qr -u | cut -d' ' -f1) ### upgrade all packages
 
 =head2 BUILD
 
@@ -1101,7 +1101,7 @@ Examples:
 
 =head2 QUERY
 
- Usage: sbozyp <query|qr> [-h] [-a] [-b] [-d] [-i] [-m] [-n] [-o] [-p] [-q] [-r] [-s] [-u] PKGNAME?
+ Usage: sbozyp <query|qr> [-h] [-a] [-b] [-c] [-d] [-i] [-m] [-n] [-o] [-p] [-q] [-r] [-s] [-u] PKGNAME?
 
 Query for package related information.
 
@@ -1112,6 +1112,7 @@ Options are:
  -h|--help     Print help message
  -a            Print all installed SBo packages
  -b            Print the path to PKGNAME's local package directory
+ -c            Print the path to the current repositories directory
  -d            Print PKGNAME's slack-desc file
  -i            Print PKGNAME's info file
  -m            Print all installed SBo packages with no dependents

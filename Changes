@@ -1,10 +1,8 @@
-1.0.1  2025-12-03
-
-   - Removed SlackBuild from CPAN dist
-
-1.0.0  2025-12-03
+1.1.0  2025-12-03
 
    - Finally ready for first stable release!
+   - Removed SlackBuild from CPAN dist
+   - Install command default now does not install recursively
    - Added '-c' query option to print repo path
    - Documentation upgrades
 
