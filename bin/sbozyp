@@ -236,7 +236,7 @@ sub main_query {
             my $installed_version = $installed_sbo_pkgs{$pkgname};
             my $available_version = pkg($pkgname)->{VERSION};
             if (version_gt($available_version, $installed_version)) {
-                print "$pkgname $installed_version -> $available_version\n"
+                print "$pkgname $installed_version -> $available_version\n";
             }
         }
     }
