@@ -57,7 +57,6 @@ sub main {
     set_repo_name_or_die($opt_reponame // $CONFIG{REPO_PRIMARY});
     # initialize the environment
     return if $opt_noinitrepo and !repo_is_cloned();
-    sbozyp_mkdir(repo_dir(), $CONFIG{TMPDIR});
     if ($opt_clone or !repo_is_cloned()) {
         i_am_root_or_die('need root to clone repo');
         clone_repo();
@@ -589,6 +588,7 @@ sub pkg_prepare_for_build {
 sub build_slackware_pkg {
     my ($pkg) = @_;
     local $ENV{OUTPUT} = $CONFIG{TMPDIR}; # all SlackBuilds use the $OUTPUT env var to determine output pkg location
+    sbozyp_mkdir($CONFIG{TMPDIR});
     my $staging_dir = pkg_prepare_for_build($pkg);
     my $slackbuild = $pkg->{PRGNAM} . '.SlackBuild';
     my $cmd = sbozyp_open('-|', "cd '$staging_dir' && chmod +x ./$slackbuild && ./$slackbuild");
@@ -686,6 +686,7 @@ sub repo_is_cloned {
 
 sub clone_repo {
     my $repo_dir = repo_dir();
+    sbozyp_mkdir($repo_dir);
     if (repo_is_cloned()) {
         sbozyp_rmdir_rec($repo_dir);
         sbozyp_mkdir($repo_dir);
