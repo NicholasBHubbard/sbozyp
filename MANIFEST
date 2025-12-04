@@ -7,5 +7,7 @@ MANIFEST
 Makefile.PL
 cpanfile
 
+configs/sbozyp.conf
+
 completions/sbozyp.bash
 completions/sbozyp.zsh
