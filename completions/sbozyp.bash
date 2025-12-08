@@ -99,7 +99,7 @@ _sbozyp_complete() {
             fi
             ;;
         query|qr)
-            local opts="--help -a -b -c -d -i -m -n -o -p -q -r -s -u"
+            local opts="--help -a -b -c -d -i -m -n -o -p -q -r -s -u -v"
             if [[ $cur == qr ]]; then
                 COMPREPLY=( "query" )
             elif [[ $cur == -* ]]; then
