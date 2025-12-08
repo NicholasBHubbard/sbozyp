@@ -1145,7 +1145,7 @@ Examples:
  sbozyp qr -m
  sbozyp -S qr -u
  cd $(sbozyp qr -b password-store)
- sbozyp -S -R $REPO qr password-store
+ sbozyp -S -R $REPO qr -r password-store
 
 =head2 SEARCH
 
