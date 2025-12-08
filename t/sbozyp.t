@@ -19,7 +19,7 @@ use FindBin;
 
 require "$FindBin::Bin/../bin/sbozyp"; # import sbozyp
 
-$SIG{INT} = $SIG{TERM} = sub { die "\nsbozyp.t: got a signal to exit ... going down!\n" };
+$SIG{INT} = $SIG{TERM} = sub { $! = 3; die "\nsbozyp.t: got a signal to exit ... going down!\n" };
 
 my $TEST_DIR = File::Temp->newdir(DIR => '/tmp', TEMPLATE => 'sbozyp.t_XXXXXX', CLEANUP => 1);
 
@@ -1633,13 +1633,13 @@ subtest 'main_search()' => sub {
     my $stdout; # were gonna capture STDOUT into this variable for some of these tests
 
     ($stdout) = capture { Sbozyp::main_search('--help') };
-    like($stdout, qr/^Usage.+Search for a package using a Perl regex.+Options are/s, q('-h' option prints a help string to STDOUT));
+    like($stdout, qr/^Usage.+Search for packages using a Perl regex.+Options are/s, q('-h' option prints a help string to STDOUT));
 
     ($stdout) = capture { Sbozyp::main_search('--help') };
-    like($stdout, qr/^Usage.+Search for a package using a Perl regex.+Options are/s, q(also accepts '--help'));
+    like($stdout, qr/^Usage.+Search for packages using a Perl regex.+Options are/s, q(also accepts '--help'));
 
     ($stdout) = capture { Sbozyp::main_search('--help', 'fooregex') };
-    like($stdout, qr/^Usage.+Search for a package using a Perl regex.+Options are/s, q(prints help even if args are given afterwards));
+    like($stdout, qr/^Usage.+Search for packages using a Perl regex.+Options are/s, q(prints help even if args are given afterwards));
 
     ($stdout) = capture { Sbozyp::main_search('^mu$') };
     like($stdout, qr/office\/mu\n$/s, 'returns matched package');
@@ -1647,10 +1647,14 @@ subtest 'main_search()' => sub {
     ($stdout) = capture { Sbozyp::main_search('^MU$') };
     like($stdout, qr/office\/mu\n$/s, 'case-insensitive by default');
 
-    like(dies { Sbozyp::main_search('-c','^MU$') },
-         qr/^sbozyp: error: no packages match the regex '\^MU\$'$/,
-         q(matches case-sensitive when given '-c' option)
-    );
+    ($stdout) = capture { Sbozyp::main_search('^NOTAPACKAGE$') };
+    is($stdout, "sbozyp: no matches found\n", 'prints to stdout about no matches found');
+
+    ($stdout) = capture { Sbozyp::main_search('-q', '^NOTAPACKAGE$') };
+    is($stdout, '', '-q option supresses no matches found output');
+
+    ($stdout) = capture { Sbozyp::main_search('-c', '^MU$') };
+    is($stdout, "sbozyp: no matches found\n", q(matches case-sensitive when given '-c' option));
 
     ($stdout) = capture { Sbozyp::main_search('-p', '^mu$') };
     like($stdout, qr/^mu\n$/s, 'returns just prgnam of matched package if given -p flag');
@@ -1666,10 +1670,8 @@ subtest 'main_search()' => sub {
          'dies with usage if given multiple args'
     );
 
-    like(dies { Sbozyp::main_search('office/mu') },
-         qr/^sbozyp.+no packages match the regex/,
-         'by default does not match package categories'
-    );
+    ($stdout) = capture { Sbozyp::main_search('office/mu') };
+    is($stdout, "sbozyp: no matches found\n", 'by default does not match package categories');
 
     ($stdout) = capture { Sbozyp::main_search('-n', 'office/mu') };
     like($stdout, qr/office\/mu/s, q(matches against PKGNAME instead of just PRGNAM if given '-n' option));

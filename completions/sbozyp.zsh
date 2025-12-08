@@ -123,7 +123,7 @@ _sbozyp_complete() {
             fi
             ;;
         search|se)
-            local opts="--help -c -n -p"
+            local opts="--help -c -n -p -q"
             if [[ $cur == se ]]; then
                 compadd -U -- "search"
             else

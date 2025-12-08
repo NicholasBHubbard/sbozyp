@@ -15,7 +15,7 @@ use File::Path qw(make_path remove_tree);
 use Getopt::Long qw(GetOptionsFromArray :config no_ignore_case no_bundling);
 use Pod::Usage qw(pod2usage);
 
-$SIG{INT} = $SIG{TERM} = sub { die "\nsbozyp: got a signal to exit ... going down!\n" };
+$SIG{INT} = $SIG{TERM} = sub { $! = 2; die "\nsbozyp: got a signal to exit ... going down!\n" };
 
 our %CONFIG = (
     # defaults
@@ -96,7 +96,7 @@ sub main_install {
     if (@queue) {
         if (not $opt_noninteractive) {
             sbozyp_print('are you sure you want to install these packages:', "\n");
-            return unless pkgs_confirm_with_user(@queue)
+            return unless pkgs_confirm_with_user(@queue);
         }
         for my $pkg (@queue) {
             my $slackware_pkg = built_slackware_pkg($pkg) // build_slackware_pkg($pkg);
@@ -104,7 +104,7 @@ sub main_install {
             sbozyp_unlink($slackware_pkg) unless $opt_keeppackage;
         }
     } else {
-        sbozyp_print("all packages (and their deps) requested for installation are up to date, invoke with -f option to force installation\n");
+        sbozyp_print('all packages requested for installation are up to date', "\n");
     }
 }
 
@@ -247,7 +247,8 @@ sub main_search {
         'h|help' => \my $opt_help,
         'c'      => \my $opt_casesensitive,
         'n'      => \my $opt_matchcategory,
-        'p'      => \my $opt_prgnam
+        'p'      => \my $opt_prgnam,
+        'q'      => \my $opt_quiet
     );
     if ($opt_help) { print command_help_msg('search'); return }
     @_ == 1 or die command_usage('search');
@@ -260,9 +261,9 @@ sub main_search {
         if ($opt_prgnam) {
             @matches = sort map { $_ = basename($_) } @matches;
         }
-        print $_, "\n" for @matches
-    } else {
-        sbozyp_die("no packages match the regex '$regex_arg'");
+        print $_, "\n" for @matches;
+    } elsif (not $opt_quiet) {
+        sbozyp_print('no matches found', "\n");
     }
 }
 
@@ -911,6 +912,7 @@ sub sbozyp_error_prefix {
 }
 
 sub sbozyp_die {
+    $! = 1;
     die sbozyp_error_prefix(), @_, "\n";
 }
 
@@ -1033,6 +1035,14 @@ The directory used for placing working files.
 
 Defaults to C<TMPDIR=/tmp>.
 
+=head1 EXIT STATUS
+
+=item * 0 - No program error
+
+=item * 1 - Program error
+
+=item * 2 - Received SIGINT or SIGTERM
+
 =head1 COMMANDS
 
 =head2 INSTALL
@@ -1136,9 +1146,9 @@ Examples:
 
 =head2 SEARCH
 
- Usage: sbozyp <search|se> [-h] [-c] [-n] [-p] <regex>
+ Usage: sbozyp <search|se> [-h] [-c] [-n] [-p] [-q] <regex>
 
-Search for a package using a Perl regex.
+Search for packages using a Perl regex.
 
 Options are:
 
@@ -1146,12 +1156,13 @@ Options are:
  -c            Match case sensitive
  -n            Match against CATEGORY/PRGNAM instead of just PRGNAM
  -p            Print just the PRGNAM of matched packages
+ -q            Suppress output if no matches are found
 
 Examples:
 
  sbozyp search --help
  sbozyp se password-store
- sbozyp se -p password.+
+ sbozyp se -p -q password.+
  sbozyp se -c -n system/.+
  sbozyp -S -R $REPO se password-store
 
