@@ -19,7 +19,7 @@ The user manual can be viewed online [here](https://metacpan.org/release/NHUBBAR
 * Advanced package querying capabilities
 * Bash and Zsh completion
 * Supports Slackware 15.0, current, and greater
-* Requires zero dependencies on a full Slackware install
+* Zero dependencies on a full Slackware install
 
 # INSTALL / UPGRADE
 
