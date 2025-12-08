@@ -2,6 +2,7 @@
 
    - Renamed non-interactive flags from -i to -y
    - More consistent exit status
+   - Added search -q option 
 
 1.2.4  2025-12-07
 
