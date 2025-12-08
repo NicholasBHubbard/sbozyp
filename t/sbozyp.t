@@ -19,7 +19,7 @@ use FindBin;
 
 require "$FindBin::Bin/../bin/sbozyp"; # import sbozyp
 
-$SIG{INT} = $SIG{TERM} = sub { $! = 3; die "\nsbozyp.t: got a signal to exit ... going down!\n" };
+$SIG{INT} = $SIG{TERM} = sub { die "\nsbozyp.t: got a signal to exit ... going down!\n" };
 
 my $TEST_DIR = File::Temp->newdir(DIR => '/tmp', TEMPLATE => 'sbozyp.t_XXXXXX', CLEANUP => 1);
 
