@@ -78,9 +78,9 @@ sub main_install {
         \@_,
         'h|help' => \my $opt_help,
         'f'      => \my $opt_force,
-        'i'      => \my $opt_noninteractive,
         'k'      => \my $opt_keeppackage,
-        'r'      => \my $opt_installdeps
+        'r'      => \my $opt_installdeps,
+        'y'      => \my $opt_noninteractive
     );
     if ($opt_help) { print command_help_msg('install'); return }
     @_ >= 1 or die command_usage('install');
@@ -113,7 +113,7 @@ sub main_build {
         \@_,
         'h|help' => \my $opt_help,
         'f'      => \my $opt_force,
-        'i'      => \my $opt_noninteractive
+        'y'      => \my $opt_noninteractive
     );
     if ($opt_help) { print command_help_msg('build'); return }
     @_ >= 1 or die command_usage('build');
@@ -139,8 +139,8 @@ sub main_remove {
         \@_,
         'h|help' => \my $opt_help,
         'f'      => \my $opt_nodepsafetycheck,
-        'i'      => \my $opt_noninteractive,
-        'r'      => \my $opt_removedeps
+        'r'      => \my $opt_removedeps,
+        'y'      => \my $opt_noninteractive
     );
     if ($opt_help) { print command_help_msg('remove'); return }
     @_ >= 1 or die command_usage('remove');
@@ -1037,7 +1037,7 @@ Defaults to C<TMPDIR=/tmp>.
 
 =head2 INSTALL
 
- Usage: sbozyp <install|in> [-h] [-f] [-i] [-k] [-r] <pkgname...>
+ Usage: sbozyp <install|in> [-h] [-f] [-k] [-r] [-y] <pkgname...>
 
 Install or upgrade packages.
 
@@ -1045,9 +1045,9 @@ Options are:
 
  -h|--help     Print help message
  -f            Force installation even if package is already up to date
- -i            No interactive prompt
  -k            Keep the built package (resides in TMPDIR)
  -r            Install package dependencies recursively
+ -y            No interactive prompt
 
 Examples:
 
@@ -1061,7 +1061,7 @@ Examples:
 
 =head2 BUILD
 
- Usage: sbozyp <build|bu> [-h] [-f] [-i] <pkgname...>
+ Usage: sbozyp <build|bu> [-h] [-f] [-y] <pkgname...>
 
 Build but don't install packages.
 
@@ -1069,7 +1069,7 @@ Options are:
 
  -h|--help     Print help message
  -f            Force rebuilding the package even if it's already built
- -i            No confirmation prompt
+ -y            No confirmation prompt
 
 Examples:
 
@@ -1082,7 +1082,7 @@ Examples:
 
 =head2 REMOVE
 
- Usage: sbozyp <remove|rm> [-h] [-f] [-i] [-r] <pkgname...>
+ Usage: sbozyp <remove|rm> [-h] [-f] [-r] [-y] <pkgname...>
 
 Remove packages.
 
@@ -1090,8 +1090,8 @@ Options are:
 
  -h|--help     Print help message
  -f            Disable removal safety check (DANGEROUS)
- -i            No confirmation prompt
  -r            Recursively remove package dependencies that are safe to remove
+ -y            No confirmation prompt
 
 Examples:
 

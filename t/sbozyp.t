@@ -1239,7 +1239,7 @@ subtest 'main_build' => sub {
     my $pkg2 = Sbozyp::pkg('sbozyp-basic-2.0');
 
     ok(!Sbozyp::built_slackware_pkg($pkg));
-    ($stdout) = capture { Sbozyp::main_build('-i', 'sbozyp-basic') };
+    ($stdout) = capture { Sbozyp::main_build('-y', 'sbozyp-basic') };
     like($stdout, qr/Slackware package \Q$Sbozyp::CONFIG{TMPDIR}\E\/sbozyp-basic.+created/, q(prints path to built package to stdout));
     ok(Sbozyp::built_slackware_pkg($pkg), 'builds the package (non-interactively with -i flag)');
     unlink Sbozyp::built_slackware_pkg($pkg) or die;
@@ -1293,14 +1293,14 @@ subtest 'main_build' => sub {
     close $stdin;
     ok(!Sbozyp::built_slackware_pkg($pkg));
 
-    ($stdout) = capture { Sbozyp::main_build('-f', '-i', 'sbozyp-basic') };
+    ($stdout) = capture { Sbozyp::main_build('-f', '-y', 'sbozyp-basic') };
     like($stdout, qr/Slackware package \Q$Sbozyp::CONFIG{TMPDIR}\E\/sbozyp-basic.+created/, q(rebuilds package if already built with '-f' option));
     ok(Sbozyp::built_slackware_pkg($pkg));
 
-    ($stdout) = capture { Sbozyp::main_build('-i', 'sbozyp-basic') };
+    ($stdout) = capture { Sbozyp::main_build('-y', 'sbozyp-basic') };
     like($stdout, qr/^sbozyp: existing package for misc\/sbozyp-basic found at '\Q$Sbozyp::CONFIG{TMPDIR}\E\/sbozyp-basic.+$'$/s);
 
-    ($stdout) = capture { Sbozyp::main_build('-f', '-i', 'sbozyp-basic', 'sbozyp-basic-2.0') };
+    ($stdout) = capture { Sbozyp::main_build('-f', '-y', 'sbozyp-basic', 'sbozyp-basic-2.0') };
     like($stdout, qr/sbozyp-basic-1\.0.+created.+sbozyp-basic-2\.0.+created/s, 'builds multiple packages on single invocation');
 
     # cleanup
@@ -1324,7 +1324,7 @@ subtest 'main_install()' => sub {
     ($stdout) = capture { Sbozyp::main_install('--help') };
     like($stdout, qr/Usage.+Install or upgrade packages.+\-h.+Print help message/s, 'prints help message if given --help option');
 
-    ($stdout) = capture { Sbozyp::main_install('-i', '--help', 'mu') };
+    ($stdout) = capture { Sbozyp::main_install('-y', '--help', 'mu') };
     like($stdout, qr/Usage.+Install or upgrade packages.+\-h.+Print help message/s, 'prints help message if given --help option regardless of other options');
 
     like(dies { Sbozyp::main_install('-H', 'mu') },
@@ -1342,11 +1342,11 @@ subtest 'main_install()' => sub {
          'dies with useful message if the package does not exist'
     );
 
-    Sbozyp::main_install('-i', 'sbozyp-basic');
+    Sbozyp::main_install('-y', 'sbozyp-basic');
     ok(Sbozyp::pkg_installed(Sbozyp::pkg('sbozyp-basic')), 'installs a package');
     ok(! -f "$TEST_DIR/sbozyp-basic-1.0-noarch-1_SBo.tgz", 'removes slackware package after installing it if not given -k option');
 
-    Sbozyp::main_install('-i', '-r', 'sbozyp-recursive-dep-A');
+    Sbozyp::main_install('-y', '-r', 'sbozyp-recursive-dep-A');
     ok(   Sbozyp::pkg_installed(Sbozyp::pkg('sbozyp-recursive-dep-A'))
        && Sbozyp::pkg_installed(Sbozyp::pkg('sbozyp-recursive-dep-B'))
        && Sbozyp::pkg_installed(Sbozyp::pkg('sbozyp-recursive-dep-C'))
@@ -1356,7 +1356,7 @@ subtest 'main_install()' => sub {
     );
     remove_tree "$TEST_DIR/tmp_root" or die; # cleanup for the next test
 
-    Sbozyp::main_install('-i', 'sbozyp-recursive-dep-A');
+    Sbozyp::main_install('-y', 'sbozyp-recursive-dep-A');
     ok(   Sbozyp::pkg_installed(Sbozyp::pkg('sbozyp-recursive-dep-A'))
        && not(Sbozyp::pkg_installed(Sbozyp::pkg('sbozyp-recursive-dep-B')))
        && not(Sbozyp::pkg_installed(Sbozyp::pkg('sbozyp-recursive-dep-C')))
@@ -1367,7 +1367,7 @@ subtest 'main_install()' => sub {
 
     remove_tree "$TEST_DIR/tmp_root" or die;
 
-    Sbozyp::main_install('-i', '-r', 'sbozyp-basic', 'sbozyp-readme-extra-deps');
+    Sbozyp::main_install('-y', '-r', 'sbozyp-basic', 'sbozyp-readme-extra-deps');
     ok(Sbozyp::pkg_installed(Sbozyp::pkg('sbozyp-basic')) && Sbozyp::pkg_installed(Sbozyp::pkg('sbozyp-readme-extra-deps')), 'accepts multiple package arguments to install');
 
     remove_tree "$TEST_DIR/tmp_root" or die;
@@ -1377,13 +1377,13 @@ subtest 'main_install()' => sub {
          'accepts multiple package name args and dies if any are not valid packages'
     );
 
-    Sbozyp::main_install('-i', '-r', '-k', 'sbozyp-basic');
+    Sbozyp::main_install('-y', '-r', '-k', 'sbozyp-basic');
     ok(-f "$TEST_DIR/sbozyp-basic-1.0-noarch-1_SBo.tgz", 'does not remove slackware package after installing it if given -k flag');
 
-    ($stdout) = capture { Sbozyp::main_install('-i', '-r', 'sbozyp-basic') };
-    like($stdout, qr/sbozyp: all packages \(and their deps\) requested for installation are up to date/, 'by default skips install with useful message if package is already installed');
+    ($stdout) = capture { Sbozyp::main_install('-y', '-r', 'sbozyp-basic') };
+    like($stdout, qr/sbozyp: all packages requested for installation are up to date/, 'by default skips install with useful message if package is already installed');
 
-    ($stdout) = capture { Sbozyp::main_install('-i', '-f', '-r', 'sbozyp-basic') };
+    ($stdout) = capture { Sbozyp::main_install('-y', '-f', '-r', 'sbozyp-basic') };
     like($stdout, qr/Installing package sbozyp-basic-1.0-noarch-1_SBo\.tgz/, 're-installs package if it is already installed if using \'-f\' option');
 
     remove_tree "$TEST_DIR/tmp_root" or die;
@@ -1583,7 +1583,7 @@ subtest 'main_remove()' => sub {
 
     # install it again ...
     Sbozyp::install_slackware_pkg(Sbozyp::build_slackware_pkg($pkg1));
-    Sbozyp::main_remove('-i', 'sbozyp-basic');
+    Sbozyp::main_remove('-y', 'sbozyp-basic');
     ok(!defined(Sbozyp::pkg_installed($pkg1)), q(if given '-i' option then does not prompt user for confirmation and just goes ahead and removes the package));
 
     remove_tree("$TEST_DIR/tmp_root") or die;
@@ -1598,29 +1598,29 @@ subtest 'main_remove()' => sub {
         Sbozyp::install_slackware_pkg(Sbozyp::build_slackware_pkg($pkg_b));
         Sbozyp::install_slackware_pkg(Sbozyp::build_slackware_pkg($pkg_d));
 
-        like(dies { Sbozyp::main_remove('-i', 'sbozyp-recursive-dep-B') },
+        like(dies { Sbozyp::main_remove('-y', 'sbozyp-recursive-dep-B') },
              qr/^sbozyp: error: package misc\/sbozyp-recursive-dep-B is depended on by:\n.+sbozyp-depends-on-recursive-deps\n.+sbozyp-recursive-dep-A/s,
              q(by default doesnt remove packages that have dependents));
 
-        Sbozyp::main_remove('-i', '-f', 'sbozyp-recursive-dep-B');
+        Sbozyp::main_remove('-y', '-f', 'sbozyp-recursive-dep-B');
         ok(not(defined(Sbozyp::pkg_installed($pkg_b))), q(skips dependency safety check when passed '-f' flag));
         Sbozyp::install_slackware_pkg(Sbozyp::build_slackware_pkg($pkg_b));
 
-        Sbozyp::main_remove('-i', $pkg_a->{PKGNAME}, $pkg_b->{PKGNAME}, $pkg_0->{PKGNAME});
+        Sbozyp::main_remove('-y', $pkg_a->{PKGNAME}, $pkg_b->{PKGNAME}, $pkg_0->{PKGNAME});
         ok((not(defined(Sbozyp::pkg_installed($pkg_a))) && not(defined(Sbozyp::pkg_installed($pkg_b))) && not(defined(Sbozyp::pkg_installed($pkg_0)))),
            'dependent check ignores dependents that are being specified for removal');
         Sbozyp::install_slackware_pkg(Sbozyp::build_slackware_pkg($pkg_a));
         Sbozyp::install_slackware_pkg(Sbozyp::build_slackware_pkg($pkg_b));
         Sbozyp::install_slackware_pkg(Sbozyp::build_slackware_pkg($pkg_0));
 
-        Sbozyp::main_remove('-i', '-r', $pkg_0->{PRGNAM});
+        Sbozyp::main_remove('-y', '-r', $pkg_0->{PRGNAM});
         ok((not(defined(Sbozyp::pkg_installed($pkg_a))) && not(defined(Sbozyp::pkg_installed($pkg_b))) && not(defined(Sbozyp::pkg_installed($pkg_0)))),
            q(removes recursive dependencies when given '-r' flag));
         Sbozyp::install_slackware_pkg(Sbozyp::build_slackware_pkg($pkg_a));
         Sbozyp::install_slackware_pkg(Sbozyp::build_slackware_pkg($pkg_b));
         Sbozyp::install_slackware_pkg(Sbozyp::build_slackware_pkg($pkg_0));
 
-        Sbozyp::main_remove('-i', '-f', '-r', $pkg_a->{PRGNAM});
+        Sbozyp::main_remove('-y', '-f', '-r', $pkg_a->{PRGNAM});
         ok((not(defined(Sbozyp::pkg_installed($pkg_a))) && defined(Sbozyp::pkg_installed($pkg_b)) && defined(Sbozyp::pkg_installed($pkg_0) && defined(Sbozyp::pkg_installed($pkg_d)))),
            q(safe about removing dependencies with '-r' flag (see pkgs_removable_dependencies())));
         Sbozyp::install_slackware_pkg(Sbozyp::build_slackware_pkg($pkg_a));
