@@ -52,4 +52,4 @@ $ cpanm --installdeps .    # sbozyp has test dependencies
 $ perl t/sbozyp.t
 ```
 
-Note that the test-suite only runs on a Slackware system, and many tests require root permissions.
+Note that the test code only runs on a Slackware system, and many tests require root permissions.
