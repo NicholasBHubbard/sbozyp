@@ -1,4 +1,4 @@
-1.3.3  2025-12-08
+1.3.4  2025-12-08
 
    - Renamed non-interactive flags from -i to -y
    - More consistent exit status
