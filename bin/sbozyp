@@ -19,8 +19,11 @@ our %CONFIG = (
     # defaults
     TMPDIR => '/tmp',
     REPO_ROOT => '/var/lib/sbozyp/SBo',
+    SRCDIR => '/usr/local/src/sbozyp',
     #REPO_NAME => REPO_PRIMARY
 );
+
+our $opt_keepsrc;
 
  # 'unless caller' allows us to load this file from test code without executing main()
 unless (caller) { main(@ARGV); exit 0 }
@@ -78,7 +81,8 @@ sub main_install {
         'f'      => \my $opt_force,
         'k'      => \my $opt_keeppackage,
         'r'      => \my $opt_installdeps,
-        'y'      => \my $opt_noninteractive
+        'y'      => \my $opt_noninteractive,
+        'z'      => \$opt_keepsrc
     );
     if ($opt_help) { print command_help_msg('install'); return }
     @_ >= 1 or die command_usage('install');
@@ -111,7 +115,8 @@ sub main_build {
         \@_,
         'h|help' => \my $opt_help,
         'f'      => \my $opt_force,
-        'y'      => \my $opt_noninteractive
+        'y'      => \my $opt_noninteractive,
+        'z'      => \$opt_keepsrc
     );
     if ($opt_help) { print command_help_msg('build'); return }
     @_ >= 1 or die command_usage('build');
@@ -577,17 +582,27 @@ sub pkg_prepare_for_build {
     my $staging_dir = File::Temp->newdir(DIR => $CONFIG{TMPDIR}, TEMPLATE => 'sbozyp_XXXXXX');
     sbozyp_copy($pkg->{PKGDIR}, $staging_dir);
     for my $url (sort keys %url_md5) {
-        my $md5 = $url_md5{$url};
-        sbozyp_system('wget', '-P', $staging_dir, $url);
-        my $file = basename($url);
-        my $got_md5 = do {
-            my $fh = sbozyp_open('<', "$staging_dir/$file");
-            binmode($fh);
-            Digest::MD5->new->addfile($fh)->hexdigest;
-        };
-        if ($md5 ne $got_md5) {
-            sbozyp_die("md5sum mismatch for '$url': expected '$md5': got '$got_md5'");
-        }
+	my $file = basename($url);
+	if ($opt_keepsrc && -r "$CONFIG{SRCDIR}/$file") {
+ 	    # Files stored from previous downloads have already been md5 checked
+ 	    print "Using previously downloaded src \n";
+ 	    sbozyp_copy("$CONFIG{SRCDIR}/$file", "$staging_dir/$file");
+ 	} else {
+ 	    my $md5 = $url_md5{$url};
+ 	    sbozyp_system('wget', '-P', $staging_dir, $url);
+ 	    my $got_md5 = do {
+ 		my $fh = sbozyp_open('<', "$staging_dir/$file");
+ 		binmode($fh);
+ 		Digest::MD5->new->addfile($fh)->hexdigest;
+ 	    };
+ 	    if ($md5 ne $got_md5) {
+ 		sbozyp_die("md5sum mismatch for '$url': expected '$md5': got '$got_md5'");
+ 	    }   
+ 	    if ($opt_keepsrc) {
+ 		sbozyp_mkdir($CONFIG{SRCDIR});
+ 		sbozyp_copy("$staging_dir/$file", "$CONFIG{SRCDIR}/$file");
+ 	    }
+ 	}	
     }
     return $staging_dir;
 }
@@ -1045,11 +1060,17 @@ The directory used for placing working files.
 
 Defaults to C<TMPDIR=/tmp>.
 
+=head3 SRCDIR
+ 
+The directory used to save downloaded source files for reuse.
+ 
+Defaults to C<SRCDIR=/usr/local/src/sbozyp>.
+
 =head1 COMMANDS
 
 =head2 INSTALL
 
- Usage: sbozyp <install|in> [-h] [-f] [-k] [-r] [-y] <pkgname...>
+ Usage: sbozyp <install|in> [-h] [-f] [-k] [-r] [-y] [-z] <pkgname...>
 
 Install or upgrade packages.
 
@@ -1060,6 +1081,7 @@ Options are:
  -k            Keep the built package (resides in TMPDIR)
  -r            Install package dependencies recursively
  -y            No interactive prompt
+ -z            Keep and reuse downloaded sources (reside in SRCDIR)
 
 Examples:
 
@@ -1073,7 +1095,7 @@ Examples:
 
 =head2 BUILD
 
- Usage: sbozyp <build|bu> [-h] [-f] [-y] <pkgname...>
+ Usage: sbozyp <build|bu> [-h] [-f] [-y] [-z] <pkgname...>
 
 Build but don't install packages.
 
@@ -1082,6 +1104,7 @@ Options are:
  -h|--help     Print help message
  -f            Force rebuilding the package even if it's already built
  -y            No confirmation prompt
+ -z            Keep and reuse downloaded sources (reside in SRCDIR)
 
 Examples:
 

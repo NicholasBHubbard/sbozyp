@@ -53,7 +53,7 @@ _sbozyp_complete() {
     _init_completion || return
 
     local global_opts="--help --version -C -F -R -S -T"
-
+our $opt_keepsrc;
     local commands="install build remove query search null"
 
     if [[ $prev == -F ]]; then
@@ -69,7 +69,7 @@ _sbozyp_complete() {
 
     case $command in
         install|in)
-            local opts="--help -f -k -r -y"
+            local opts="--help -f -k -r -y -z"
             if [[ $cur == in ]]; then
                 COMPREPLY=( "install" )
             elif [[ $cur == -* ]]; then
@@ -80,7 +80,7 @@ _sbozyp_complete() {
             fi
             ;;
         build|bu)
-            local opts="--help -f -y"
+            local opts="--help -f -y -z"
             if [[ $cur == bu ]]; then
                 COMPREPLY=( "build" )
             elif [[ $cur == -* ]]; then
