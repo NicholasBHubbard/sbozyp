@@ -53,7 +53,7 @@ _sbozyp_complete() {
     _init_completion || return
 
     local global_opts="--help --version -C -F -R -S -T"
-our $opt_keepsrc;
+
     local commands="install build remove query search null"
 
     if [[ $prev == -F ]]; then
