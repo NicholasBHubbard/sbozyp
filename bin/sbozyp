@@ -582,27 +582,27 @@ sub pkg_prepare_for_build {
     my $staging_dir = File::Temp->newdir(DIR => $CONFIG{TMPDIR}, TEMPLATE => 'sbozyp_XXXXXX');
     sbozyp_copy($pkg->{PKGDIR}, $staging_dir);
     for my $url (sort keys %url_md5) {
-	my $file = basename($url);
-	if ($opt_keepsrc && -r "$CONFIG{SRCDIR}/$file") {
- 	    # Files stored from previous downloads have already been md5 checked
- 	    print "Using previously downloaded src \n";
- 	    sbozyp_copy("$CONFIG{SRCDIR}/$file", "$staging_dir/$file");
- 	} else {
- 	    my $md5 = $url_md5{$url};
- 	    sbozyp_system('wget', '-P', $staging_dir, $url);
- 	    my $got_md5 = do {
- 		my $fh = sbozyp_open('<', "$staging_dir/$file");
- 		binmode($fh);
- 		Digest::MD5->new->addfile($fh)->hexdigest;
- 	    };
- 	    if ($md5 ne $got_md5) {
- 		sbozyp_die("md5sum mismatch for '$url': expected '$md5': got '$got_md5'");
- 	    }   
- 	    if ($opt_keepsrc) {
- 		sbozyp_mkdir($CONFIG{SRCDIR});
- 		sbozyp_copy("$staging_dir/$file", "$CONFIG{SRCDIR}/$file");
- 	    }
- 	}	
+        my $file = basename($url);
+        if ($opt_keepsrc && -r "$CONFIG{SRCDIR}/$file") {
+            # Files stored from previous downloads have already been md5 checked
+            print "Using previously downloaded src \n";
+            sbozyp_copy("$CONFIG{SRCDIR}/$file", "$staging_dir/$file");
+        } else {
+            my $md5 = $url_md5{$url};
+            sbozyp_system('wget', '-P', $staging_dir, $url);
+            my $got_md5 = do {
+                my $fh = sbozyp_open('<', "$staging_dir/$file");
+                binmode($fh);
+                Digest::MD5->new->addfile($fh)->hexdigest;
+            };
+            if ($md5 ne $got_md5) {
+                sbozyp_die("md5sum mismatch for '$url': expected '$md5': got '$got_md5'");
+            }   
+            if ($opt_keepsrc) {
+                sbozyp_mkdir($CONFIG{SRCDIR});
+                sbozyp_copy("$staging_dir/$file", "$CONFIG{SRCDIR}/$file");
+            }
+        }	
     }
     return $staging_dir;
 }
