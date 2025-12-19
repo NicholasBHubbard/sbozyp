@@ -277,7 +277,7 @@ subtest 'i_am_root_or_die()' => sub {
 
 subtest 'parse_config_file()' => sub {
     is(\%Sbozyp::CONFIG,
-       {TMPDIR=>'/tmp',REPO_ROOT=>'/var/lib/sbozyp/SBo'},
+       {TMPDIR=>'/tmp',REPO_ROOT=>'/var/lib/sbozyp/SBo',SRCDIR=>'/var/lib/sbozyp/source-cache'},
        '%CONFIG has correct default values'
     );
 
@@ -287,18 +287,19 @@ subtest 'parse_config_file()' => sub {
     close $fh or die;
     Sbozyp::parse_config_file($test_config);
     is(\%Sbozyp::CONFIG,
-       {TMPDIR=>'/tmp',REPO_ROOT=>'/var/lib/sbozyp/SBo'},
+       {TMPDIR=>'/tmp',REPO_ROOT=>'/var/lib/sbozyp/SBo',SRCDIR=>'/var/lib/sbozyp/source-cache'},
        'parsing empty config file leaves %CONFIG as its default value'
     );
 
     open $fh, '>', $test_config or die;
     print $fh <<"END";
 TMPDIR=foo
+SRCDIR=bar
 END
     close $fh or die;
     Sbozyp::parse_config_file($test_config);
     is(\%Sbozyp::CONFIG,
-       {TMPDIR=>'foo',REPO_ROOT=>'/var/lib/sbozyp/SBo'},
+       {TMPDIR=>'foo',REPO_ROOT=>'/var/lib/sbozyp/SBo',SRCDIR=>'bar'},
        'only modifies %CONFIG values specified in the config file'
     );
 
@@ -310,7 +311,7 @@ END
     close $fh or die;
     Sbozyp::parse_config_file($test_config);
     is(\%Sbozyp::CONFIG,
-       {TMPDIR=>'bar',REPO_ROOT=>'/var/lib/sbozyp/SBo'},
+       {TMPDIR=>'bar',REPO_ROOT=>'/var/lib/sbozyp/SBo',SRCDIR=>'bar'},
        'ignores comments, eol comments, whitespace, and blank lines'
     );
 
@@ -326,7 +327,7 @@ END
     close $fh or die;
     Sbozyp::parse_config_file($test_config);
     is(\%Sbozyp::CONFIG,
-       {TMPDIR=>'foo',REPO_ROOT=>'foo',REPO_0_GIT_URL=>'foo',REPO_0_NAME=>'foo',REPO_PRIMARY=>'foo',REPO_0_GIT_BRANCH=>'foo'},
+       {TMPDIR=>'foo',REPO_ROOT=>'foo',REPO_0_GIT_URL=>'foo',REPO_0_NAME=>'foo',REPO_PRIMARY=>'foo',REPO_0_GIT_BRANCH=>'foo',SRCDIR=>'bar'},
        'successfully parses config file and updates %CONFIG. Note that REPO_NAME is not set to REPO_PRIMARY.'
     );
 
@@ -365,6 +366,7 @@ END
     open $fh, '>', $test_config or die;
     print $fh <<"END";
 TMPDIR=$TEST_DIR
+SRCDIR=$TEST_DIR/SRCDIR
 REPO_ROOT=$TEST_DIR/var/lib/sbozyp/SBo
 REPO_PRIMARY=14.1
 
@@ -383,7 +385,7 @@ END
     close $fh or die;
     Sbozyp::parse_config_file($test_config);
     is(\%Sbozyp::CONFIG,
-       {TMPDIR=>"$TEST_DIR",REPO_ROOT=>"$TEST_DIR/var/lib/sbozyp/SBo",REPO_0_GIT_URL=>'git://git.slackbuilds.org/slackbuilds.git',REPO_1_GIT_URL=>'git://git.slackbuilds.org/slackbuilds.git',REPO_1_GIT_URL=>'git://git.slackbuilds.org/slackbuilds.git',REPO_2_GIT_URL=>'git://git.slackbuilds.org/slackbuilds.git',REPO_0_GIT_BRANCH=>'14.1',REPO_1_GIT_BRANCH=>'14.2',REPO_2_GIT_BRANCH=>'15.0',REPO_0_NAME=>'14.1',REPO_1_NAME=>'14.2',REPO_2_NAME=>'15.0',REPO_PRIMARY=>'14.1'},
+       {TMPDIR=>"$TEST_DIR",REPO_ROOT=>"$TEST_DIR/var/lib/sbozyp/SBo",REPO_0_GIT_URL=>'git://git.slackbuilds.org/slackbuilds.git',REPO_1_GIT_URL=>'git://git.slackbuilds.org/slackbuilds.git',REPO_1_GIT_URL=>'git://git.slackbuilds.org/slackbuilds.git',REPO_2_GIT_URL=>'git://git.slackbuilds.org/slackbuilds.git',REPO_0_GIT_BRANCH=>'14.1',REPO_1_GIT_BRANCH=>'14.2',REPO_2_GIT_BRANCH=>'15.0',REPO_0_NAME=>'14.1',REPO_1_NAME=>'14.2',REPO_2_NAME=>'15.0',REPO_PRIMARY=>'14.1',SRCDIR=>"$TEST_DIR/SRCDIR"},
        '%CONFIG is properly set for use by the rest of this test script'
     );
 
@@ -740,6 +742,16 @@ subtest 'pkg_prepare_for_build()' => sub {
        ["$staging_dir/README","$staging_dir/SbozypFakeRelease-1.0.tar.gz","$staging_dir/sbozyp-basic.SlackBuild","$staging_dir/sbozyp-basic.info","$staging_dir/slack-desc"],
        'returns tmp dir containing all of the pkgs files and its downloaded source code'
     );
+
+    ok(!-d $Sbozyp::CONFIG{SRCDIR}, 'doesnt save to or create SRCDIR when not passed $keep_src arg');
+    $staging_dir = Sbozyp::pkg_prepare_for_build($pkg, 1);
+    ok(-d $Sbozyp::CONFIG{SRCDIR}, 'creates SRCDIR when passed $keep_src arg');
+    my @src_dir_contents = Sbozyp::sbozyp_readdir($Sbozyp::CONFIG{SRCDIR});
+    is(scalar(@src_dir_contents), 1);
+    like($src_dir_contents[0], qr/\.tar\.gz$/, 'saves source in SRCDIR when passed $keep_src arg');
+
+    my ($stdout, $stderr) = capture { Sbozyp::pkg_prepare_for_build($pkg, 1) };
+    ok($stdout eq '' and $stderr =~ qr/^misc\/sbozyp-basic: using previously downloaded src: SbozypFakeRelease$/, 'uses downloaded src when passed $keep_src arg and sources were previously downloaded');
 
     $pkg = Sbozyp::pkg('sbozyp-nested-dir');
     $staging_dir = Sbozyp::pkg_prepare_for_build($pkg);
@@ -1303,6 +1315,15 @@ subtest 'main_build' => sub {
     ($stdout) = capture { Sbozyp::main_build('-f', '-y', 'sbozyp-basic', 'sbozyp-basic-2.0') };
     like($stdout, qr/sbozyp-basic-1\.0.+created.+sbozyp-basic-2\.0.+created/s, 'builds multiple packages on single invocation');
 
+    if (-d $Sbozyp::CONFIG{SRCDIR}) {
+        Sbozyp::sbozyp_rmdir_rec($Sbozyp::CONFIG{SRCDIR});
+    }
+    Sbozyp::main_build('-y', '-f', '-z', 'sbozyp-basic');
+    my @srcs = Sbozyp::sbozyp_readdir($Sbozyp::CONFIG{SRCDIR});
+    ok((grep { $_ =~ /SbozypFakeRelease/} @srcs), 'saves sources when passed -z flag');
+    ($stdout, $stderr) = capture { Sbozyp::main_build('-y', '-f', '-z', 'sbozyp-basic') };
+    like($stderr, qr/misc\/sbozyp-basic: using previously downloaded src: SbozypFakeRelease/, 'uses saved sources when passed -z flag');
+
     # cleanup
     for my $pkg ($pkg, $pkg2) {
         if (my $built_slackware_pkg = Sbozyp::built_slackware_pkg($pkg)) {
@@ -1385,6 +1406,15 @@ subtest 'main_install()' => sub {
 
     ($stdout) = capture { Sbozyp::main_install('-y', '-f', '-r', 'sbozyp-basic') };
     like($stdout, qr/Installing package sbozyp-basic-1.0-noarch-1_SBo\.tgz/, 're-installs package if it is already installed if using \'-f\' option');
+
+    if (-d $Sbozyp::CONFIG{SRCDIR}) {
+        Sbozyp::sbozyp_rmdir_rec($Sbozyp::CONFIG{SRCDIR});
+    }
+    Sbozyp::main_install('-y', '-f', '-r', '-z', 'sbozyp-basic');
+    my @srcs = Sbozyp::sbozyp_readdir($Sbozyp::CONFIG{SRCDIR});
+    ok((grep { $_ =~ /SbozypFakeRelease/} @srcs), 'saves sources when passed -z flag');
+    ($stdout, $stderr) = capture { Sbozyp::main_install('-y', '-f', '-r', '-z', 'sbozyp-basic') };
+    like($stderr, qr/misc\/sbozyp-basic: using previously downloaded src: SbozypFakeRelease/, 'uses saved sources when passed -z flag');
 
     remove_tree "$TEST_DIR/tmp_root" or die;
 };

@@ -19,13 +19,11 @@ our %CONFIG = (
     # defaults
     TMPDIR => '/tmp',
     REPO_ROOT => '/var/lib/sbozyp/SBo',
-    SRCDIR => '/usr/local/src/sbozyp',
+    SRCDIR => '/var/lib/sbozyp/source-cache',
     #REPO_NAME => REPO_PRIMARY
 );
 
-our $opt_keepsrc;
-
- # 'unless caller' allows us to load this file from test code without executing main()
+# 'unless caller' allows us to load this file from test code without executing main()
 unless (caller) { main(@ARGV); exit 0 }
 
 sub main {
@@ -82,7 +80,7 @@ sub main_install {
         'k'      => \my $opt_keeppackage,
         'r'      => \my $opt_installdeps,
         'y'      => \my $opt_noninteractive,
-        'z'      => \$opt_keepsrc
+        'z'      => \my $opt_keepsrc
     );
     if ($opt_help) { print command_help_msg('install'); return }
     @_ >= 1 or die command_usage('install');
@@ -101,7 +99,7 @@ sub main_install {
             return unless pkgs_confirm_with_user(@queue);
         }
         for my $pkg (@queue) {
-            my $slackware_pkg = built_slackware_pkg($pkg) // build_slackware_pkg($pkg);
+            my $slackware_pkg = built_slackware_pkg($pkg) // build_slackware_pkg($pkg, $opt_keepsrc);
             install_slackware_pkg($slackware_pkg);
             sbozyp_unlink($slackware_pkg) unless $opt_keeppackage;
         }
@@ -116,7 +114,7 @@ sub main_build {
         'h|help' => \my $opt_help,
         'f'      => \my $opt_force,
         'y'      => \my $opt_noninteractive,
-        'z'      => \$opt_keepsrc
+        'z'      => \my $opt_keepsrc
     );
     if ($opt_help) { print command_help_msg('build'); return }
     @_ >= 1 or die command_usage('build');
@@ -133,7 +131,7 @@ sub main_build {
                 next;
             }
         }
-        build_slackware_pkg($pkg);
+        build_slackware_pkg($pkg, $opt_keepsrc);
     }
 }
 
@@ -567,7 +565,7 @@ sub pkgs_removable_dependencies {
 }
 
 sub pkg_prepare_for_build {
-    my ($pkg) = @_;
+    my ($pkg, $keep_src) = @_;
     my $arch = arch();
     if (my $arch_problem = $pkg->{ARCH_UNSUPPORTED}) {
         sbozyp_die("$pkg->{PKGNAME} is $arch_problem on $arch");
@@ -582,25 +580,25 @@ sub pkg_prepare_for_build {
     my $staging_dir = File::Temp->newdir(DIR => $CONFIG{TMPDIR}, TEMPLATE => 'sbozyp_XXXXXX');
     sbozyp_copy($pkg->{PKGDIR}, $staging_dir);
     for my $url (sort keys %url_md5) {
-        my $file = basename($url);
-        if ($opt_keepsrc && -r "$CONFIG{SRCDIR}/$file") {
-            # Files stored from previous downloads have already been md5 checked
-            print "Using previously downloaded src \n";
-            sbozyp_copy("$CONFIG{SRCDIR}/$file", "$staging_dir/$file");
+        my $src_filename = basename($url);
+        if ($keep_src && -r "$CONFIG{SRCDIR}/$src_filename") {
+            # Sources stored from previous downloads have already been md5 checked
+            sbozyp_print_stderr("$pkg->{PKGNAME}: using previously downloaded src: $src_filename\n");
+            sbozyp_copy("$CONFIG{SRCDIR}/$src_filename", "$staging_dir/$src_filename");
         } else {
             my $md5 = $url_md5{$url};
             sbozyp_system('wget', '-P', $staging_dir, $url);
             my $got_md5 = do {
-                my $fh = sbozyp_open('<', "$staging_dir/$file");
+                my $fh = sbozyp_open('<', "$staging_dir/$src_filename");
                 binmode($fh);
                 Digest::MD5->new->addfile($fh)->hexdigest;
             };
             if ($md5 ne $got_md5) {
                 sbozyp_die("md5sum mismatch for '$url': expected '$md5': got '$got_md5'");
             }   
-            if ($opt_keepsrc) {
+            if ($keep_src) {
                 sbozyp_mkdir($CONFIG{SRCDIR});
-                sbozyp_copy("$staging_dir/$file", "$CONFIG{SRCDIR}/$file");
+                sbozyp_copy("$staging_dir/$src_filename", "$CONFIG{SRCDIR}/$src_filename");
             }
         }	
     }
@@ -608,10 +606,10 @@ sub pkg_prepare_for_build {
 }
 
 sub build_slackware_pkg {
-    my ($pkg) = @_;
+    my ($pkg, $keep_src) = @_;
     local $ENV{OUTPUT} = $CONFIG{TMPDIR}; # all SlackBuilds use the $OUTPUT env var to determine output pkg location
     sbozyp_mkdir($CONFIG{TMPDIR});
-    my $staging_dir = pkg_prepare_for_build($pkg);
+    my $staging_dir = pkg_prepare_for_build($pkg, $keep_src);
     my $slackbuild = $pkg->{PRGNAM} . '.SlackBuild';
     my $cmd = sbozyp_open('-|', "cd '$staging_dir' && chmod +x ./$slackbuild && ./$slackbuild");
     my $slackware_pkg;
@@ -949,6 +947,10 @@ sub sbozyp_print {
     print sbozyp_msg_prefix(), @_;
 }
 
+sub sbozyp_print_stderr {
+    print STDERR sbozyp_msg_prefix(), @_;
+}
+
 1;
 
 __END__
@@ -1061,10 +1063,11 @@ The directory used for placing working files.
 Defaults to C<TMPDIR=/tmp>.
 
 =head3 SRCDIR
+
+The directory used to save downloaded source files for reuse when using the
+install and build commands -z flag.
  
-The directory used to save downloaded source files for reuse.
- 
-Defaults to C<SRCDIR=/usr/local/src/sbozyp>.
+Defaults to C<SRCDIR=/var/lib/sbozyp/source-cache>.
 
 =head1 COMMANDS
 
