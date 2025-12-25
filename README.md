@@ -26,7 +26,6 @@ The user manual can be viewed online [here](https://metacpan.org/dist/App-sbozyp
 sbozyp is itself available on SlackBuilds.org as [system/sbozyp](https://slackbuilds.org/repository/15.0/system/sbozyp/). This means that after initially installing sbozyp, it can manage and update itself. Here are the commands to perform the initial installation:
 
 ```
-# SLACKWARE_VERSION=15.0
 # wget https://slackbuilds.org/slackbuilds/15.0/system/sbozyp.tar.gz
 # tar -xf sbozyp.tar.gz
 # cd sbozyp
