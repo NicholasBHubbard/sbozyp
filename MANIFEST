@@ -2,12 +2,12 @@ bin/sbozyp
 lib/App/sbozyp.pm
 
 Changes
+CONTRIBUTORS
 LICENSE
 MANIFEST
 Makefile.PL
 cpanfile
 
-configs/sbozyp.conf
-
-completions/sbozyp.bash
-completions/sbozyp.zsh
+package/sbozyp.conf
+package/sbozyp.bash
+package/sbozyp.zsh
