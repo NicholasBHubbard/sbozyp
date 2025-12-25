@@ -30,7 +30,7 @@ sbozyp is itself available on SlackBuilds.org as [system/sbozyp](https://slackbu
 # wget https://slackbuilds.org/slackbuilds/$SLACKWARE_VERSION/system/sbozyp.tar.gz
 # tar -xf sbozyp.tar.gz
 # cd sbozyp
-# wget $(awk -F'"' '/^DOWNLOAD=/ {print $2}' sbozyp.info)
+# wget $(grep DOWNLOAD sbozyp.info | cut -d'"' -f2)
 # ./sbozyp.SlackBuild
 # installpkg /tmp/sbozyp-*.tgz
 ```
