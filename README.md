@@ -34,7 +34,7 @@ sbozyp is itself available on SlackBuilds.org as [system/sbozyp](https://slackbu
 # installpkg /tmp/sbozyp-*.tgz
 ```
 
-Once sbozyp is installed, it can upgrade itself like it upgrades any other package:
+Once sbozyp is installed, it can update itself like it updates any other package:
 
 ```
 # sbozyp install sbozyp
