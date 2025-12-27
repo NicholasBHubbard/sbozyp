@@ -21,7 +21,7 @@ The user manual can be viewed online [here](https://metacpan.org/dist/App-sbozyp
 * Supports Slackware 15.0, current, and greater
 * Zero dependencies on a full Slackware install
 
-# INSTALL / UPGRADE
+# INSTALL / UPDATE
 
 sbozyp is itself available on SlackBuilds.org as [system/sbozyp](https://slackbuilds.org/repository/15.0/system/sbozyp/). This means that after initially installing sbozyp, it can manage and update itself. Here are the commands to perform the initial installation:
 
