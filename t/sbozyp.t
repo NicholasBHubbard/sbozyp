@@ -119,7 +119,7 @@ subtest 'sbozyp_print_file()' => sub {
 
 subtest 'sbozyp_pod2usage()' => sub {
     like(Sbozyp::sbozyp_pod2usage('COMMANDS/INSTALL'),
-         qr/Install.+Install or upgrade packages.+Options are:.+--help.+Examples:.+sbozyp install/s,
+         qr/Install.+Install or update packages.+Options are:.+--help.+Examples:.+sbozyp install/s,
          'returns pod as string for given section'
     );
 };
@@ -131,7 +131,7 @@ subtest 'command_usage()' => sub {
 };
 
 subtest 'command_help_msg()' => sub {
-    like(Sbozyp::command_help_msg('install'), qr/^Usage: sbozyp <install\|in>.+[\n]Install or upgrade packages.+Options are:.+Examples:/s, 'returns help msg if given command name. Properly strips off leading whitespace.');
+    like(Sbozyp::command_help_msg('install'), qr/^Usage: sbozyp <install\|in>.+[\n]Install or update packages.+Options are:.+Examples:/s, 'returns help msg if given command name. Properly strips off leading whitespace.');
 
     like(Sbozyp::command_help_msg('main'), qr/^Usage: sbozyp \[global_opts\].+Commands.+Examples:/s, q(handles special case of 'main'));
 };
@@ -837,7 +837,7 @@ subtest 'install_slackware_pkg()' => sub {
     $pkg = Sbozyp::pkg('sbozyp-basic-2.0');
     Sbozyp::install_slackware_pkg(Sbozyp::build_slackware_pkg($pkg));
     ok(-f "$TEST_DIR/tmp_root/var/lib/pkgtools/packages/sbozyp-basic-2.0-noarch-1_SBo" && !-f  "$TEST_DIR/tmp_root/var/lib/pkgtools/packages/sbozyp-basic-1.0-noarch-1_SBo",
-       'upgrades package if older version already exists'
+       'updates package if older version already exists'
     );
 
     push @built_pkgs, $pkg;
@@ -1340,13 +1340,13 @@ subtest 'main_install()' => sub {
     my ($stdout, $stderr); # were gonna capture STDOUT and STDERR into these for some tests
 
     ($stdout) = capture { Sbozyp::main_install('-h') };
-    like($stdout, qr/Usage.+Install or upgrade packages.+\-h.+Print help message/s, 'prints help message if given -h option');
+    like($stdout, qr/Usage.+Install or update packages.+\-h.+Print help message/s, 'prints help message if given -h option');
 
     ($stdout) = capture { Sbozyp::main_install('--help') };
-    like($stdout, qr/Usage.+Install or upgrade packages.+\-h.+Print help message/s, 'prints help message if given --help option');
+    like($stdout, qr/Usage.+Install or update packages.+\-h.+Print help message/s, 'prints help message if given --help option');
 
     ($stdout) = capture { Sbozyp::main_install('-y', '--help', 'mu') };
-    like($stdout, qr/Usage.+Install or upgrade packages.+\-h.+Print help message/s, 'prints help message if given --help option regardless of other options');
+    like($stdout, qr/Usage.+Install or update packages.+\-h.+Print help message/s, 'prints help message if given --help option regardless of other options');
 
     like(dies { Sbozyp::main_install('-H', 'mu') },
          qr/^sbozyp: error: install: unknown option: H/,
@@ -1537,7 +1537,7 @@ subtest 'main_query()' => sub {
         ($stdout) = capture { Sbozyp::main_query('-m') };
         is($stdout, "misc/sbozyp-basic\nmisc/sbozyp-depends-on-recursive-deps\n", '-m outputs all packages without dependents (sorted)');
 
-        # TODO: test -u option. Need to figure out how to mock a package upgrade situation
+        # TODO: test -u option. Need to figure out how to mock a package update situation
 
         my @built_pkgs = ($pkg_a, $pkg_b, $pkg_c);
         for my $pkg (@built_pkgs) {
