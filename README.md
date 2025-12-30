@@ -37,7 +37,7 @@ sbozyp is itself available on SlackBuilds.org as [system/sbozyp](https://slackbu
 Once sbozyp is installed, it can update itself like it updates any other package:
 
 ```
-# sbozyp install sbozyp
+# sbozyp -S install sbozyp
 ```
 
 # CONTRIBUTING
