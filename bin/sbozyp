@@ -1115,7 +1115,7 @@ Install or update packages.
 
 Options are:
 
- -h|--help     Print help message
+ -h|--help     Print help message and exit
  -b FILE       Use FILE as blacklist instead of /etc/sbozyp/sbozyp.blacklist
  -f            Force install/update even if package is blacklisted or up to date
  -k            Keep the built package (resides in TMPDIR)
@@ -1141,7 +1141,7 @@ Build but don't install packages.
 
 Options are:
 
- -h|--help     Print help message
+ -h|--help     Print help message and exit
  -f            Force rebuilding the package even if it's already built
  -y            No confirmation prompt
  -z            Keep and reuse downloaded sources (reside in SRCDIR)
@@ -1163,7 +1163,7 @@ Remove packages.
 
 Options are:
 
- -h|--help     Print help message
+ -h|--help     Print help message and exit
  -f            Disable removal safety check (DANGEROUS)
  -r            Recursively remove package dependencies that are safe to remove
  -y            No confirmation prompt
@@ -1185,7 +1185,7 @@ Exactly one option must be used in a single query command.
 
 Options are:
 
- -h|--help     Print help message
+ -h|--help     Print help message and exit
  -a            Print all installed packages
  -b            Print the path to PKGNAME's local package directory
  -c            Print the path to the current repositories directory
@@ -1218,7 +1218,7 @@ Search for packages using a Perl regex.
 
 Options are:
 
- -h|--help     Print help message
+ -h|--help     Print help message and exit
  -c            Match case sensitive
  -n            Match against CATEGORY/PRGNAM instead of just PRGNAM
  -p            Print just the PRGNAM of matched packages
@@ -1241,7 +1241,7 @@ sync (with global -S option) a repository.
 
 Options are:
 
- -h|--help     Print help message
+ -h|--help     Print help message and exit
 
 Examples:
 
