@@ -69,11 +69,13 @@ _sbozyp_complete() {
 
     case $command in
         install|in)
-            local opts="--help -f -k -r -y -z"
+            local opts="--help -b -f -k -r -y -z"
             if [[ $cur == in ]]; then
                 COMPREPLY=( "install" )
             elif [[ $cur == -* ]]; then
                 COMPREPLY=( $(compgen -W "$opts" -- "$cur") )
+            elif [[ $prev == -b ]]; then
+                _filedir
             else
                 local all_prgnams=$(sbozyp $(_sbozyp_command_prefix) search -p '' 2>/dev/null)
                 COMPREPLY=( $(compgen -W "$all_prgnams" -- "$cur") )

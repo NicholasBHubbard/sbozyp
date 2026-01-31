@@ -1,0 +1,7 @@
+# Packages listed in this file will be skipped by the sbozyp "install" command
+# meaning they won't be installed or updated.
+#
+# Comments are denoted by the '#' symbol. End of line comments are allowed.
+# One package name per line.
+# Package categories are optionally allowed in the package name.
+# Names of non-existent packages are skipped.

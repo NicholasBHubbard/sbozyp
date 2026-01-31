@@ -71,11 +71,13 @@ _sbozyp_complete() {
 
     case $command in
         install|in)
-            local opts="--help -f -k -r -y -z"
+            local opts="--help -b -f -k -r -y -z"
             if [[ $cur == in ]]; then
                 compadd -U -- "install"
             elif [[ $cur == -* ]]; then
                 compadd -X "options" -- ${=opts}
+            elif [[ $prev == -b ]]; then
+                _files
             else
                 local all_prgnams=$(sbozyp $(_sbozyp_command_prefix) search -p '' 2>/dev/null)
                 compadd -X "packages" -- ${(f)all_prgnams}
