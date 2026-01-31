@@ -33,7 +33,7 @@ sub main {
     sbozyp_getopts(
         \@argv,
         'C'   => \my $opt_clone,
-        'F=s' => \my $opt_configfile,
+        'F=s' => \(my $opt_configfile = '/etc/sbozyp/sbozyp.conf'),
         'R=s' => \my $opt_reponame,
         'S'   => \my $opt_syncrepo,
         'T'   => \my $opt_noinitrepo
@@ -770,7 +770,6 @@ sub sync_repo {
 
 sub parse_config_file {
     my ($config_file) = @_;
-    $config_file //= '/etc/sbozyp/sbozyp.conf';
     my $fh = sbozyp_open('<', $config_file);
     while (<$fh>) {
         chomp;
