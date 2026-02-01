@@ -9,5 +9,6 @@ Makefile.PL
 cpanfile
 
 package/sbozyp.conf
+package/sbozyp.blacklist
 package/sbozyp.bash
 package/sbozyp.zsh
