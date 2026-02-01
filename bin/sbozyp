@@ -77,6 +77,7 @@ sub main_install {
     sbozyp_getopts(
         \@_,
         'h|help' => \my $opt_help,
+        'b=s'    => \(my $opt_blacklistfile = '/etc/sbozyp/sbozyp.blacklist'),
         'f'      => \my $opt_force,
         'k'      => \my $opt_keeppackage,
         'r'      => \my $opt_installdeps,
@@ -90,7 +91,18 @@ sub main_install {
     my @queue; for my $pkg (@pkgs) {
         my @pkg_queue = $opt_installdeps ? pkg_queue($pkg) : ($pkg);
         unless ($opt_force) {
-            @pkg_queue = grep { !pkg_installed_and_up_to_date($_) } @pkg_queue;
+            @pkg_queue = do {
+                my @_pkg_queue; for my $pkg (@pkg_queue) {
+                    if (pkg_matches_blacklist($pkg, $opt_blacklistfile)) {
+                        sbozyp_print_stderr("skipping $pkg->{PKGNAME} due to blacklist match\n");
+                    } elsif (pkg_installed_and_up_to_date($pkg)) {
+                        sbozyp_print_stderr("skipping $pkg->{PKGNAME} as it's installed and up to date\n");
+                    } else {
+                        push @_pkg_queue, $pkg;
+                    }
+                }
+                @_pkg_queue
+            };
         }
         @queue = pkgs_merged(@queue, @pkg_queue);
     }
@@ -105,7 +117,7 @@ sub main_install {
             sbozyp_unlink($slackware_pkg) unless $opt_keeppackage;
         }
     } else {
-        sbozyp_print('all packages requested for installation are up to date', "\n");
+        sbozyp_print('no packages to install', "\n");
     }
 }
 
@@ -380,6 +392,31 @@ sub pkg_installed_and_up_to_date {
     } else {
         return 1;
     }
+}
+
+sub pkg_matches_blacklist {
+    my ($pkg, $blacklist_file) = @_;
+    state %blacklist_cache;
+    my $pkgnames = $blacklist_cache{$blacklist_file};
+    if (!defined $pkgnames) {
+        my $fh = sbozyp_open('<', $blacklist_file);
+        my @pkgnames;
+        while (<$fh>) {
+            chomp;
+            s/#.*//;            # no comments
+            s/^\s+//;           # no leading whitespace
+            s/\s+$//;           # no trailing whitespace
+            next unless length; # is there anything left?
+            if (my $pkgname = prgnam_to_pkgname($_)) {
+                push @pkgnames, $pkgname;
+            }
+        }
+        $pkgnames = $blacklist_cache{$blacklist_file} = \@pkgnames;
+    }
+    for my $pkgname (@$pkgnames) {
+        return 1 if $pkg->{PKGNAME} eq $pkgname;
+    }
+    return 0;
 }
 
 sub parse_slackware_pkgname {
@@ -1106,14 +1143,15 @@ Defaults to C<SRCDIR=/var/lib/sbozyp/source-cache>.
 
 =head2 INSTALL
 
- Usage: sbozyp <install|in> [-h] [-f] [-k] [-r] [-y] [-z] <pkgname...>
+ Usage: sbozyp <install|in> [-h] [-b FILE] [-f] [-k] [-r] [-y] [-z] <pkgname...>
 
 Install or update packages.
 
 Options are:
 
  -h|--help     Print help message and exit
- -f            Force installation even if package is already up to date
+ -b FILE       Use FILE as blacklist instead of /etc/sbozyp/sbozyp.blacklist
+ -f            Force install/update even if package is up to date or blacklisted
  -k            Keep the built package (resides in TMPDIR)
  -r            Install package dependencies recursively
  -y            No interactive prompt

@@ -696,6 +696,54 @@ subtest 'pkg_dependencies_direct()' => sub {
     );
 };
 
+subtest 'pkg_matches_blacklist()' => sub {
+    my $tmp_blacklist = File::Temp->new(DIR => $TEST_DIR, TEMPLATE => 'sbozyp.t_tmp_blacklist_fileXXXXXX');
+    open my $fh, '>', "$tmp_blacklist" or die;
+    print $fh <<'END';
+#comment
+mu # eol comment
+  perl/Net-SSLeay
+###comment
+END
+    close $fh;
+
+    ok(scalar(Sbozyp::pkg_matches_blacklist(Sbozyp::pkg('Net-SSLeay'), "$tmp_blacklist")), 'basic checks');
+    ok(scalar(Sbozyp::pkg_matches_blacklist(Sbozyp::pkg('mu'), "$tmp_blacklist")));
+    ok(!scalar(Sbozyp::pkg_matches_blacklist(Sbozyp::pkg('pyqode.core'), "$tmp_blacklist")));
+
+    $tmp_blacklist = File::Temp->new(DIR => $TEST_DIR, TEMPLATE => 'sbozyp.t_tmp_blacklist_fileXXXXXX');
+    open $fh, '>', "$tmp_blacklist" or die;
+    print $fh <<'END';
+END
+    close $fh;
+
+    ok(!scalar(Sbozyp::pkg_matches_blacklist(Sbozyp::pkg('Net-SSLeay'), "$tmp_blacklist")), 'allows empty file');
+    ok(!scalar(Sbozyp::pkg_matches_blacklist(Sbozyp::pkg('academic/GeoGebra'), "$tmp_blacklist")));
+    ok(!scalar(Sbozyp::pkg_matches_blacklist(Sbozyp::pkg('pyqode.core'), "$tmp_blacklist")));
+    ok(!scalar(Sbozyp::pkg_matches_blacklist(Sbozyp::pkg('mu'), "$tmp_blacklist")));
+
+    $tmp_blacklist = File::Temp->new(DIR => $TEST_DIR, TEMPLATE => 'sbozyp.t_tmp_blacklist_fileXXXXXX');
+    unlink("$tmp_blacklist") or die;
+    like(dies { Sbozyp::pkg_matches_blacklist(Sbozyp::pkg('Net-SSLeay'), "$tmp_blacklist") }, qr/^sbozyp: error: could not open file/, 'dies if blacklist file isnt a readable file');
+
+    $tmp_blacklist = File::Temp->new(DIR => $TEST_DIR, TEMPLATE => 'sbozyp.t_tmp_blacklist_fileXXXXXX');
+    open $fh, '>', "$tmp_blacklist" or die;
+    print $fh <<'END';
+NOT-A-REAL-PACKAGE
+END
+    close $fh;
+    ok(!Sbozyp::pkg_matches_blacklist(Sbozyp::pkg('mu'), "$tmp_blacklist"), 'allows non-existent PKGNAME');
+
+    $tmp_blacklist = File::Temp->new(DIR => $TEST_DIR, TEMPLATE => 'sbozyp.t_tmp_blacklist_fileXXXXXX');
+    open $fh, '>', "$tmp_blacklist" or die;
+    print $fh <<'END';
+offi/mu
+END
+    close $fh;
+    ok(!Sbozyp::pkg_matches_blacklist(Sbozyp::pkg('mu'), "$tmp_blacklist"), 'ignores invalid category');
+
+};
+
 subtest 'pkg_dependencies_recursive()' => sub {
     is([Sbozyp::pkg_dependencies_recursive(Sbozyp::pkg('misc/sbozyp-recursive-dep-D'))],
        [],
@@ -1450,16 +1498,16 @@ subtest 'main_install()' => sub {
          'dies with usage if not given a package name'
     );
 
-    like(dies { Sbozyp::main_install('NOTAPACKAGE') },
+    like(dies { Sbozyp::main_install('-b', '/dev/null', 'NOTAPACKAGE') },
          qr/could not find a package named NOTAPACKAGE/,
          'dies with useful message if the package does not exist'
     );
 
-    Sbozyp::main_install('-y', 'sbozyp-basic');
+    Sbozyp::main_install('-y', '-b', '/dev/null', 'sbozyp-basic');
     ok(Sbozyp::pkg_installed(Sbozyp::pkg('sbozyp-basic')), 'installs a package');
     ok(! -f "$TEST_DIR/sbozyp-basic-1.0-noarch-1_SBo.tgz", 'removes slackware package after installing it if not given -k option');
 
-    Sbozyp::main_install('-y', '-r', 'sbozyp-recursive-dep-A');
+    Sbozyp::main_install('-y', '-b', '/dev/null', '-r', 'sbozyp-recursive-dep-A');
     ok(   Sbozyp::pkg_installed(Sbozyp::pkg('sbozyp-recursive-dep-A'))
        && Sbozyp::pkg_installed(Sbozyp::pkg('sbozyp-recursive-dep-B'))
        && Sbozyp::pkg_installed(Sbozyp::pkg('sbozyp-recursive-dep-C'))
@@ -1469,7 +1517,7 @@ subtest 'main_install()' => sub {
     );
     remove_tree "$TEST_DIR/tmp_root" or die; # cleanup for the next test
 
-    Sbozyp::main_install('-y', 'sbozyp-recursive-dep-A');
+    Sbozyp::main_install('-y', '-b', '/dev/null', 'sbozyp-recursive-dep-A');
     ok(   Sbozyp::pkg_installed(Sbozyp::pkg('sbozyp-recursive-dep-A'))
        && not(Sbozyp::pkg_installed(Sbozyp::pkg('sbozyp-recursive-dep-B')))
        && not(Sbozyp::pkg_installed(Sbozyp::pkg('sbozyp-recursive-dep-C')))
@@ -1480,33 +1528,48 @@ subtest 'main_install()' => sub {
 
     remove_tree "$TEST_DIR/tmp_root" or die;
 
-    Sbozyp::main_install('-y', '-r', 'sbozyp-basic', 'sbozyp-readme-extra-deps');
+    Sbozyp::main_install('-y', '-r', '-b', '/dev/null', 'sbozyp-basic', 'sbozyp-readme-extra-deps');
     ok(Sbozyp::pkg_installed(Sbozyp::pkg('sbozyp-basic')) && Sbozyp::pkg_installed(Sbozyp::pkg('sbozyp-readme-extra-deps')), 'accepts multiple package arguments to install');
 
     remove_tree "$TEST_DIR/tmp_root" or die;
 
-    like(dies { Sbozyp::main_install('sbozyp-basic', '-r', 'mu', 'NOTAPACKAGE') },
+    like(dies { Sbozyp::main_install('sbozyp-basic', '-b', '/dev/null', '-r', 'mu', 'NOTAPACKAGE') },
          qr/^sbozyp: error: could not find a package named NOTAPACKAGE$/,
          'accepts multiple package name args and dies if any are not valid packages'
     );
 
-    Sbozyp::main_install('-y', '-r', '-k', 'sbozyp-basic');
+    Sbozyp::main_install('-y', '-b', '/dev/null', '-r', '-k', 'sbozyp-basic');
     ok(-f "$TEST_DIR/sbozyp-basic-1.0-noarch-1_SBo.tgz", 'does not remove slackware package after installing it if given -k flag');
 
-    ($stdout) = capture { Sbozyp::main_install('-y', '-r', 'sbozyp-basic') };
-    like($stdout, qr/sbozyp: all packages requested for installation are up to date/, 'by default skips install with useful message if package is already installed');
+    ($stdout) = capture { Sbozyp::main_install('-y', '-b', '/dev/null', '-r', 'sbozyp-basic') };
+    like($stdout, qr/sbozyp: no packages to install/, 'by default skips install with useful message if package is already installed');
 
-    ($stdout) = capture { Sbozyp::main_install('-y', '-f', '-r', 'sbozyp-basic') };
+    ($stdout) = capture { Sbozyp::main_install('-y', '-b', '/dev/null', '-f', '-r', 'sbozyp-basic') };
     like($stdout, qr/Installing package sbozyp-basic-1.0-noarch-1_SBo\.tgz/, 're-installs package if it is already installed if using \'-f\' option');
 
     if (-d $Sbozyp::CONFIG{SRCDIR}) {
         Sbozyp::sbozyp_rmdir_rec($Sbozyp::CONFIG{SRCDIR});
     }
-    Sbozyp::main_install('-y', '-f', '-r', '-z', 'sbozyp-basic');
+    Sbozyp::main_install('-y', '-b', '/dev/null', '-f', '-r', '-z', 'sbozyp-basic');
     my @srcs = Sbozyp::sbozyp_readdir($Sbozyp::CONFIG{SRCDIR});
     ok((grep { $_ =~ /SbozypFakeRelease/} @srcs), 'saves sources when passed -z flag');
-    ($stdout, $stderr) = capture { Sbozyp::main_install('-y', '-f', '-r', '-z', 'sbozyp-basic') };
+    ($stdout, $stderr) = capture { Sbozyp::main_install('-y', '-b', '/dev/null', '-f', '-r', '-z', 'sbozyp-basic') };
     like($stderr, qr/misc\/sbozyp-basic: using previously downloaded src: SbozypFakeRelease/, 'uses saved sources when passed -z flag');
+
+    my $tmp_blacklist = File::Temp->new(DIR => $TEST_DIR, TEMPLATE => 'sbozyp.t_tmp_blacklist_fileXXXXXX');
+    open my $fh, '>', "$tmp_blacklist" or die;
+    print $fh <<'END';
+#comment
+sbozyp-basic # eol comment
+sbozyp-recursive-dep-E
+misc/sbozyp-recursive-dep-F
+#comment
+END
+    close $fh;
+    ($stdout, $stderr) = capture { Sbozyp::main_install('-y', '-b', "$tmp_blacklist", 'sbozyp-basic') };
+    is($stderr, "sbozyp: skipping misc/sbozyp-basic due to blacklist match\n", 'skips blacklisted packages');
+    ($stdout, $stderr) = capture { Sbozyp::main_install('-y', '-r', '-b', "$tmp_blacklist", 'sbozyp-recursive-dep-E') };
+    is($stderr, "sbozyp: skipping misc/sbozyp-recursive-dep-F due to blacklist match\nsbozyp: skipping misc/sbozyp-recursive-dep-E due to blacklist match\n", 'skips dependencies that match blacklist');
 
     remove_tree "$TEST_DIR/tmp_root" or die;
 };

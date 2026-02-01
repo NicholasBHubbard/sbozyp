@@ -1,0 +1,7 @@
+# Package names listed in this blacklist file will be skipped by the
+# sbozyp "install" command meaning they won't be installed or updated.
+#
+# Comments are denoted by the '#' character.
+# One or zero package names per line.
+# Package names can be of either form CATEGORY/PRGNAM or just PRGNAM
+# Names of non-existent packages are ignored.
