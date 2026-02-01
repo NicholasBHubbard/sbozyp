@@ -6,7 +6,7 @@ use v5.34.0; # The Perl version on Slackware 15.0 (sbozyp's min supported versio
 
 package Sbozyp;
 
-our $VERSION = '1.5.1';
+our $VERSION = '1.5.2';
 
 use Cwd qw();
 use Digest::MD5 qw();
