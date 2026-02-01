@@ -84,6 +84,25 @@ subtest 'sbozyp_qx()' => sub {
      );
 };
 
+subtest 'with_stdout_to_stderr()' => sub {
+    my $status;
+    my ($stdout, $stderr) = capture {
+        $status = Sbozyp::with_stdout_to_stderr(
+            sub { Sbozyp::sbozyp_system('echo', 'foo') }
+        );
+    };
+    ok($stderr eq "foo\n" and $stdout eq '', 'redirects STDOUT to STDERR');
+    is($status, 0, 'return subs return value');
+
+    ($stdout, $stderr) = capture { Sbozyp::with_stdout_to_stderr(sub { print "foo\n" }) };
+    ok($stderr eq "foo\n" and $stdout eq "", 'works for pure perl code');
+
+    ($stdout, $stderr) = capture { Sbozyp::sbozyp_system("echo foo; 1>&2 echo bar") };
+    ok($stderr eq "bar\n" and $stdout eq "foo\n", 'resets STDOUT and STDERR');
+
+    like(dies { Sbozyp::with_stdout_to_stderr(sub { die "death\n" }) }, qr/^death$/, 'dies normally');
+};
+
 subtest 'sbozyp_getopts()' => sub {
     my @args = ('-f', '-b', 'foo', 'quux');
     Sbozyp::sbozyp_getopts(\@args, 'f' => \my $foo, 'b=s' => \my $bar);
@@ -413,12 +432,12 @@ subtest 'clone_repo()' => sub {
 subtest 'sync_repo()' => sub {
     Sbozyp::sbozyp_mkdir("$Sbozyp::CONFIG{REPO_ROOT}/$Sbozyp::CONFIG{REPO_NAME}");
 
-    my (undef, $stderr) = capture { Sbozyp::sync_repo() };
+    my ($stdout, $stderr) = capture { Sbozyp::sync_repo() };
     like($stderr,
          qr/HEAD is now at/i,
          'Uses git fetch and git reset if repo has already been cloned. Redirects to STDERR as well.'
     );
-
+    is($stdout, '', 'no output to STDOUT');
 
     Sbozyp::sbozyp_rmdir_rec("$Sbozyp::CONFIG{REPO_ROOT}/$Sbozyp::CONFIG{REPO_NAME}");
     mkdir("$Sbozyp::CONFIG{REPO_ROOT}/$Sbozyp::CONFIG{REPO_NAME}") or die;

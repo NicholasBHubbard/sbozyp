@@ -720,8 +720,10 @@ sub sync_repo {
     my $repo_dir = repo_dir();
     if (repo_is_cloned()) {
         my $repo_git_branch = repo_git_branch();
-        sbozyp_system("git -C '$repo_dir' fetch --verbose 1>&2");
-        sbozyp_system("git -C '$repo_dir' reset --hard 'origin/$repo_git_branch' 1>&2");
+        with_stdout_to_stderr(sub {
+            sbozyp_system('git', '-C', $repo_dir, 'fetch', '--verbose');
+            sbozyp_system('git', '-C', $repo_dir, 'reset', '--hard', "origin/$repo_git_branch");
+        });
     } else {
         sbozyp_die("cannot sync non-existent git repository at '$repo_dir'");
     }
@@ -810,6 +812,15 @@ sub sbozyp_qx {
         sbozyp_die("the following system command was killed by signal $signal: $cmd");
     }
     return wantarray ? @output : $output;
+}
+
+sub with_stdout_to_stderr {
+    my ($sub) = @_;
+    open(my $orig_stdout, '>&', \*STDOUT) or sbozyp_die("failed to dup STDOUT: $!");
+    open(STDOUT, '>&=', \*STDERR) or sbozyp_die("failed to redirect STDOUT to STDERR: $!");
+    my $ret = $sub->();
+    open(STDOUT, '>&=', $orig_stdout) or sbozyp_die("failed to restore STDOUT: $!");
+    return $ret;
 }
 
 sub arch {
