@@ -1,6 +1,7 @@
-1.5.2  2026-02-01
+1.5.3  2026-02-01
 
    - Added blacklist file for the install command
+   - Make search command exit if given invalid regex
    - Changed default config repo urls to use https
    - Performance improvements
    - Documentation updates
