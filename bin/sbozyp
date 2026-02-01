@@ -8,6 +8,7 @@ package Sbozyp;
 
 our $VERSION = '1.4.1';
 
+use Cwd qw();
 use Digest::MD5 qw();
 use File::Basename qw(basename dirname);
 use File::Temp qw();
@@ -587,7 +588,7 @@ sub pkg_prepare_for_build {
             sbozyp_copy("$CONFIG{SRCDIR}/$src_filename", "$staging_dir/$src_filename");
         } else {
             my $md5 = $url_md5{$url};
-            sbozyp_system('wget', '-P', $staging_dir, $url);
+            sbozyp_system('wget', '-e', 'background=off', '-P', $staging_dir, $url);
             my $got_md5 = do {
                 my $fh = sbozyp_open('<', "$staging_dir/$src_filename");
                 binmode($fh);
@@ -611,9 +612,11 @@ sub build_slackware_pkg {
     sbozyp_mkdir($CONFIG{TMPDIR});
     my $staging_dir = pkg_prepare_for_build($pkg, $keep_src);
     my $slackbuild = $pkg->{PRGNAM} . '.SlackBuild';
-    my $cmd = sbozyp_open('-|', "cd '$staging_dir' && chmod +x ./$slackbuild && ./$slackbuild");
-    my $slackware_pkg;
-    while (my $line = <$cmd>) {
+    my $cmd = with_cwd($staging_dir, sub {
+        sbozyp_chmod(0755, "./$slackbuild");
+        return sbozyp_open('-|', "./$slackbuild");
+    });
+    my $slackware_pkg; while (my $line = <$cmd>) {
         $slackware_pkg = $1 if $line =~ /^Slackware package (.+) created\.$/;
         print $line; # magically knows to print to stdout or stderr
     }
@@ -823,6 +826,16 @@ sub with_stdout_to_stderr {
     return $ret;
 }
 
+sub with_cwd {
+    my ($dir, $sub) = @_;
+    my $orig_cwd = Cwd::getcwd();
+    sbozyp_chdir($dir);
+    my $ret = eval { $sub->() }; my $err = $@;
+    sbozyp_chdir($orig_cwd);
+    if ($err) { $! = 1; die $err };
+    return $ret;
+}
+
 sub arch {
     state $arch = sbozyp_qx('uname -m');
     return $arch;
@@ -932,6 +945,16 @@ sub sbozyp_open {
 sub sbozyp_unlink {
     my ($file) = @_;
     unlink $file or sbozyp_die("could not unlink file '$file': $!");
+}
+
+sub sbozyp_chmod {
+    my ($mode, $file) = @_;
+    chmod $mode, $file or sbozyp_die(sprintf("could not chmod 0%o '%s': %s", $mode, $file, $!));
+}
+
+sub sbozyp_chdir {
+    my ($dir) = @_;
+    chdir $dir or sbozyp_die("could not chdir '$dir': $!");
 }
 
 sub sbozyp_print_file {

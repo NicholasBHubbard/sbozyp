@@ -44,6 +44,38 @@ subtest 'sbozyp_die()' => sub {
     );
 };
 
+subtest 'sbozyp_chmod()' => sub {
+    my $tmp_file = File::Temp->new(DIR => $TEST_DIR, TEMPLATE => 'sbozyp.t_tmp_chmod_fileXXXXXX');
+
+    Sbozyp::sbozyp_chmod(0777, "$tmp_file");
+    my $st = stat("$tmp_file"); # File::stat object
+    my $perm = $st->mode & 07777; # mask off file-type bits
+    is(sprintf('%04o', $perm), '0777', 'changes perms correctly');
+
+    Sbozyp::sbozyp_chmod(0752, "$tmp_file");
+    $st = stat("$tmp_file");
+    $perm = $st->mode & 07777; # mask off file-type bits
+    is(sprintf('%04o', $perm), '0752', 'changes perms correctly twice');
+
+    unlink "$tmp_file" or die;
+    like(dies { Sbozyp::sbozyp_chmod(0777, "$tmp_file") },
+         qr/^sbozyp: error: could not chmod 0777 '\Q$tmp_file\E': No such file or directory$/,
+        'dies with useful error if chmod fails');
+};
+
+subtest 'sbozyp_chdir()' => sub {
+    my $tmp_dir = File::Temp->newdir(DIR => $TEST_DIR, TEMPLATE => 'sbozyp.t_tmpdirXXXXXX', CLEANUP => 1);
+    my $orig_cwd = Cwd::getcwd();
+    Sbozyp::sbozyp_chdir("$tmp_dir");
+    is(scalar(Cwd::getcwd()), "$tmp_dir", 'successfully changes cwd');
+    Sbozyp::sbozyp_chdir($orig_cwd);
+    0 == system('rm', '-r', '-f', "$tmp_dir") or die;
+    like(dies { Sbozyp::sbozyp_chdir("$tmp_dir")},
+         qr/^sbozyp: error: could not chdir '\Q$tmp_dir\E': No such file or directory$/,
+        'dies with useful error if chdir failed');
+    is(scalar(Cwd::getcwd()), $orig_cwd, 'cwd restored');
+};
+
 subtest 'sbozyp_system()' => sub {
     ok(lives { Sbozyp::sbozyp_system('true') }, 'lives if system command succeeds');
 
@@ -103,6 +135,27 @@ subtest 'with_stdout_to_stderr()' => sub {
     like(dies { Sbozyp::with_stdout_to_stderr(sub { die "death\n" }) }, qr/^death$/, 'dies normally');
 };
 
+subtest 'with_cwd()' => sub {
+    my $orig_cwd = Cwd::getcwd();
+    my $tmp_dir = File::Temp->newdir(DIR => $TEST_DIR, TEMPLATE => 'sbozyp.t_tmpdirXXXXXX', CLEANUP => 1);
+    my $got_cwd = Sbozyp::with_cwd("$tmp_dir", sub {
+        return Sbozyp::sbozyp_qx('pwd');
+    });
+    ok($orig_cwd ne $got_cwd);
+    is($got_cwd, "$tmp_dir", 'runs system command in given cwd');
+    is(scalar(Cwd::getcwd()), $orig_cwd, 'restores original cwd');
+
+    $got_cwd = Sbozyp::with_cwd("$tmp_dir", sub {
+        return Cwd::getcwd();
+    });
+    ok($orig_cwd ne $got_cwd);
+    is($got_cwd, "$tmp_dir", 'runs Cwd::getcwd() correctly');
+    is(scalar(Cwd::getcwd()), $orig_cwd, 'still restores original cwd');
+
+    like(dies { Sbozyp::with_cwd("$tmp_dir", sub { die "death\n" }) }, qr/^death$/, 'dies normally');
+    is(scalar(Cwd::getcwd()), $orig_cwd, 'restores cwd on death');
+};
+
 subtest 'sbozyp_getopts()' => sub {
     my @args = ('-f', '-b', 'foo', 'quux');
     Sbozyp::sbozyp_getopts(\@args, 'f' => \my $foo, 'b=s' => \my $bar);
@@ -134,6 +187,26 @@ subtest 'sbozyp_print_file()' => sub {
          qr/^sbozyp: error: could not open file '\/NOT\/A\/FILE': No such file or directory$/,
          'dies with useful message if the file cannot be opened'
     );
+};
+
+subtest 'sbozyp_msg_prefix()' => sub {
+    is(Sbozyp::sbozyp_msg_prefix(), 'sbozyp: ', 'returns correct message output prefix');
+};
+
+subtest 'sbozyp_error_prefix()' => sub {
+    is(Sbozyp::sbozyp_error_prefix(), 'sbozyp: error: ', 'returns correct error output prefix');
+};
+
+subtest 'sbozyp_print()' => sub {
+    my ($stdout, $stderr) = capture { Sbozyp::sbozyp_print("foo\nbar\n") };
+    is($stdout, Sbozyp::sbozyp_msg_prefix()."foo\nbar\n", 'prints to stdout with sbozyp prefix');
+    is($stderr, '', 'does not print to stderr');
+};
+
+subtest 'sbozyp_print_stderr()' => sub {
+    my ($stdout, $stderr) = capture { Sbozyp::sbozyp_print_stderr("foo\nbar\n") };
+    is($stderr, Sbozyp::sbozyp_msg_prefix()."foo\nbar\n", 'prints to stderr with sbozyp prefix');
+    is($stdout, '', 'does not print to stdout');
 };
 
 subtest 'sbozyp_pod2usage()' => sub {
