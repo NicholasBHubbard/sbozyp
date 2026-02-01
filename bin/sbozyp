@@ -753,7 +753,7 @@ sub clone_repo {
     }
     my $repo_git_branch = repo_git_branch();
     my $repo_git_url = repo_git_url();
-    sbozyp_system('git', 'clone', '--single-branch', '--branch', $repo_git_branch, '--depth=1', '--no-tags', $repo_git_url, $repo_dir);
+    sbozyp_system('git', 'clone', '--single-branch', '--branch', $repo_git_branch, '--no-tags', $repo_git_url, $repo_dir);
 }
 
 sub sync_repo {
@@ -761,7 +761,7 @@ sub sync_repo {
     if (repo_is_cloned()) {
         my $repo_git_branch = repo_git_branch();
         with_stdout_to_stderr(sub {
-            sbozyp_system('git', '-C', $repo_dir, 'fetch', '--depth=1', '--update-shallow', '--verbose');
+            sbozyp_system('git', '-C', $repo_dir, 'fetch', '--verbose');
             sbozyp_system('git', '-C', $repo_dir, 'reset', '--hard', "origin/$repo_git_branch");
         });
     } else {
