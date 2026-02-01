@@ -1,5 +1,6 @@
 1.5.2  2026-02-01
 
+   - Added blacklist file for the install command
    - Changed default config repo urls to use https
    - Performance improvements
    - Documentation updates
