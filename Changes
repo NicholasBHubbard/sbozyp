@@ -1,7 +1,7 @@
-1.5.0  2026-02-01
+1.5.1  2026-02-01
 
    - Changed default config repo urls to use https
-   - Improved git performance by using shallow clones
+   - Improved git performance by using shallow clone
    - Fixed potential shell injection vulnerability
    - Documentation updates
 
