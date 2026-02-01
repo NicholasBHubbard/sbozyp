@@ -275,7 +275,8 @@ sub main_search {
     if ($opt_help) { print command_help_msg('search'); return }
     @_ == 1 or die command_usage('search');
     my $regex_arg = $_[0];
-    my $regex = $opt_casesensitive ? qr/$regex_arg/ : qr/$regex_arg/i;
+    my $regex = eval { $opt_casesensitive ? qr/$regex_arg/ : qr/$regex_arg/i };
+    sbozyp_die("invalid Perl regex: $regex_arg") if $@;
     my @matches = grep {
         $opt_matchcategory ? $_ =~ $regex : basename($_) =~ $regex;
     } all_pkgnames();

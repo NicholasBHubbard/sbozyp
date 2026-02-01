@@ -1863,6 +1863,11 @@ subtest 'main_search()' => sub {
 
     ($stdout) = capture { Sbozyp::main_search('mu') };
     ok(10 < split("\n",$stdout), 'returns all packages that match the regex');
+
+    like(dies { Sbozyp::main_search('(a') },
+         qr/^sbozyp: error: invalid Perl regex: \(a$/,
+         'dies if given invalid regex'
+    );
 };
 
 subtest 'main()' => sub {
