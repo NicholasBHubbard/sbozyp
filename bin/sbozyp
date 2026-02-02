@@ -619,14 +619,14 @@ sub pkg_prepare_for_build {
     my $staging_dir = File::Temp->newdir(DIR => $CONFIG{TMPDIR}, TEMPLATE => 'sbozyp_XXXXXX');
     sbozyp_copy($pkg->{PKGDIR}, $staging_dir);
     for my $url (sort keys %url_md5) {
-        my $src_filename = basename($url);
+        my $src_filename = basename(decode_url($url));
         if ($keep_src && -r "$CONFIG{SRCDIR}/$src_filename") {
             # Sources stored from previous downloads have already been md5 checked
             sbozyp_print_stderr("$pkg->{PKGNAME}: using previously downloaded src: $src_filename\n");
             sbozyp_copy("$CONFIG{SRCDIR}/$src_filename", "$staging_dir/$src_filename");
         } else {
             my $md5 = $url_md5{$url};
-            sbozyp_system('wget', '-e', 'background=off', '-P', $staging_dir, $url);
+            sbozyp_system('wget', '-e', 'background=off', '-O', "$staging_dir/$src_filename", $url);
             my $got_md5 = do {
                 my $fh = sbozyp_open('<', "$staging_dir/$src_filename");
                 binmode($fh);
@@ -886,6 +886,12 @@ sub i_am_root {
 sub i_am_root_or_die {
     my ($msg) = @_;
     sbozyp_die($msg // 'must be root') unless i_am_root();
+}
+
+sub decode_url { # https://stackoverflow.com/a/4510561/13603478
+    my ($url) = @_;
+    my $decoded = $url =~ s/%([A-Fa-f\d]{2})/chr hex $1/egr;
+    return $decoded;
 }
 
 # The internal algorithm of version_gt() is copy and pasted directly from the
