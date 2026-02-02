@@ -656,7 +656,7 @@ sub build_slackware_pkg {
     });
     my $slackware_pkg; while (my $line = <$cmd>) {
         $slackware_pkg = $1 if $line =~ /^Slackware package (.+) created\.$/;
-        print $line; # magically knows to print to stdout or stderr
+        print $line;
     }
     close $cmd;
     sbozyp_die("failed to build $pkg->{PKGNAME}") if $? != 0;
