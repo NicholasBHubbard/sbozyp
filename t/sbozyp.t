@@ -368,7 +368,7 @@ subtest 'i_am_root_or_die()' => sub {
 };
 
 subtest 'decode_url()' => sub {
-    is(Sbozyp::decode_url('https://static.crates.io/crates/memchr/memchr-2.7.6.crate'), 'https://static.crates.io/crates/memchr/memchr-2.7.6.crate');
+    is(Sbozyp::decode_url('https://static.crates.io/crates/memchr/memchr-2.7.6.crate'), 'https://static.crates.io/crates/memchr/memchr-2.7.6.crate', 'doesnt touch non-encoded url');
     is(Sbozyp::decode_url('ndk-sys-0.6.0%2B11769913.crate'), 'ndk-sys-0.6.0+11769913.crate', 'decodes encoded url');
 };
 
