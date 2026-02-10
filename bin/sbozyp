@@ -619,7 +619,7 @@ sub pkg_prepare_for_build {
     my $staging_dir = File::Temp->newdir(DIR => $CONFIG{TMPDIR}, TEMPLATE => 'sbozyp_XXXXXX');
     sbozyp_copy($pkg->{PKGDIR}, $staging_dir);
     for my $url (sort keys %url_md5) {
-        my $src_filename = basename(decode_url($url));
+        my $src_filename = decode_url(basename($url));
         if ($keep_src && -r "$CONFIG{SRCDIR}/$src_filename") {
             # Sources stored from previous downloads have already been md5 checked
             sbozyp_print_stderr("$pkg->{PKGNAME}: using previously downloaded src: $src_filename\n");
