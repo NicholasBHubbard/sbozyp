@@ -1,3 +1,9 @@
+1.5.5  2026-02-10
+
+   - Fixed bug in misparsing info file with multiple
+     download urls without leading whitespace in the
+     subsequent urls
+
 1.5.4  2026-02-01
 
    - Added blacklist file for the install command
