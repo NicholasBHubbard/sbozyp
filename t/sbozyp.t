@@ -570,6 +570,12 @@ subtest 'parse_info_file()' => sub {
        'squishes newline-escapes into single spaces'
     );
 
+    $info_file = "$Sbozyp::CONFIG{REPO_ROOT}/$Sbozyp::CONFIG{REPO_NAME}/misc/sbozyp-multiple-download-no-spaces/sbozyp-multiple-download-no-spaces.info";
+    is({Sbozyp::parse_info_file($info_file)},
+       {PRGNAM=>'sbozyp-multiple-download-no-spaces',VERSION=>'1.0',HOMEPAGE=>'https://github.com/NicholasBHubbard/sbozyp/releases/tag/SbozypFakeRelease-1.0',DOWNLOAD=>'https://github.com/NicholasBHubbard/sbozyp/archive/refs/tags/SbozypFakeRelease-1.0.tar.gz https://github.com/NicholasBHubbard/sbozyp/archive/refs/tags/SbozypFakeRelease-1.0.tar.gz https://github.com/NicholasBHubbard/sbozyp/archive/refs/tags/SbozypFakeRelease-1.0.tar.gz',MD5SUM=>'1973a308d90831774a0922e9ec0085ff 1973a308d90831774a0922e9ec0085ff 1973a308d90831774a0922e9ec0085ff',DOWNLOAD_x86_64=>'','MD5SUM_x86_64'=>'',REQUIRES=>'',MAINTAINER=>'Nicholas Hubbard',EMAIL=>'nicholashubbard@posteo.net'},
+       'squishes newline-escapes into single spaces even when multiple no spaces at line start'
+    );
+
     like(dies { Sbozyp::parse_info_file("$TEST_DIR/foo") },
          qr/^sbozyp: error: could not open file '\Q$TEST_DIR\E\/foo': No such file or directory$/,
          'dies with useful error if given non-existent info file'
