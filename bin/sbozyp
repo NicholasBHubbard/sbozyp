@@ -493,7 +493,7 @@ sub parse_info_file {
     my $info_file_content = do { local $/; <$fh> }; # slurp the info file
     my %info = $info_file_content =~ /^(\w+)="([^"]*)"/mg;
     # Multiline values are broken up with newline escapes. Lets squish them into single spaces.
-    $info{$_} =~ s/\\\n\s+//g for keys %info;
+    $info{$_} =~ s/\\\n\s*//g for keys %info;
     return %info;
 }
 
