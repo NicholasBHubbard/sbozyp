@@ -101,7 +101,7 @@ sub main_install {
                         push @_pkg_queue, $pkg;
                     }
                 }
-                @_pkg_queue
+                @_pkg_queue;
             };
         }
         @queue = pkgs_merged(@queue, @pkg_queue);
