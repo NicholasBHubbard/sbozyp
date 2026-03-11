@@ -1164,7 +1164,7 @@ Examples:
  sbozyp in password-store
  sbozyp in -r xclip mu password-store
  sbozyp in -k -r system/password-store
- sbozyp in -f -i -r password-store
+ sbozyp in -f -y -r password-store
  sbozyp -S -R $REPO in -f -r password-store
  sbozyp in -r $(sbozyp -S qr -u) ### update all packages
 
@@ -1187,9 +1187,9 @@ Examples:
  sbozyp build --help
  sbozyp bu password-store
  sbozyp bu -f password-store
- sbozyp bu -f -i system/password-store
+ sbozyp bu -f -y system/password-store
  sbozyp -S -R $REPO bu password-store
- sbozyp bu -i system/password-store xclip mu
+ sbozyp bu -y system/password-store xclip mu
 
 =head2 REMOVE
 
@@ -1208,7 +1208,7 @@ Examples:
 
  sbozyp remove --help
  sbozyp rm xclip mu system/password-store
- sbozyp rm -i -r password-store
+ sbozyp rm -y -r password-store
  sbozyp -S -R $REPO rm password-store
 
 =head2 QUERY
