@@ -906,6 +906,11 @@ subtest 'parse_slackware_pkgname()' => sub {
        'parses pkgname with multi-digit revision'
     );
 
+    is([Sbozyp::parse_slackware_pkgname('sbozyp-special_1.Chars+pkg-2.0-x86_64-1_SBo')],
+       ['misc/sbozyp-special_1.Chars+pkg', '2.0'],
+       'parses prgnam containing dot, plus, uppercase, digit, underscore'
+    );
+
     ok(!defined Sbozyp::parse_slackware_pkgname('acpica-20220331-x86_64-1'), q(rejects pkgname without '_SBo' tag));
 };
 

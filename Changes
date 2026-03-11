@@ -2,6 +2,8 @@
 
    - Added -n flag to install and build commands to skip
      md5sum verification of downloaded sources
+   - Fixed bug where package names with special chars were
+     not recognized (issue #25)
 
 1.5.5  2026-02-10
 

@@ -1,0 +1,16 @@
+#!/bin/bash
+
+# Slackware build script for sbozyp-special_1.Chars+pkg
+
+PRGNAM=sbozyp-special_1.Chars+pkg
+VERSION=${VERSION:-2.0}
+BUILD=${BUILD:-1}
+TAG=${TAG:-_SBo}
+PKGTYPE=${PKGTYPE:-tgz}
+
+ARCH=noarch
+
+if [ ! -z "${PRINT_PACKAGE_NAME}" ]; then
+  echo "$PRGNAM-$VERSION-$ARCH-$BUILD$TAG.$PKGTYPE"
+  exit 0
+fi

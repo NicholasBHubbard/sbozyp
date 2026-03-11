@@ -425,7 +425,7 @@ sub pkg_matches_blacklist {
 
 sub parse_slackware_pkgname {
     my ($slackware_pkgname) = @_;
-    my ($prgnam, $version) = $slackware_pkgname =~ /^([\w-]+)-([^-]*)-[^-]*-\d+_SBo$/;
+    my ($prgnam, $version) = $slackware_pkgname =~ /^([\w.+-]+)-([^-]*)-[^-]*-\d+_SBo$/;
     my $pkgname = prgnam_to_pkgname($prgnam);
     return ($pkgname => $version);
 }
