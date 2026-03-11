@@ -88,6 +88,9 @@ subtest 'sbozyp_system()' => sub {
     ($stdout) = capture { Sbozyp::sbozyp_system('echo', 'foo') };
     is($stdout, "foo\n", 'accepts list');
 
+    ($stdout) = capture { Sbozyp::sbozyp_system('echo', 'foo; echo bar') };
+    is($stdout, "foo; echo bar\n", 'does not interpret shell metacharacters in list form');
+
     ok(dies { Sbozyp::sbozyp_system('false') }, 'dies if system command fails');
 
     like(dies { Sbozyp::sbozyp_system('false') },
@@ -99,9 +102,9 @@ subtest 'sbozyp_system()' => sub {
 subtest 'sbozyp_qx()' => sub {
     ok(lives { Sbozyp::sbozyp_qx('true') }, 'lives if system command succeeds');
 
-    is(Sbozyp::sbozyp_qx('echo foo'), 'foo', 'returns stdout with chomped newline when called in scalar context');
+    is(Sbozyp::sbozyp_qx('echo', 'foo'), 'foo', 'returns stdout with chomped newline when called in scalar context');
 
-    is([Sbozyp::sbozyp_qx('/bin/echo -e "foo\nbar"')],
+    is([Sbozyp::sbozyp_qx('/bin/echo', '-e', "foo\nbar")],
        ['foo', 'bar'],
        'returns list of chomped lines when called in list context'
     );
@@ -114,6 +117,10 @@ subtest 'sbozyp_qx()' => sub {
          qr/^sbozyp: error: the following system command exited with status 1: false$/,
          'dies with error message containing the exit status when system command fails'
      );
+
+    is(Sbozyp::sbozyp_qx('echo', 'foo; echo bar'), 'foo; echo bar',
+       'does not interpret shell metacharacters'
+    );
 };
 
 subtest 'with_stdout_to_stderr()' => sub {

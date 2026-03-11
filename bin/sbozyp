@@ -848,15 +848,24 @@ sub sbozyp_system {
 }
 
 sub sbozyp_qx {
-    my ($cmd) = @_;
-    wantarray ? chomp(my @output = qx($cmd)) : chomp(my $output = qx($cmd));
+    my @cmd = @_;
+    open(my $fh, '-|', @cmd) or sbozyp_die("could not run command '@cmd': $!");
+    my @output = <$fh>;
+    close $fh;
     my $result = $?; my $status = $result >> 8; my $signal = $result & 127;
     if (0 != $status) {
-        sbozyp_die("the following system command exited with status $status: $cmd");
+        sbozyp_die("the following system command exited with status $status: @cmd");
     } elsif (0 != $signal) {
-        sbozyp_die("the following system command was killed by signal $signal: $cmd");
+        sbozyp_die("the following system command was killed by signal $signal: @cmd");
     }
-    return wantarray ? @output : $output;
+    if (wantarray) {
+        chomp @output;
+        return @output;
+    } else {
+        my $output = join('', @output);
+        chomp $output;
+        return $output;
+    }
 }
 
 sub with_stdout_to_stderr {
@@ -879,7 +888,7 @@ sub with_cwd {
 }
 
 sub arch {
-    state $arch = sbozyp_qx('uname -m');
+    state $arch = sbozyp_qx('uname', '-m');
     return $arch;
 }
 
