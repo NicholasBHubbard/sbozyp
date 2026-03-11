@@ -24,6 +24,44 @@ $SIG{INT} = $SIG{TERM} = sub { die "\nsbozyp.t: got a signal to exit ... going d
 my $TEST_DIR = File::Temp->newdir(DIR => '/tmp', TEMPLATE => 'sbozyp.t_XXXXXX', CLEANUP => 1);
 
             ####################################################
+            #                  TEST REPO HELPERS               #
+            ####################################################
+
+# Base clone of the SBo repo. Cloned from the network once per test run into
+# a temp dir. All subsequent git operations use file:// against this clone to
+# avoid repeated network access.
+my $SBO_REPO_BASE_DIR     = "$TEST_DIR/sbo_repo_base";
+my $SBO_REPO_REAL_GIT_URL = 'git://git.slackbuilds.org/slackbuilds.git';
+my $SBO_REPO_GIT_BRANCH   = '14.1';
+
+# Clone the SBo repo from the network into $SBO_REPO_BASE_DIR. Called once per
+# test run before any subtests that need the repo.
+sub clone_sbo_repo_base {
+    0 == system('git', 'clone', '--single-branch', '--branch', $SBO_REPO_GIT_BRANCH,
+                '--no-tags', $SBO_REPO_REAL_GIT_URL, $SBO_REPO_BASE_DIR)
+        or die "sbozyp.t: failed to clone SBo repo base\n";
+}
+
+# Set up the test SBo repo and copy mock packages into misc/. If the repo
+# already exists, resets it with git reset instead of re-cloning. Otherwise
+# does a fast local clone from the base.
+sub setup_test_sbo_repo {
+    my $repo_dir = "$Sbozyp::CONFIG{REPO_ROOT}/$Sbozyp::CONFIG{REPO_NAME}";
+    if (-d "$repo_dir/.git") {
+        0 == system('git', '-C', $repo_dir, 'reset', '--hard', "origin/$SBO_REPO_GIT_BRANCH")
+            or die "sbozyp.t: git reset failed\n";
+        0 == system('git', '-C', $repo_dir, 'clean', '-fd')
+            or die "sbozyp.t: git clean failed\n";
+    } else {
+        remove_tree($repo_dir) if -d $repo_dir;
+        0 == system('git', 'clone', '--single-branch', '--branch', $SBO_REPO_GIT_BRANCH,
+                    '--no-tags', "file://$SBO_REPO_BASE_DIR", $repo_dir)
+            or die "sbozyp.t: failed to set up test SBo repo\n";
+    }
+    Sbozyp::sbozyp_copy("$FindBin::Bin/mock-packages", "$repo_dir/misc");
+}
+
+            ####################################################
             #                       TESTS                      #
             ####################################################
 
@@ -452,7 +490,7 @@ REPO_ROOT=$TEST_DIR/var/lib/sbozyp/SBo
 REPO_PRIMARY=14.1
 
 REPO_0_NAME=14.1
-REPO_0_GIT_URL=git://git.slackbuilds.org/slackbuilds.git
+REPO_0_GIT_URL=file://$SBO_REPO_BASE_DIR
 REPO_0_GIT_BRANCH=14.1
 
 REPO_1_NAME=14.2
@@ -466,7 +504,7 @@ END
     close $fh or die;
     Sbozyp::parse_config_file($test_config);
     is(\%Sbozyp::CONFIG,
-       {TMPDIR=>"$TEST_DIR",REPO_ROOT=>"$TEST_DIR/var/lib/sbozyp/SBo",REPO_0_GIT_URL=>'git://git.slackbuilds.org/slackbuilds.git',REPO_1_GIT_URL=>'git://git.slackbuilds.org/slackbuilds.git',REPO_1_GIT_URL=>'git://git.slackbuilds.org/slackbuilds.git',REPO_2_GIT_URL=>'git://git.slackbuilds.org/slackbuilds.git',REPO_0_GIT_BRANCH=>'14.1',REPO_1_GIT_BRANCH=>'14.2',REPO_2_GIT_BRANCH=>'15.0',REPO_0_NAME=>'14.1',REPO_1_NAME=>'14.2',REPO_2_NAME=>'15.0',REPO_PRIMARY=>'14.1',SRCDIR=>"$TEST_DIR/SRCDIR"},
+       {TMPDIR=>"$TEST_DIR",REPO_ROOT=>"$TEST_DIR/var/lib/sbozyp/SBo",REPO_0_GIT_URL=>"file://$SBO_REPO_BASE_DIR",REPO_1_GIT_URL=>'git://git.slackbuilds.org/slackbuilds.git',REPO_2_GIT_URL=>'git://git.slackbuilds.org/slackbuilds.git',REPO_0_GIT_BRANCH=>'14.1',REPO_1_GIT_BRANCH=>'14.2',REPO_2_GIT_BRANCH=>'15.0',REPO_0_NAME=>'14.1',REPO_1_NAME=>'14.2',REPO_2_NAME=>'15.0',REPO_PRIMARY=>'14.1',SRCDIR=>"$TEST_DIR/SRCDIR"},
        '%CONFIG is properly set for use by the rest of this test script'
     );
 
@@ -475,6 +513,9 @@ END
 
 # set REPO_NAME to REPO_PRIMARY ('14.1') for the rest of the tests. Normally this happens in main(), which we havent tested yet.
 $Sbozyp::CONFIG{REPO_NAME} = $Sbozyp::CONFIG{REPO_PRIMARY};
+
+# Clone the SBo repo base from the network (once per test run).
+clone_sbo_repo_base();
 
 subtest 'repo_is_cloned()' => sub {
     is(0, scalar(Sbozyp::repo_is_cloned()), 'returns 0 if $CONFIG{REPO_ROOT}/$CONFIG{REPO_NAME}/.git does not exist');
@@ -510,9 +551,7 @@ subtest 'sync_repo()' => sub {
 
 };
 
-Sbozyp::clone_repo(); # so the rest of the tests can go on
-# add our mock packages to the SBo 14.1 repo we just cloned in the sync_repo() subtest
-Sbozyp::sbozyp_copy("$FindBin::Bin/mock-packages", "$Sbozyp::CONFIG{REPO_ROOT}/$Sbozyp::CONFIG{REPO_NAME}/misc");
+setup_test_sbo_repo(); # fast local clone from cache + mock packages
 
 subtest 'all_pkg_categories()' => sub {
     is([Sbozyp::all_pkg_categories()],
@@ -1332,11 +1371,10 @@ subtest 'repo_num_git_branch()'  => sub {
 };
 
 subtest 'repo_num_git_url()'  => sub {
-    my $url = 'git://git.slackbuilds.org/slackbuilds.git';
-    my $git_url_0 = Sbozyp::repo_num_git_url(0);
-    my $git_url_1 = Sbozyp::repo_num_git_url(1);
-    my $git_url_2 = Sbozyp::repo_num_git_url(2);
-    ok($git_url_0 eq $url && $git_url_1 eq $url && $git_url_2 eq $url, 'returns correct git urls');
+    my $sbo_url = 'git://git.slackbuilds.org/slackbuilds.git';
+    is(Sbozyp::repo_num_git_url(0), "file://$SBO_REPO_BASE_DIR", 'returns correct git url for repo 0 (local cache)');
+    is(Sbozyp::repo_num_git_url(1), $sbo_url, 'returns correct git url for repo 1');
+    is(Sbozyp::repo_num_git_url(2), $sbo_url, 'returns correct git url for repo 2');
 };
 
 subtest 'repo_git_branch()' => sub {
@@ -1344,7 +1382,7 @@ subtest 'repo_git_branch()' => sub {
 };
 
 subtest 'repo_git_url()' => sub {
-    is(Sbozyp::repo_git_url(), 'git://git.slackbuilds.org/slackbuilds.git', 'returns name of current repos url');
+    is(Sbozyp::repo_git_url(), "file://$SBO_REPO_BASE_DIR", 'returns url of current repo (local cache)');
 };
 
 subtest 'path_to_pkgname()' => sub {
@@ -1896,7 +1934,7 @@ REPO_ROOT=$TEST_DIR/var/lib/sbozyp/SBo
 REPO_PRIMARY=14.1
 
 REPO_0_NAME=14.1
-REPO_0_GIT_URL=git://git.slackbuilds.org/slackbuilds.git
+REPO_0_GIT_URL=file://$SBO_REPO_BASE_DIR
 REPO_0_GIT_BRANCH=14.1
 
 REPO_1_NAME=14.2
