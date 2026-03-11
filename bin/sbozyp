@@ -6,7 +6,7 @@ use v5.34.0; # The Perl version on Slackware 15.0 (sbozyp's min supported versio
 
 package Sbozyp;
 
-our $VERSION = '1.5.5';
+our $VERSION = '1.6.0';
 
 use Cwd qw();
 use Digest::MD5 qw();
@@ -80,6 +80,7 @@ sub main_install {
         'b=s'    => \(my $opt_blacklistfile = '/etc/sbozyp/sbozyp.blacklist'),
         'f'      => \my $opt_force,
         'k'      => \my $opt_keeppackage,
+        'n'      => \my $opt_skipmd5,
         'r'      => \my $opt_installdeps,
         'y'      => \my $opt_noninteractive,
         'z'      => \my $opt_keepsrc
@@ -112,7 +113,7 @@ sub main_install {
             return unless pkgs_confirm_with_user(@queue);
         }
         for my $pkg (@queue) {
-            my $slackware_pkg = built_slackware_pkg($pkg) // build_slackware_pkg($pkg, $opt_keepsrc);
+            my $slackware_pkg = built_slackware_pkg($pkg) // build_slackware_pkg($pkg, $opt_keepsrc, $opt_skipmd5);
             install_slackware_pkg($slackware_pkg);
             sbozyp_unlink($slackware_pkg) unless $opt_keeppackage;
         }
@@ -126,6 +127,7 @@ sub main_build {
         \@_,
         'h|help' => \my $opt_help,
         'f'      => \my $opt_force,
+        'n'      => \my $opt_skipmd5,
         'y'      => \my $opt_noninteractive,
         'z'      => \my $opt_keepsrc
     );
@@ -144,7 +146,7 @@ sub main_build {
                 next;
             }
         }
-        build_slackware_pkg($pkg, $opt_keepsrc);
+        build_slackware_pkg($pkg, $opt_keepsrc, $opt_skipmd5);
     }
 }
 
@@ -604,7 +606,7 @@ sub pkgs_removable_dependencies {
 }
 
 sub pkg_prepare_for_build {
-    my ($pkg, $keep_src) = @_;
+    my ($pkg, $keep_src, $skip_md5) = @_;
     my $arch = arch();
     if (my $arch_problem = $pkg->{ARCH_UNSUPPORTED}) {
         sbozyp_die("$pkg->{PKGNAME} is $arch_problem on $arch");
@@ -627,14 +629,16 @@ sub pkg_prepare_for_build {
         } else {
             my $md5 = $url_md5{$url};
             sbozyp_system('wget', '-e', 'background=off', '-O', "$staging_dir/$src_filename", $url);
-            my $got_md5 = do {
-                my $fh = sbozyp_open('<', "$staging_dir/$src_filename");
-                binmode($fh);
-                Digest::MD5->new->addfile($fh)->hexdigest;
-            };
-            if ($md5 ne $got_md5) {
-                sbozyp_die("md5sum mismatch for '$url': expected '$md5': got '$got_md5'");
-            }   
+            unless ($skip_md5) {
+                my $got_md5 = do {
+                    my $fh = sbozyp_open('<', "$staging_dir/$src_filename");
+                    binmode($fh);
+                    Digest::MD5->new->addfile($fh)->hexdigest;
+                };
+                if ($md5 ne $got_md5) {
+                    sbozyp_die("md5sum mismatch for '$url': expected '$md5': got '$got_md5'");
+                }
+            }
             if ($keep_src) {
                 sbozyp_mkdir($CONFIG{SRCDIR});
                 sbozyp_copy("$staging_dir/$src_filename", "$CONFIG{SRCDIR}/$src_filename");
@@ -645,10 +649,10 @@ sub pkg_prepare_for_build {
 }
 
 sub build_slackware_pkg {
-    my ($pkg, $keep_src) = @_;
+    my ($pkg, $keep_src, $skip_md5) = @_;
     local $ENV{OUTPUT} = $CONFIG{TMPDIR}; # all SlackBuilds use the $OUTPUT env var to determine output pkg location
     sbozyp_mkdir($CONFIG{TMPDIR});
-    my $staging_dir = pkg_prepare_for_build($pkg, $keep_src);
+    my $staging_dir = pkg_prepare_for_build($pkg, $keep_src, $skip_md5);
     my $slackbuild = $pkg->{PRGNAM} . '.SlackBuild';
     my $cmd = with_cwd($staging_dir, sub {
         sbozyp_chmod(0755, "./$slackbuild");
@@ -1150,7 +1154,7 @@ Defaults to C<SRCDIR=/var/lib/sbozyp/source-cache>.
 
 =head2 INSTALL
 
- Usage: sbozyp <install|in> [-h] [-b FILE] [-f] [-k] [-r] [-y] [-z] <pkgname...>
+ Usage: sbozyp <install|in> [-h] [-b FILE] [-f] [-k] [-n] [-r] [-y] [-z] <pkgname...>
 
 Install or update packages.
 
@@ -1160,6 +1164,7 @@ Options are:
  -b FILE       Use FILE as blacklist instead of /etc/sbozyp/sbozyp.blacklist
  -f            Force install/update even if package is up to date or blacklisted
  -k            Keep the built package (resides in TMPDIR)
+ -n            Skip md5sum verification of downloaded sources
  -r            Install package dependencies recursively
  -y            No interactive prompt
  -z            Keep and reuse downloaded sources (reside in SRCDIR)
@@ -1176,7 +1181,7 @@ Examples:
 
 =head2 BUILD
 
- Usage: sbozyp <build|bu> [-h] [-f] [-y] [-z] <pkgname...>
+ Usage: sbozyp <build|bu> [-h] [-f] [-n] [-y] [-z] <pkgname...>
 
 Build but don't install packages.
 
@@ -1184,6 +1189,7 @@ Options are:
 
  -h|--help     Print help message and exit
  -f            Force rebuilding the package even if it's already built
+ -n            Skip md5sum verification of downloaded sources
  -y            No confirmation prompt
  -z            Keep and reuse downloaded sources (reside in SRCDIR)
 

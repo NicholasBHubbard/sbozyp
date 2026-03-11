@@ -930,6 +930,10 @@ subtest 'pkg_prepare_for_build()' => sub {
          qr|^sbozyp: error: md5sum mismatch for 'https://github\.com/NicholasBHubbard/sbozyp/archive/refs/tags/SbozypFakeRelease-1\.0\.tar\.gz': expected '29b3a308d97831774aa926e94c00a59f': got '1973a308d90831774a0922e9ec0085ff'$|,
          'dies with useful error message if there is an md5sum mismatch'
     );
+
+    ok(lives { Sbozyp::pkg_prepare_for_build($pkg, 0, 1) },
+       'skips md5sum check when passed $skip_md5 arg'
+    );
 };
 
 subtest 'build_slackware_pkg()' => sub {
@@ -1475,6 +1479,15 @@ subtest 'main_build' => sub {
     ($stdout, $stderr) = capture { Sbozyp::main_build('-y', '-f', '-z', 'sbozyp-basic') };
     like($stderr, qr/misc\/sbozyp-basic: using previously downloaded src: SbozypFakeRelease/, 'uses saved sources when passed -z flag');
 
+    like(dies { Sbozyp::main_build('-y', 'sbozyp-md5sum-mismatch') },
+         qr/md5sum mismatch/,
+         'dies on md5sum mismatch without -n flag'
+    );
+    my $mismatch_pkg = Sbozyp::pkg('sbozyp-md5sum-mismatch');
+    ($stdout) = capture { Sbozyp::main_build('-y', '-n', 'sbozyp-md5sum-mismatch') };
+    ok(Sbozyp::built_slackware_pkg($mismatch_pkg), 'builds package with md5sum mismatch when given -n flag');
+    unlink Sbozyp::built_slackware_pkg($mismatch_pkg) or die;
+
     # cleanup
     for my $pkg ($pkg, $pkg2) {
         if (my $built_slackware_pkg = Sbozyp::built_slackware_pkg($pkg)) {
@@ -1581,6 +1594,15 @@ END
     is($stderr, "sbozyp: skipping misc/sbozyp-basic due to blacklist match\n", 'skips blacklisted packages');
     ($stdout, $stderr) = capture { Sbozyp::main_install('-y', '-r', '-b', "$tmp_blacklist", 'sbozyp-recursive-dep-E') };
     is($stderr, "sbozyp: skipping misc/sbozyp-recursive-dep-F due to blacklist match\nsbozyp: skipping misc/sbozyp-recursive-dep-E due to blacklist match\n", 'skips dependencies that match blacklist');
+
+    remove_tree "$TEST_DIR/tmp_root" or die;
+
+    like(dies { Sbozyp::main_install('-y', '-b', '/dev/null', 'sbozyp-md5sum-mismatch') },
+         qr/md5sum mismatch/,
+         'dies on md5sum mismatch without -n flag'
+    );
+    Sbozyp::main_install('-y', '-b', '/dev/null', '-n', 'sbozyp-md5sum-mismatch');
+    ok(Sbozyp::pkg_installed(Sbozyp::pkg('sbozyp-md5sum-mismatch')), 'installs package with md5sum mismatch when given -n flag');
 
     remove_tree "$TEST_DIR/tmp_root" or die;
 };
