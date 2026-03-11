@@ -99,29 +99,6 @@ subtest 'sbozyp_system()' => sub {
     );
 };
 
-subtest 'sbozyp_qx()' => sub {
-    ok(lives { Sbozyp::sbozyp_qx('true') }, 'lives if system command succeeds');
-
-    is(Sbozyp::sbozyp_qx('echo', 'foo'), 'foo', 'returns stdout with chomped newline when called in scalar context');
-
-    is([Sbozyp::sbozyp_qx('/bin/echo', '-e', "foo\nbar")],
-       ['foo', 'bar'],
-       'returns list of chomped lines when called in list context'
-    );
-
-    ok(dies { Sbozyp::sbozyp_qx('false') },
-       'dies if system command fails'
-    );
-
-    like(dies { Sbozyp::sbozyp_qx('false') },
-         qr/^sbozyp: error: the following system command exited with status 1: false$/,
-         'dies with error message containing the exit status when system command fails'
-     );
-
-    is(Sbozyp::sbozyp_qx('echo', 'foo; echo bar'), 'foo; echo bar',
-       'does not interpret shell metacharacters'
-    );
-};
 
 subtest 'with_stdout_to_stderr()' => sub {
     my $status;
@@ -146,7 +123,7 @@ subtest 'with_cwd()' => sub {
     my $orig_cwd = Cwd::getcwd();
     my $tmp_dir = File::Temp->newdir(DIR => $TEST_DIR, TEMPLATE => 'sbozyp.t_tmpdirXXXXXX', CLEANUP => 1);
     my $got_cwd = Sbozyp::with_cwd("$tmp_dir", sub {
-        return Sbozyp::sbozyp_qx('pwd');
+        return Cwd::getcwd();
     });
     ok($orig_cwd ne $got_cwd);
     is($got_cwd, "$tmp_dir", 'runs system command in given cwd');

@@ -15,6 +15,7 @@ use File::Temp qw();
 use File::Path qw(make_path remove_tree);
 use Getopt::Long qw(GetOptionsFromArray :config no_ignore_case no_bundling);
 use Pod::Usage qw(pod2usage);
+use POSIX qw();
 
 our %CONFIG = (
     # defaults
@@ -847,27 +848,6 @@ sub sbozyp_system {
     return $status;
 }
 
-sub sbozyp_qx {
-    my @cmd = @_;
-    open(my $fh, '-|', @cmd) or sbozyp_die("could not run command '@cmd': $!");
-    my @output = <$fh>;
-    close $fh;
-    my $result = $?; my $status = $result >> 8; my $signal = $result & 127;
-    if (0 != $status) {
-        sbozyp_die("the following system command exited with status $status: @cmd");
-    } elsif (0 != $signal) {
-        sbozyp_die("the following system command was killed by signal $signal: @cmd");
-    }
-    if (wantarray) {
-        chomp @output;
-        return @output;
-    } else {
-        my $output = join('', @output);
-        chomp $output;
-        return $output;
-    }
-}
-
 sub with_stdout_to_stderr {
     my ($sub) = @_;
     open(my $orig_stdout, '>&', \*STDOUT) or sbozyp_die("failed to dup STDOUT: $!");
@@ -888,7 +868,7 @@ sub with_cwd {
 }
 
 sub arch {
-    state $arch = sbozyp_qx('uname', '-m');
+    state $arch = (POSIX::uname())[4];
     return $arch;
 }
 
