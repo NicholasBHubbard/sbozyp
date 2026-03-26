@@ -872,42 +872,42 @@ subtest 'pkgs_confirm_with_user()' => sub {
 
 subtest 'parse_slackware_pkgname()' => sub {
     is([Sbozyp::parse_slackware_pkgname('acpica-20220331-x86_64-1_SBo')],
-       ['development/acpica', '20220331'],
+       ['acpica', '20220331'],
        'parses non-hyphened pkgname'
     );
 
     is([Sbozyp::parse_slackware_pkgname('password-store-1.7.4-noarch-1_SBo')],
-       ['system/password-store', '1.7.4'],
+       ['password-store', '1.7.4'],
        'parses single-hyphened pkgname'
     );
 
     is([Sbozyp::parse_slackware_pkgname('perl-File-Copy-Recursive-0.2.3-x86_64-1_SBo')],
-       ['perl/perl-File-Copy-Recursive', '0.2.3'],
+       ['perl-File-Copy-Recursive', '0.2.3'],
        'parses many-hyphened pkgname'
     );
 
     is([Sbozyp::parse_slackware_pkgname('functools32-3.2.3_1-x86_64-1_SBo')],
-       ['python/functools32', '3.2.3_1'],
+       ['functools32', '3.2.3_1'],
        'parses pkgname containing numbers'
     );
 
     is([Sbozyp::parse_slackware_pkgname('python-e_dbus-12.2-x86_64-1_SBo')],
-       ['libraries/python-e_dbus', '12.2'],
+       ['python-e_dbus', '12.2'],
        'parses prgnam containing underscore'
     );
 
     is([Sbozyp::parse_slackware_pkgname('virtualbox-kernel-6.1.40_6.1.12-x86_64-1_SBo')],
-       ['system/virtualbox-kernel', '6.1.40_6.1.12'],
+       ['virtualbox-kernel', '6.1.40_6.1.12'],
        'parses version containing underscore'
     );
 
     is([Sbozyp::parse_slackware_pkgname('acpica-20220331-x86_64-1000_SBo')],
-       ['development/acpica', '20220331'],
+       ['acpica', '20220331'],
        'parses pkgname with multi-digit revision'
     );
 
     is([Sbozyp::parse_slackware_pkgname('sbozyp-special_1.Chars+pkg-2.0-x86_64-1_SBo')],
-       ['misc/sbozyp-special_1.Chars+pkg', '2.0'],
+       ['sbozyp-special_1.Chars+pkg', '2.0'],
        'parses prgnam containing dot, plus, uppercase, digit, underscore'
     );
 
@@ -1101,6 +1101,47 @@ subtest 'installed_sbo_pkgs()' => sub {
             unlink $slackware_pkg or die;
         }
     }
+    remove_tree("$TEST_DIR/tmp_root") or die;
+};
+
+subtest 'sbo_pkgs_not_in_repo()' => sub {
+    local $ENV{ROOT} = "$TEST_DIR/tmp_root";
+    make_path("$ENV{ROOT}/var/lib/pkgtools/packages") or die;
+
+    my $touch = sub { open my $fh, '>', "$ENV{ROOT}/var/lib/pkgtools/packages/$_[0]" or die };
+
+    # Installed _SBo packages that ARE in the repo — should NOT appear in results
+    $touch->('sbozyp-basic-1.0-noarch-1_SBo');
+    $touch->('sbozyp-nested-dir-1.0-x86_64-1_SBo');
+    $touch->('sbozyp-readme-extra-deps-1.0-noarch-1_SBo');
+
+    # Installed _SBo packages NOT in the repo — should appear in results
+    $touch->('foobar-2.0-x86_64-1_SBo');
+    $touch->('zzz-old-pkg-3.5-i686-1_SBo');
+    $touch->('aaa-first-1.0-noarch-1_SBo');
+
+    # Non-_SBo packages — should be ignored
+    $touch->('notasbo-1.0-noarch-1_alien');
+    $touch->('regularpkg-1.0-noarch-1');
+
+    my @result = Sbozyp::sbo_pkgs_not_in_repo();
+
+    is(\@result, [qw(aaa-first foobar zzz-old-pkg)],
+       'returns sorted prgnams of installed _SBo packages not in the current repo, excluding in-repo and non-_SBo packages'
+      );
+
+    ok(!grep({ $_ eq 'sbozyp-basic' } @result), 'excludes packages that are in the repo');
+    ok(!grep({ $_ eq 'notasbo' } @result), 'ignores packages without the _SBo tag');
+    ok(!grep({ $_ eq 'regularpkg' } @result), 'ignores packages without any tag');
+
+    is($result[0], 'aaa-first', 'results are sorted alphabetically (first element)');
+    is($result[-1], 'zzz-old-pkg', 'results are sorted alphabetically (last element)');
+
+    # state caching: second call returns same results even after modifying the directory
+    $touch->('another-missing-9.0-noarch-1_SBo');
+    my @cached_result = Sbozyp::sbo_pkgs_not_in_repo();
+    is(\@cached_result, \@result, 'subsequent calls return cached results (state variable)');
+
     remove_tree("$TEST_DIR/tmp_root") or die;
 };
 
@@ -1721,6 +1762,10 @@ subtest 'main_query()' => sub {
 
     ($stdout) = capture { Sbozyp::main_query('-q', 'sbozyp-recursive-dep-A') };
     like($stdout, qr|^misc/sbozyp-recursive-dep-F\nmisc/sbozyp-recursive-dep-E\nmisc/sbozyp-recursive-dep-C\nmisc/sbozyp-recursive-dep-D\nmisc/sbozyp-recursive-dep-B\nmisc/sbozyp-recursive-dep-A\n$|s, 'prints packages dependencies (in order and recursively) if given -q option');
+
+    ($stdout) = capture { Sbozyp::main_query('-x') };
+    is($stdout, "aaa-first\nfoobar\nzzz-old-pkg\n", '-x prints installed _SBo packages not in the current repo');
+    like(dies { Sbozyp::main_query('-x', 'sbozyp-basic') }, qr/^sbozyp: error: query option '-x' does not take PKGNAME argument$/, 'dies with useful error if given PKGNAME arg with -x');
 
     if ($> == 0) { # need to be root to install a package
         local $ENV{ROOT} = "$TEST_DIR/tmp_root"; # were gonna install some packages
