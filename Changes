@@ -1,4 +1,4 @@
-1.7.0  TBD
+1.7.0  2026-03-26
 
    - Added -x query flag to print installed SBo packages
      not in the current repo
