@@ -449,9 +449,9 @@ sub installed_sbo_pkgs {
 sub sbo_pkgs_not_in_repo {
     state @prgnams = do {
         my $root = $ENV{ROOT} // '/';
-        sort grep { !prgnam_to_pkgname($_) } map {
+        -d "$root/var/lib/pkgtools/packages" ? sort grep { !prgnam_to_pkgname($_) } map {
             my ($prgnam) = parse_slackware_pkgname(basename($_));
-        } grep /_SBo$/, sbozyp_readdir("$root/var/lib/pkgtools/packages");
+        } grep /_SBo$/, sbozyp_readdir("$root/var/lib/pkgtools/packages") : ();
     };
     return @prgnams;
 }
