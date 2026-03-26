@@ -6,7 +6,7 @@ use v5.34.0; # The Perl version on Slackware 15.0 (sbozyp's min supported versio
 
 package Sbozyp;
 
-our $VERSION = '1.6.0';
+our $VERSION = 'v1.7.0';
 
 use Cwd qw();
 use Digest::MD5 qw();
@@ -44,15 +44,15 @@ sub main {
     # determine the command main function
     my $cmd = shift(@argv) or die command_usage('main');
     my $cmd_main;
-    if    ($cmd =~ /^(?:--help|-h)$/)    { print command_help_msg('main'); return }
-    elsif ($cmd =~ /^(?:--version|-V)$/) { print $VERSION, "\n"; return           }
-    elsif ($cmd =~ /^(?:build|bu)$/)     { $cmd_main = \&main_build               }
-    elsif ($cmd =~ /^(?:install|in)$/)   { $cmd_main = \&main_install             }
-    elsif ($cmd =~ /^(?:null|nu)$/)      { $cmd_main = \&main_null                }
-    elsif ($cmd =~ /^(?:query|qr)$/)     { $cmd_main = \&main_query               }
-    elsif ($cmd =~ /^(?:remove|rm)$/)    { $cmd_main = \&main_remove              }
-    elsif ($cmd =~ /^(?:search|se)$/)    { $cmd_main = \&main_search              }
-    else                                 { sbozyp_die("invalid command '$cmd'")   }
+    if    ($cmd =~ /^(?:--help|-h)$/)    { print command_help_msg('main'); return  }
+    elsif ($cmd =~ /^(?:--version|-V)$/) { print $VERSION =~ s/^v//r, "\n"; return }
+    elsif ($cmd =~ /^(?:build|bu)$/)     { $cmd_main = \&main_build                }
+    elsif ($cmd =~ /^(?:install|in)$/)   { $cmd_main = \&main_install              }
+    elsif ($cmd =~ /^(?:null|nu)$/)      { $cmd_main = \&main_null                 }
+    elsif ($cmd =~ /^(?:query|qr)$/)     { $cmd_main = \&main_query                }
+    elsif ($cmd =~ /^(?:remove|rm)$/)    { $cmd_main = \&main_remove               }
+    elsif ($cmd =~ /^(?:search|se)$/)    { $cmd_main = \&main_search               }
+    else                                 { sbozyp_die("invalid command: $cmd")    }
     # set the configuration
     parse_config_file($opt_configfile); # mutates the global %CONFIG
     set_repo_name_or_die($opt_reponame // $CONFIG{REPO_PRIMARY});

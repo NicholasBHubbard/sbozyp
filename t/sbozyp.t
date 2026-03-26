@@ -2006,13 +2006,13 @@ END
     like($stdout, qr/^Usage:.+Commands:.+Examples/s, 'prints help message if called with just -h');
 
     ($stdout) = capture { Sbozyp::main('--version') };
-    like($stdout, qr/^\Q$Sbozyp::VERSION\E$/s, 'prints sbozyp version if called with just --version');
+    like($stdout, qr/^\d+\.\d+\.\d+$/s, 'prints sbozyp version if called with just --version');
 
     ($stdout) = capture { Sbozyp::main('-V') };
-    like($stdout, qr/^\Q$Sbozyp::VERSION\E$/s, 'prints sbozyp version if called with just -V');
+    like($stdout, qr/^\d+\.\d+\.\d+$/s, 'prints sbozyp version if called with just -V');
 
     like(dies { Sbozyp::main('BADCOMMAND') },
-         qr/^sbozyp: error: invalid command 'BADCOMMAND'$/,
+         qr/^sbozyp: error: invalid command: BADCOMMAND$/,
          'dies with useful error if given invalid command'
     );
 
