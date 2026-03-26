@@ -367,7 +367,7 @@ sub pkgs_sorted {
 sub pkg_array_minus {
     my ($pkg_aref1, $pkg_aref2) = @_;
     my @pkgs_minus = grep {
-        my $pkg = $_; !grep { $pkg->{PKGNAME} eq $_->{PKGNAME} } @$pkg_aref2
+        my $pkg = $_; !grep { $pkg->{PKGNAME} eq $_->{PKGNAME} } @$pkg_aref2;
     } @$pkg_aref1;
     return @pkgs_minus;
 }
