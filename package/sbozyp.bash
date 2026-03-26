@@ -8,8 +8,10 @@ _sbozyp_command_prefix() {
         local next=${COMP_WORDS[i+1]}
         if [[ $word == -F && -z $config_file_opt ]]; then
             config_file_opt="-F $next"
+            ((i++))
         elif [[ $word == -R && -z $repo_opt ]]; then
             repo_opt="-R $next"
+            ((i++))
         fi
         ((i++))
     done
@@ -28,7 +30,6 @@ _sbozyp_config_file() {
 _sbozyp_determine_command() {
     local i=1
     local command=
-    local comp_words=("${COMP_WORDS[@]}")
 
     while [[ $i -lt ${#COMP_WORDS[@]} ]]; do
         local word=${COMP_WORDS[i]}
@@ -45,7 +46,7 @@ _sbozyp_determine_command() {
         ((i++))
     done
 
-    printf '%s' $command
+    printf '%s' "$command"
 }
 
 _sbozyp_complete() {
@@ -60,7 +61,7 @@ _sbozyp_complete() {
         _filedir
         return
     elif [[ $prev == -R ]]; then
-        local repos=$(awk -F' *= *' '/REPO_[0-9]+_NAME/ {print $2}' "$(_sbozyp_config_file)")
+        local repos=$(awk -F' *= *' '/REPO_[0-9]+_NAME/ {print $2}' "$(_sbozyp_config_file)" 2>/dev/null)
         COMPREPLY=( $(compgen -W "$repos" -- $cur) )
         return
     fi
