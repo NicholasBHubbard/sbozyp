@@ -118,7 +118,7 @@ _sbozyp_complete() {
             elif [[ $cur == -* ]]; then
                 COMPREPLY=( $(compgen -W "$opts" -- "$cur") )
             else
-                local installed_packages=$(sbozyp query -a 2>/dev/null | cut -d'/' -f2 | sort)
+                local installed_packages=$(sbozyp $(_sbozyp_command_prefix) query -a 2>/dev/null | cut -d'/' -f2 | sort)
                 COMPREPLY=( $(compgen -W "$installed_packages" -- "$cur") )
             fi
             ;;
