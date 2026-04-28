@@ -537,7 +537,7 @@ subtest 'sync_repo()' => sub {
 
     my ($stdout, $stderr) = capture { Sbozyp::sync_repo() };
     like($stderr,
-         qr/HEAD is now at/i,
+         qr/\[up to date\].+->/i,
          'Uses git fetch and git reset if repo has already been cloned. Redirects to STDERR as well.'
     );
     is($stdout, '', 'no output to STDOUT');
@@ -2057,7 +2057,7 @@ END
 
 
         (undef, $stderr) = capture { Sbozyp::main('-F', "$tmp_config_file", '-S', 'null') };
-        like($stderr, qr/HEAD is now at/, q(syncs repo if given '-S' option));
+        like($stderr, qr/\[up to date\].+->/i, q(syncs repo if given '-S' option));
     } else { # not root
         like(dies { Sbozyp::main('-F', "$tmp_config_file", 'null') },
              qr/^sbozyp: error: need root to clone repo$/,

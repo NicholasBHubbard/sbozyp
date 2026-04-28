@@ -1,3 +1,7 @@
+1.8.0  TBD
+
+  -  Improve git system call verbosity
+
 1.7.1  2026-03-26
 
   -  Minor cleanup in the shell completion scripts
