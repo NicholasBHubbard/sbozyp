@@ -52,7 +52,7 @@ sub main {
     elsif ($cmd =~ /^(?:query|qr)$/)     { $cmd_main = \&main_query                }
     elsif ($cmd =~ /^(?:remove|rm)$/)    { $cmd_main = \&main_remove               }
     elsif ($cmd =~ /^(?:search|se)$/)    { $cmd_main = \&main_search               }
-    else                                 { sbozyp_die("invalid command: $cmd")    }
+    else                                 { sbozyp_die("invalid command: $cmd")     }
     # set the configuration
     parse_config_file($opt_configfile); # mutates the global %CONFIG
     set_repo_name_or_die($opt_reponame // $CONFIG{REPO_PRIMARY});
