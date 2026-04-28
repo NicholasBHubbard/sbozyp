@@ -44,7 +44,7 @@ sub main {
     # determine the command main function
     my $cmd = shift(@argv) or die command_usage('main');
     my $cmd_main;
-    if    ($cmd =~ /^(?:--help|-h)$/)    { print command_help_msg('main'); return  }
+    if    ($cmd =~ /^(?:--help|-h)$/)    { print command_help_msg('main');  return }
     elsif ($cmd =~ /^(?:--version|-V)$/) { print $VERSION =~ s/^v//r, "\n"; return }
     elsif ($cmd =~ /^(?:build|bu)$/)     { $cmd_main = \&main_build                }
     elsif ($cmd =~ /^(?:install|in)$/)   { $cmd_main = \&main_install              }
