@@ -1754,6 +1754,32 @@ subtest 'main_install()' => sub {
          'dies with useful message if the package does not exist'
     );
 
+    {
+        no warnings 'redefine';
+        local *Sbozyp::built_slackware_pkg = sub { return };
+        local *Sbozyp::build_slackware_pkg = sub { return "$TEST_DIR/fake-package.tgz" };
+        local *Sbozyp::install_slackware_pkg = sub { return };
+        local *Sbozyp::sbozyp_unlink = sub { return };
+
+        my $pkg_dir = "$TEST_SBO_REPO_DIR/misc/sbozyp-basic";
+        my @cases = (
+            ['accepts . from a package directory',                  $pkg_dir,                    '.'],
+            ['accepts ./package from a category directory',        "$TEST_SBO_REPO_DIR/misc", './sbozyp-basic'],
+            ['accepts ./category/package from the tree root',       $TEST_SBO_REPO_DIR,          './misc/sbozyp-basic'],
+            ['accepts an absolute package directory from anywhere', "$TEST_DIR",                $pkg_dir],
+        );
+        for my $case (@cases) {
+            my ($name, $cwd, $arg) = @$case;
+            my $repo_dir;
+            Sbozyp::with_cwd($cwd, sub {
+                local $Sbozyp::CONFIG{_REPO_DIR_OVERRIDE};
+                capture { Sbozyp::main_install({}, '-f', '-y', '-b', '/dev/null', $arg) };
+                $repo_dir = $Sbozyp::CONFIG{_REPO_DIR_OVERRIDE};
+            });
+            is($repo_dir, $TEST_SBO_REPO_DIR, $name);
+        }
+    }
+
     Sbozyp::main_install({}, '-y', '-b', '/dev/null', 'sbozyp-basic');
     ok(Sbozyp::pkg_installed(Sbozyp::pkg('sbozyp-basic')), 'installs a package');
     ok(! -f "$TEST_DIR/sbozyp-basic-1.0-noarch-1_SBo.tgz", 'removes slackware package after installing it if not given -k option');
