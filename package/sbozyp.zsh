@@ -2,6 +2,7 @@
 
 _sbozyp_command_prefix() {
     local config_file_opt=
+    local working_tree_opt=
     local repo_opt=
     local i=2
 
@@ -14,11 +15,13 @@ _sbozyp_command_prefix() {
         elif [[ $word == -R && -z $repo_opt ]]; then
             repo_opt="-R $next"
             ((i++))
+        elif [[ $word == -W ]]; then
+            working_tree_opt=-W
         fi
         ((i++))
     done
 
-    printf "%s %s %s" "-T" "$repo_opt" "$config_file_opt";
+    printf "%s %s %s %s" "-T" "$repo_opt" "$working_tree_opt" "$config_file_opt";
 }
 
 _sbozyp_config_file() {
@@ -27,6 +30,23 @@ _sbozyp_config_file() {
         config_file=$(eval printf '%s' "${match[1]}")
     fi
     printf '%s' "$config_file"
+}
+
+_sbozyp_complete_packages() {
+    if [[ $cur == .* || $cur == /* ]]; then
+        _files -/
+        return
+    fi
+    local repo_dir=$(sbozyp $(_sbozyp_command_prefix) query -c 2>/dev/null)
+    local -a packages
+    [[ -d $repo_dir ]] || return
+
+    if [[ $cur == */* ]]; then
+        _files -S '' -W "$repo_dir" -/
+    elif ! _files -W "$repo_dir" -/; then
+        packages=( "$repo_dir"*/"$cur"*(N/) )
+        compadd -X "packages" -- "${(@)packages:t}"
+    fi
 }
 
 _sbozyp_determine_command() {
@@ -54,7 +74,7 @@ _sbozyp_complete() {
     local cur=$words[$CURRENT]
     local prev=$words[$CURRENT-1]
 
-    local global_opts="--help --version -C -F -R -S -T"
+    local global_opts="--help --version -C -F -R -S -T -W"
 
     local commands="install build remove query search null"
 
@@ -79,8 +99,7 @@ _sbozyp_complete() {
             elif [[ $prev == -b ]]; then
                 _files
             else
-                local all_prgnams=$(sbozyp $(_sbozyp_command_prefix) search -p '' 2>/dev/null)
-                compadd -X "packages" -- ${(f)all_prgnams}
+                _sbozyp_complete_packages
             fi
             ;;
         build|bu)
@@ -90,8 +109,7 @@ _sbozyp_complete() {
             elif [[ $cur == -* ]]; then
                 compadd -X "options" -- ${=opts}
             else
-                local all_prgnams=$(sbozyp $(_sbozyp_command_prefix) search -p '' 2>/dev/null)
-                compadd -X "packages" -- ${(f)all_prgnams}
+                _sbozyp_complete_packages
             fi
             ;;
         null|nu)
@@ -109,8 +127,7 @@ _sbozyp_complete() {
             elif [[ $cur == -* ]]; then
                 compadd -X "options" -- ${=opts}
             else
-                local all_prgnams=$(sbozyp $(_sbozyp_command_prefix) search -p '' 2>/dev/null)
-                compadd -X "packages" -- ${(f)all_prgnams}
+                _sbozyp_complete_packages
             fi
             ;;
         remove|rm)
@@ -120,7 +137,10 @@ _sbozyp_complete() {
             elif [[ $cur == -* ]]; then
                 compadd -X "options" -- ${=opts}
             else
-                local installed_packages=$(sbozyp $(_sbozyp_command_prefix) query -a 2>/dev/null | cut -d'/' -f2 | sort)
+                local installed_packages=$(sbozyp $(_sbozyp_command_prefix) query -a 2>/dev/null)
+                if [[ $cur != */* ]]; then
+                    installed_packages=$(printf '%s\n' "$installed_packages" | cut -d'/' -f2 | sort)
+                fi
                 compadd -X "installed packages" -- ${(f)installed_packages}
             fi
             ;;
