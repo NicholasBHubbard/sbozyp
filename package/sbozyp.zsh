@@ -1,34 +1,44 @@
 #compdef sbozyp
 
+typeset -ga _sbozyp_command_prefix_args
+
 _sbozyp_command_prefix() {
-    local config_file_opt=
-    local working_tree_opt=
-    local repo_opt=
+    local config_file=
+    local working_tree=
+    local repo=
     local i=2
 
     while [[ $i -lt ${#words[@]} ]]; do
         local word=${words[i]}
         local next=${words[i+1]}
-        if [[ $word == -F && -z $config_file_opt ]]; then
-            config_file_opt="-F $next"
+        if [[ $word == -F && -z $config_file ]]; then
+            config_file=$next
             ((i++))
-        elif [[ $word == -R && -z $repo_opt ]]; then
-            repo_opt="-R $next"
+        elif [[ $word == -R && -z $repo ]]; then
+            repo=$next
             ((i++))
         elif [[ $word == -W ]]; then
-            working_tree_opt=-W
+            working_tree=1
         fi
         ((i++))
     done
 
-    printf "%s %s %s %s" "-T" "$repo_opt" "$working_tree_opt" "$config_file_opt";
+    _sbozyp_command_prefix_args=(-T)
+    [[ -n $repo ]] && _sbozyp_command_prefix_args+=(-R "$repo")
+    [[ -n $working_tree ]] && _sbozyp_command_prefix_args+=(-W)
+    [[ -n $config_file ]] && _sbozyp_command_prefix_args+=(-F "$config_file")
 }
 
 _sbozyp_config_file() {
     local config_file=/etc/sbozyp/sbozyp.conf
-    if [[ $(_sbozyp_command_prefix) =~ -F[[:space:]](.+) ]]; then
-        config_file=$(eval printf '%s' "${match[1]}")
-    fi
+    local i=2
+    while [[ $i -lt ${#words[@]} ]]; do
+        if [[ $words[i] == -F ]]; then
+            config_file=$words[i+1]
+            break
+        fi
+        ((i++))
+    done
     printf '%s' "$config_file"
 }
 
@@ -37,7 +47,8 @@ _sbozyp_complete_packages() {
         _files -/
         return
     fi
-    local repo_dir=$(sbozyp $(_sbozyp_command_prefix) query -c 2>/dev/null)
+    _sbozyp_command_prefix
+    local repo_dir=$(sbozyp "${_sbozyp_command_prefix_args[@]}" query -c 2>/dev/null)
     local -a packages
     [[ -d $repo_dir ]] || return
 
@@ -136,8 +147,11 @@ _sbozyp_complete() {
                 compadd -U -- "remove"
             elif [[ $cur == -* ]]; then
                 compadd -X "options" -- ${=opts}
+            elif [[ $cur == .* || $cur == /* ]]; then
+                _files -/
             else
-                local installed_packages=$(sbozyp $(_sbozyp_command_prefix) query -a 2>/dev/null)
+                _sbozyp_command_prefix
+                local installed_packages=$(sbozyp "${_sbozyp_command_prefix_args[@]}" query -a 2>/dev/null)
                 if [[ $cur != */* ]]; then
                     installed_packages=$(printf '%s\n' "$installed_packages" | cut -d'/' -f2 | sort)
                 fi
