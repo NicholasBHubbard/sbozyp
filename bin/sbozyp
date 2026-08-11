@@ -355,6 +355,12 @@ sub pkg {
     return $pkg
 }
 
+sub pkg_package_name {
+    my ($pkg) = @_;
+    local $ENV{PRINT_PACKAGE_NAME} = 1;
+    return scalar sbozyp_qx('bash', $pkg->{SLACKBUILD_FILE});
+}
+
 sub pkgs_uniq {
     my @pkgs = @_;
     my %seen; my @pkgs_uniq;
@@ -687,24 +693,20 @@ sub build_slackware_pkg {
     sbozyp_mkdir($CONFIG{TMPDIR});
     my $staging_dir = pkg_prepare_for_build($pkg, $keep_src, $skip_md5);
     my $slackbuild = $pkg->{PRGNAM} . '.SlackBuild';
-    my $cmd = with_cwd($staging_dir, sub {
+    my $result = with_cwd($staging_dir, sub {
         sbozyp_chmod(0755, "./$slackbuild");
-        return sbozyp_open('-|', "./$slackbuild");
+        return system("./$slackbuild");
     });
-    my $slackware_pkg; while (my $line = <$cmd>) {
-        $slackware_pkg = $1 if $line =~ /^Slackware package (.+) created\.$/;
-        print $line;
-    }
-    close $cmd;
-    sbozyp_die("failed to build $pkg->{PKGNAME}") if $? != 0;
-    sbozyp_die("successfully built $pkg->{PKGNAME} but couldn't determine the path of the created Slackware package") if !defined $slackware_pkg;
+    sbozyp_die("failed to build $pkg->{PKGNAME}") if $result != 0;
+    my $slackware_pkg = "$CONFIG{TMPDIR}/" . pkg_package_name($pkg);
+    sbozyp_die("successfully built $pkg->{PKGNAME} but couldn't determine the path of the created Slackware package") unless -f $slackware_pkg;
     return $slackware_pkg;
 }
 
 sub built_slackware_pkg {
     my ($pkg) = @_;
-    my $output = $CONFIG{TMPDIR};
-    return [ glob "$output/$pkg->{PRGNAM}-$pkg->{VERSION}-*_SBo.*" ]->[0];
+    my $slackware_pkg = "$CONFIG{TMPDIR}/" . pkg_package_name($pkg);
+    return -f $slackware_pkg ? $slackware_pkg : undef;
 }
 
 sub install_slackware_pkg {
@@ -910,6 +912,27 @@ sub sbozyp_system {
         sbozyp_die("the following system command was killed by signal $signal: @cmd");
     }
     return $status;
+}
+
+sub sbozyp_qx {
+    my @cmd = @_;
+    open(my $fh, '-|', @cmd) or sbozyp_die("could not run command '@cmd': $!");
+    my @output = <$fh>;
+    close $fh;
+    my $result = $?; my $status = $result >> 8; my $signal = $result & 127;
+    if (0 != $status) {
+        sbozyp_die("the following system command exited with status $status: @cmd");
+    } elsif (0 != $signal) {
+        sbozyp_die("the following system command was killed by signal $signal: @cmd");
+    }
+    if (wantarray) {
+        chomp @output;
+        return @output;
+    } else {
+        my $output = join('', @output);
+        chomp $output;
+        return $output;
+    }
 }
 
 sub with_stdout_to_stderr {
@@ -1209,12 +1232,15 @@ Defaults to C<SRCDIR=/var/lib/sbozyp/source-cache>.
 A package argument may be a package name or a SlackBuild package directory:
 
  sbozyp in -r ./office/mu
+ sbozyp in system/foo ./office/mu
  cd office/mu
  sbozyp in -r .
 
 The directory must be C<CATEGORY/PRGNAM> and contain matching C<PRGNAM.info>
 and C<PRGNAM.SlackBuild> files. The tree need not be a Git or configured
-repository. Other package arguments and dependencies come from the same tree.
+repository. If any package argument is a SlackBuild directory, its tree is used
+for the entire command, regardless of argument order. All other packages and
+dependencies come from that tree.
 
 Use C<-W> from the tree root when giving package names:
 

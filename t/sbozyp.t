@@ -137,6 +137,30 @@ subtest 'sbozyp_system()' => sub {
     );
 };
 
+subtest 'sbozyp_qx()' => sub {
+    ok(lives { Sbozyp::sbozyp_qx('true') }, 'lives if system command succeeds');
+
+    is(Sbozyp::sbozyp_qx('echo', 'foo'), 'foo', 'returns stdout with chomped newline when called in scalar context');
+
+    is([Sbozyp::sbozyp_qx('/bin/echo', '-e', "foo\nbar")],
+       ['foo', 'bar'],
+       'returns list of chomped lines when called in list context'
+    );
+
+    ok(dies { Sbozyp::sbozyp_qx('false') },
+       'dies if system command fails'
+    );
+
+    like(dies { Sbozyp::sbozyp_qx('false') },
+         qr/^sbozyp: error: the following system command exited with status 1: false$/,
+         'dies with error message containing the exit status when system command fails'
+     );
+
+    is(Sbozyp::sbozyp_qx('echo', 'foo; echo bar'), 'foo; echo bar',
+       'does not interpret shell metacharacters'
+    );
+};
+
 
 subtest 'with_stdout_to_stderr()' => sub {
     my $status;
@@ -781,6 +805,55 @@ END
          qr/^sbozyp: error: could not find a package named FOO$/,
          'dies with useful error message if passed invalid prgnam'
     );
+};
+
+subtest 'pkg_package_name()' => sub {
+    my $pkg = Sbozyp::pkg('sbozyp-basic');
+    is(Sbozyp::pkg_package_name($pkg),
+       'sbozyp-basic-1.0-noarch-1_SBo.tgz',
+       'returns the package name printed by the SlackBuild');
+
+    {
+        local $ENV{VERSION} = '2.0';
+        local $ENV{BUILD} = 42;
+        local $ENV{TAG} = '_test';
+        local $ENV{PKGTYPE} = 'txz';
+        is(Sbozyp::pkg_package_name($pkg),
+           'sbozyp-basic-2.0-noarch-42_test.txz',
+           'honors package build environment variables');
+    }
+
+    my $probe_dir = "$TEST_DIR/package name probe";
+    make_path($probe_dir);
+    my $probe_file = "$probe_dir/probe.SlackBuild";
+    open my $probe_fh, '>', $probe_file or die;
+    print $probe_fh <<'END';
+#!/bin/bash
+[ "$PRINT_PACKAGE_NAME" = 1 ] || exit 9
+printf '%s\n' "$TEST_PACKAGE_NAME"
+END
+    close $probe_fh or die;
+    my %probe_pkg = (%$pkg, SLACKBUILD_FILE => $probe_file);
+    local $ENV{PRINT_PACKAGE_NAME} = 'original';
+    for my $package_name (
+        'libreoffice-langpack_en_GB-25.8.6-x86_64-1_SBo.tgz',
+        'virtualbox-kernel-6.1.50_6.18.43-x86_64-1_SBo.tgz',
+    ) {
+        local $ENV{TEST_PACKAGE_NAME} = $package_name;
+        is(Sbozyp::pkg_package_name(\%probe_pkg), $package_name,
+           "returns package name $package_name");
+    }
+    is($ENV{PRINT_PACKAGE_NAME}, 'original',
+       'restores PRINT_PACKAGE_NAME after running the SlackBuild');
+
+    my $fail_file = "$probe_dir/fail.SlackBuild";
+    open my $fail_fh, '>', $fail_file or die;
+    print $fail_fh "#!/bin/bash\nexit 7\n";
+    close $fail_fh or die;
+    my %fail_pkg = (%$pkg, SLACKBUILD_FILE => $fail_file);
+    like(dies { Sbozyp::pkg_package_name(\%fail_pkg) },
+         qr/^sbozyp: error: the following system command exited with status 7: bash \Q$fail_file\E$/,
+         'dies if PRINT_PACKAGE_NAME fails');
 };
 
 subtest 'pkgs_uniq()' => sub {
@@ -1761,8 +1834,9 @@ subtest 'main_install()' => sub {
 
     {
         no warnings 'redefine';
+        my @built_pkgs;
         local *Sbozyp::built_slackware_pkg = sub { return };
-        local *Sbozyp::build_slackware_pkg = sub { return "$TEST_DIR/fake-package.tgz" };
+        local *Sbozyp::build_slackware_pkg = sub { push @built_pkgs, $_[0]; return "$TEST_DIR/fake-package.tgz" };
         local *Sbozyp::install_slackware_pkg = sub { return };
         local *Sbozyp::sbozyp_unlink = sub { return };
 
@@ -1782,6 +1856,28 @@ subtest 'main_install()' => sub {
                 $repo_dir = $Sbozyp::CONFIG{_REPO_DIR_OVERRIDE};
             });
             is($repo_dir, $TEST_SBO_REPO_DIR, $name);
+        }
+
+        my @mixed_cases = (
+            ['uses the working tree when the path is last',
+             ['misc/sbozyp-basic-2.0', './misc/sbozyp-basic'],
+             ['misc/sbozyp-basic-2.0', 'misc/sbozyp-basic']],
+            ['uses the working tree when the path is first',
+             ['./misc/sbozyp-basic', 'misc/sbozyp-basic-2.0'],
+             ['misc/sbozyp-basic', 'misc/sbozyp-basic-2.0']],
+        );
+        for my $case (@mixed_cases) {
+            my ($name, $args, $pkgnames) = @$case;
+            my $repo_dir;
+            @built_pkgs = ();
+            Sbozyp::with_cwd($TEST_SBO_REPO_DIR, sub {
+                local $Sbozyp::CONFIG{_REPO_DIR_OVERRIDE};
+                capture { Sbozyp::main_install({}, '-f', '-y', '-b', '/dev/null', @$args) };
+                $repo_dir = $Sbozyp::CONFIG{_REPO_DIR_OVERRIDE};
+            });
+            is([$repo_dir, map { $_->{PKGNAME} } @built_pkgs],
+               [$TEST_SBO_REPO_DIR, @$pkgnames],
+               $name);
         }
     }
 
