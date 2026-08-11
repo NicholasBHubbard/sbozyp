@@ -187,7 +187,10 @@ sub main_remove {
         sbozyp_print('are you sure you want to remove these packages:', "\n");
         return unless pkgs_confirm_with_user(@pkgs);
     }
-    remove_slackware_pkg($_->{PRGNAM}) for @pkgs;
+    for my $pkg (@pkgs) {
+        my ($prgnam) = parse_slackware_pkgname(pkg_package_name($pkg));
+        remove_slackware_pkg($prgnam);
+    }
 }
 
 sub main_query {
@@ -403,15 +406,23 @@ sub pkgs_confirm_with_user {
 
 sub pkg_installed {
     my ($pkg) = @_;
-    my %installed_sbo_pkgs = installed_sbo_pkgs();
-    my $version = $installed_sbo_pkgs{$pkg->{PKGNAME}};
-    return $version;
+    my ($pkg_prgnam) = parse_slackware_pkgname(pkg_package_name($pkg));
+    defined $pkg_prgnam or return;
+    my $root = $ENV{ROOT} // '/';
+    if (-d "$root/var/lib/pkgtools/packages") {
+        for my $slackware_pkg (grep /_SBo$/, sbozyp_readdir("$root/var/lib/pkgtools/packages")) {
+            my ($prgnam, $version) = parse_slackware_pkgname(basename($slackware_pkg));
+            return $version if $prgnam eq $pkg_prgnam;
+        }
+    }
+    return;
 }
 
 sub pkg_installed_and_up_to_date {
     my ($pkg) = @_;
     my $installed_version = pkg_installed($pkg);
-    if (!defined $installed_version or version_gt($pkg->{VERSION}, $installed_version)) {
+    my (undef, $version) = parse_slackware_pkgname(pkg_package_name($pkg));
+    if (!defined $installed_version or !defined $version or version_gt($version, $installed_version)) {
         return 0;
     } else {
         return 1;
@@ -445,7 +456,7 @@ sub pkg_matches_blacklist {
 
 sub parse_slackware_pkgname {
     my ($slackware_pkgname) = @_;
-    my ($prgnam, $version) = $slackware_pkgname =~ /^([\w.+-]+)-([^-]*)-[^-]*-\d+_SBo$/;
+    my ($prgnam, $version) = $slackware_pkgname =~ /^([\w.+-]+)-([^-]*)-[^-]*-\d+_SBo(?:\.t[blxg]z)?$/;
     return ($prgnam => $version);
 }
 

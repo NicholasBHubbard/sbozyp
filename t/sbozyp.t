@@ -1117,6 +1117,11 @@ subtest 'parse_slackware_pkgname()' => sub {
        'parses version containing underscore'
     );
 
+    is([Sbozyp::parse_slackware_pkgname('libreoffice-langpack_en_GB-25.8.6-x86_64-1_SBo.txz')],
+       ['libreoffice-langpack_en_GB', '25.8.6'],
+       'parses a Slackware package filename'
+    );
+
     is([Sbozyp::parse_slackware_pkgname('acpica-20220331-x86_64-1000_SBo')],
        ['acpica', '20220331'],
        'parses pkgname with multi-digit revision'
@@ -1389,6 +1394,16 @@ subtest 'pkg_installed()' => sub {
     is('1.0', Sbozyp::pkg_installed($pkg1), 'returns version of installed package if it is installed');
     is(undef, Sbozyp::pkg_installed($pkg2), 'returns undef in pkg is not installed');
 
+    my $renamed_pkg = "$ENV{ROOT}/var/lib/pkgtools/packages/sbozyp-nested-dir_locale-1.0-noarch-1_SBo";
+    open my $renamed_pkg_fh, '>', $renamed_pkg or die;
+    close $renamed_pkg_fh or die;
+    {
+        no warnings 'redefine';
+        local *Sbozyp::pkg_package_name = sub { 'sbozyp-nested-dir_locale-1.0-noarch-1_SBo.tgz' };
+        is('1.0', Sbozyp::pkg_installed($pkg2), 'uses the package name printed by the SlackBuild');
+    }
+    unlink $renamed_pkg or die;
+
     remove_tree("$TEST_DIR/tmp_root") or die;
 };
 
@@ -1408,6 +1423,17 @@ subtest 'pkg_installed_and_up_to_date()' => sub {
     push @built_pkgs, $pkg1;
 
     ok(Sbozyp::pkg_installed_and_up_to_date($pkg1), 'true if pkg is installed and up to date');
+
+    rename "$ENV{ROOT}/var/lib/pkgtools/packages/sbozyp-basic-1.0-noarch-1_SBo",
+           "$ENV{ROOT}/var/lib/pkgtools/packages/sbozyp-basic-1.0_1-noarch-1_SBo" or die;
+    {
+        no warnings 'redefine';
+        local *Sbozyp::pkg_package_name = sub { 'sbozyp-basic-1.0_2-noarch-1_SBo.tgz' };
+        is(0, Sbozyp::pkg_installed_and_up_to_date($pkg1),
+           'compares the version printed by the SlackBuild');
+    }
+    rename "$ENV{ROOT}/var/lib/pkgtools/packages/sbozyp-basic-1.0_1-noarch-1_SBo",
+           "$ENV{ROOT}/var/lib/pkgtools/packages/sbozyp-basic-1.0-noarch-1_SBo" or die;
 
     # hack the version of the installed sbozyp-basic from 1.0 to 0.5
     system("mv '$ENV{ROOT}/var/lib/pkgtools/packages/sbozyp-basic-1.0-noarch-1_SBo' '$ENV{ROOT}/var/lib/pkgtools/packages/sbozyp-basic-0.5-noarch-1_SBo'") and die;
@@ -2154,6 +2180,21 @@ subtest 'main_remove()' => sub {
          qr/^sbozyp: error: the package misc\/sbozyp-basic is not installed$/,
          'dies with useful error message if attempting to remove a package that is not installed'
      );
+
+    make_path("$ENV{ROOT}/var/lib/pkgtools/packages");
+    my $renamed_pkg = "$ENV{ROOT}/var/lib/pkgtools/packages/sbozyp-basic_locale-1.0-noarch-1_SBo";
+    open my $renamed_pkg_fh, '>', $renamed_pkg or die;
+    close $renamed_pkg_fh or die;
+    {
+        no warnings 'redefine';
+        local *Sbozyp::pkg_package_name = sub { 'sbozyp-basic_locale-1.0-noarch-1_SBo.tgz' };
+        my $removed_prgnam;
+        local *Sbozyp::remove_slackware_pkg = sub { $removed_prgnam = shift };
+        Sbozyp::main_remove({}, '-f', '-y', 'sbozyp-basic');
+        is($removed_prgnam, 'sbozyp-basic_locale',
+           'removes the package name printed by the SlackBuild');
+    }
+    unlink $renamed_pkg or die;
 
     my $pkg1 = Sbozyp::pkg('sbozyp-basic');
     my $pkg2 = Sbozyp::pkg('sbozyp-recursive-dep-A');
