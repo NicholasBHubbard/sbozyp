@@ -704,7 +704,7 @@ sub build_slackware_pkg {
 sub built_slackware_pkg {
     my ($pkg) = @_;
     my $output = $CONFIG{TMPDIR};
-    return [ glob "$output/$pkg->{PRGNAM}*$pkg->{VERSION}*_SBo*" ]->[0];
+    return [ glob "$output/$pkg->{PRGNAM}-$pkg->{VERSION}-*_SBo.*" ]->[0];
 }
 
 sub install_slackware_pkg {

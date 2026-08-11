@@ -1129,10 +1129,15 @@ subtest 'build_slackware_pkg()' => sub {
 };
 
 subtest 'built_slackware_pkg()' => sub {
-    skip_all('built_slackware_pkg() testing requires root to build mock package') unless $> == 0;
-
     my $pkg = Sbozyp::pkg('sbozyp-basic');
     is(undef, Sbozyp::built_slackware_pkg($pkg), 'returns undef if pkg is not built');
+    my $other_pkg = "$Sbozyp::CONFIG{TMPDIR}/sbozyp-basic-extra-1.0-noarch-1_SBo.tgz";
+    open my $other_pkg_fh, '>', $other_pkg or die;
+    close $other_pkg_fh or die;
+    is(Sbozyp::built_slackware_pkg($pkg), undef, 'ignores a built package with a longer PRGNAM');
+    unlink $other_pkg or die;
+
+    return unless $> == 0; # remaining test requires root
     my $slackware_pkg = Sbozyp::build_slackware_pkg($pkg);
     is($slackware_pkg, Sbozyp::built_slackware_pkg($pkg), 'returns path to package if it is already built');
     unlink $slackware_pkg or die;
