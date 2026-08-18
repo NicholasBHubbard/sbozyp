@@ -606,6 +606,29 @@ subtest 'is_slackbuild_dir()' => sub {
     ok(!Sbozyp::is_slackbuild_dir(), 'rejects an undefined path');
 };
 
+subtest 'is_slackbuild_path()' => sub {
+    my $tree = "$TEST_DIR/is-slackbuild-path";
+    my $pkg_dir = "$tree/test/example";
+    make_path("$pkg_dir/subdir");
+    for my $ext (qw(info SlackBuild)) {
+        open my $fh, '>', "$pkg_dir/example.$ext" or die;
+        close $fh or die;
+    }
+
+    ok(Sbozyp::is_slackbuild_path($pkg_dir), 'accepts an absolute package path');
+    Sbozyp::with_cwd($tree, sub {
+        ok(Sbozyp::is_slackbuild_path('./test/example'), 'accepts an explicit relative package path');
+        ok(!Sbozyp::is_slackbuild_path('test/example'), 'rejects a category-prefixed package name');
+    });
+    Sbozyp::with_cwd($pkg_dir, sub {
+        ok(Sbozyp::is_slackbuild_path('.'), 'accepts dot from inside a package directory');
+    });
+    Sbozyp::with_cwd("$pkg_dir/subdir", sub {
+        ok(Sbozyp::is_slackbuild_path('..'), 'accepts dot-dot when it names a package directory');
+    });
+    ok(!Sbozyp::is_slackbuild_path(), 'rejects an undefined path');
+};
+
 subtest 'init_repo()' => sub {
     my $make_pkg_dir = sub {
         my ($tree, $category, $prgnam) = @_;
@@ -667,6 +690,17 @@ subtest 'init_repo()' => sub {
     is(\@calls,
        ["repo:$Sbozyp::CONFIG{REPO_PRIMARY}", 'root:need root to clone repo', 'clone', 'root:need root to sync repo', 'sync'],
        'forces a clone before syncing');
+
+    @calls = ();
+    $Sbozyp::CONFIG{_REPO_DIR_OVERRIDE} = undef;
+    Sbozyp::with_cwd($working_tree, sub {
+        is(Sbozyp::init_repo($repo_opts->(sync => 1), 'test/pkg-a'), 1,
+           'does not treat a category-prefixed package name as a path');
+    });
+    is($Sbozyp::CONFIG{_REPO_DIR_OVERRIDE}, undef, 'does not activate a working tree for a package name');
+    is(\@calls,
+       ["repo:$Sbozyp::CONFIG{REPO_PRIMARY}", 'root:need root to sync repo', 'sync'],
+       'allows repository options with a category-prefixed package name');
 
     @calls = ();
     $Sbozyp::CONFIG{_REPO_DIR_OVERRIDE} = $working_tree;
