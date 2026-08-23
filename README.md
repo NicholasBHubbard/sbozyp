@@ -17,6 +17,7 @@ The user manual can be viewed online [here](https://metacpan.org/dist/App-sbozyp
 * Pure CLI user interface (no ncurses)
 * Safe recursive package removal
 * Advanced package querying capabilities
+* Work from any local SBo tree with a ports-like workflow
 * Bash and Zsh completion
 * Supports Slackware 15.0, current, and greater
 * Zero dependencies on a full Slackware install
