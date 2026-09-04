@@ -1,3 +1,7 @@
+1.10.0  2026-09-04
+
+  -  Consider SlackBuild build numbers when checking for updates
+
 1.9.0  2026-08-18
 
   -  Distinguish category-prefixed package names from working tree paths

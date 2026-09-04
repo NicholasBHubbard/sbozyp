@@ -61,6 +61,11 @@ sub setup_test_sbo_repo {
     Sbozyp::sbozyp_copy("$FindBin::Bin/mock-packages", "$repo_dir/misc");
 }
 
+sub pkg_is_installed {
+    my ($version) = Sbozyp::pkg_installed(@_);
+    return defined $version;
+}
+
             ####################################################
             #                       TESTS                      #
             ####################################################
@@ -286,24 +291,41 @@ subtest 'sbozyp_unlink()' => sub {
     );
 };
 
-subtest 'version_gt()' => sub {
+subtest 'version_cmp()' => sub {
     my $v1 = '0.0.3';
     my $v2 = '0.0.2';
-    ok(Sbozyp::version_gt($v1, $v2), 'true if first version is greater than second version');
-    ok(!Sbozyp::version_gt($v2, $v1), 'false if first version is less than second version');
-    ok(!Sbozyp::version_gt($v1, $v1), 'false if both versions are the same');
+    is(Sbozyp::version_cmp($v1, $v2), 1, 'returns 1 if first version is greater than second version');
+    is(Sbozyp::version_cmp($v2, $v1), -1, 'returns -1 if first version is less than second version');
+    is(Sbozyp::version_cmp($v1, $v1), 0, 'returns 0 if both versions are the same');
 
     $v1 = '0.3';
     $v2 = '0.2';
-    ok(Sbozyp::version_gt($v1, $v2), 'works for 2 decimal versions');
-    ok(!Sbozyp::version_gt($v2, $v1), 'works for 2 decimal versions');
-    ok(!Sbozyp::version_gt($v1, $v1), 'works for 2 decimal versions');
+    is(Sbozyp::version_cmp($v1, $v2), 1, 'works for greater 2 decimal version');
+    is(Sbozyp::version_cmp($v2, $v1), -1, 'works for lesser 2 decimal version');
+    is(Sbozyp::version_cmp($v1, $v1), 0, 'works for equal 2 decimal versions');
 
     $v1 = '3';
     $v2 = '2';
-    ok(Sbozyp::version_gt($v1, $v2), 'works for integer versions');
-    ok(!Sbozyp::version_gt($v2, $v1), 'works for integer versions');
-    ok(!Sbozyp::version_gt($v1, $v1), 'works for integer versions');
+    is(Sbozyp::version_cmp($v1, $v2), 1, 'works for greater integer version');
+    is(Sbozyp::version_cmp($v2, $v1), -1, 'works for lesser integer version');
+    is(Sbozyp::version_cmp($v1, $v1), 0, 'works for equal integer versions');
+};
+
+subtest 'version_build_gt()' => sub {
+    my @cases = (
+        ['newer version is greater regardless of build',       1, '2.0',  1, '1.0', 99],
+        ['older version is not greater regardless of build',   0, '1.0', 99, '2.0',  1],
+        ['higher build is greater when versions match',        1, '1.0',  2, '1.0',  1],
+        ['lower build is not greater when versions match',     0, '1.0',  1, '1.0',  2],
+        ['equal version and build are not greater',            0, '1.0',  1, '1.0',  1],
+        ['builds are compared numerically',                    1, '1.0', 10, '1.0',  2],
+        ['lower multi-digit build is not greater',             0, '1.0',  2, '1.0', 10],
+        ['build is compared when versions compare equal',      1, '1.0a', 2, '1.0A', 1],
+    );
+    for my $case (@cases) {
+        my ($name, $expected, @args) = @$case;
+        ok(Sbozyp::version_build_gt(@args) == $expected, $name);
+    }
 };
 
 subtest 'sbozyp_copy()' => sub {
@@ -890,6 +912,23 @@ END
          'dies if PRINT_PACKAGE_NAME fails');
 };
 
+subtest 'pkg_version_build()' => sub {
+    my $pkg = Sbozyp::pkg('sbozyp-basic');
+    is([Sbozyp::pkg_version_build($pkg)], ['1.0', '1'],
+       'returns version and build printed by the SlackBuild');
+
+    my $pkg_build2 = Sbozyp::pkg('sbozyp-basic-build-2');
+    is([Sbozyp::pkg_version_build($pkg_build2)], ['1.0', '2'],
+       'returns a higher build with the same version');
+
+    {
+        local $ENV{VERSION} = '2.0';
+        local $ENV{BUILD} = 42;
+        is([Sbozyp::pkg_version_build($pkg)], ['2.0', '42'],
+           'honors package build environment variables');
+    }
+};
+
 subtest 'pkgs_uniq()' => sub {
     my $pkg1 = Sbozyp::pkg('sbozyp-recursive-dep-A');
     my $pkg2 = Sbozyp::pkg('sbozyp-recursive-dep-B');
@@ -1122,47 +1161,47 @@ subtest 'pkgs_confirm_with_user()' => sub {
 
 subtest 'parse_slackware_pkgname()' => sub {
     is([Sbozyp::parse_slackware_pkgname('acpica-20220331-x86_64-1_SBo')],
-       ['acpica', '20220331'],
+       ['acpica', '20220331', '1'],
        'parses non-hyphened pkgname'
     );
 
     is([Sbozyp::parse_slackware_pkgname('password-store-1.7.4-noarch-1_SBo')],
-       ['password-store', '1.7.4'],
+       ['password-store', '1.7.4', '1'],
        'parses single-hyphened pkgname'
     );
 
     is([Sbozyp::parse_slackware_pkgname('perl-File-Copy-Recursive-0.2.3-x86_64-1_SBo')],
-       ['perl-File-Copy-Recursive', '0.2.3'],
+       ['perl-File-Copy-Recursive', '0.2.3', '1'],
        'parses many-hyphened pkgname'
     );
 
     is([Sbozyp::parse_slackware_pkgname('functools32-3.2.3_1-x86_64-1_SBo')],
-       ['functools32', '3.2.3_1'],
+       ['functools32', '3.2.3_1', '1'],
        'parses pkgname containing numbers'
     );
 
     is([Sbozyp::parse_slackware_pkgname('python-e_dbus-12.2-x86_64-1_SBo')],
-       ['python-e_dbus', '12.2'],
+       ['python-e_dbus', '12.2', '1'],
        'parses prgnam containing underscore'
     );
 
     is([Sbozyp::parse_slackware_pkgname('virtualbox-kernel-6.1.40_6.1.12-x86_64-1_SBo')],
-       ['virtualbox-kernel', '6.1.40_6.1.12'],
+       ['virtualbox-kernel', '6.1.40_6.1.12', '1'],
        'parses version containing underscore'
     );
 
     is([Sbozyp::parse_slackware_pkgname('libreoffice-langpack_en_GB-25.8.6-x86_64-1_SBo.txz')],
-       ['libreoffice-langpack_en_GB', '25.8.6'],
+       ['libreoffice-langpack_en_GB', '25.8.6', '1'],
        'parses a Slackware package filename'
     );
 
     is([Sbozyp::parse_slackware_pkgname('acpica-20220331-x86_64-1000_SBo')],
-       ['acpica', '20220331'],
+       ['acpica', '20220331', '1000'],
        'parses pkgname with multi-digit revision'
     );
 
     is([Sbozyp::parse_slackware_pkgname('sbozyp-special_1.Chars+pkg-2.0-x86_64-1_SBo')],
-       ['sbozyp-special_1.Chars+pkg', '2.0'],
+       ['sbozyp-special_1.Chars+pkg', '2.0', '1'],
        'parses prgnam containing dot, plus, uppercase, digit, underscore'
     );
 
@@ -1425,8 +1464,9 @@ subtest 'pkg_installed()' => sub {
 
     Sbozyp::install_slackware_pkg(Sbozyp::build_slackware_pkg($pkg1));
 
-    is('1.0', Sbozyp::pkg_installed($pkg1), 'returns version of installed package if it is installed');
-    is(undef, Sbozyp::pkg_installed($pkg2), 'returns undef in pkg is not installed');
+    is([Sbozyp::pkg_installed($pkg1)], ['1.0', '1'],
+       'returns version and build of installed package if it is installed');
+    is([Sbozyp::pkg_installed($pkg2)], [], 'returns an empty list if pkg is not installed');
 
     my $renamed_pkg = "$ENV{ROOT}/var/lib/pkgtools/packages/sbozyp-nested-dir_locale-1.0-noarch-1_SBo";
     open my $renamed_pkg_fh, '>', $renamed_pkg or die;
@@ -1434,7 +1474,8 @@ subtest 'pkg_installed()' => sub {
     {
         no warnings 'redefine';
         local *Sbozyp::pkg_package_name = sub { 'sbozyp-nested-dir_locale-1.0-noarch-1_SBo.tgz' };
-        is('1.0', Sbozyp::pkg_installed($pkg2), 'uses the package name printed by the SlackBuild');
+        is([Sbozyp::pkg_installed($pkg2)], ['1.0', '1'],
+           'uses the package name printed by the SlackBuild');
     }
     unlink $renamed_pkg or die;
 
@@ -1457,6 +1498,10 @@ subtest 'pkg_installed_and_up_to_date()' => sub {
     push @built_pkgs, $pkg1;
 
     ok(Sbozyp::pkg_installed_and_up_to_date($pkg1), 'true if pkg is installed and up to date');
+
+    my $pkg_build2 = Sbozyp::pkg('sbozyp-basic-build-2');
+    is(0, Sbozyp::pkg_installed_and_up_to_date($pkg_build2),
+       'false if the available package has the same version and a higher build');
 
     rename "$ENV{ROOT}/var/lib/pkgtools/packages/sbozyp-basic-1.0-noarch-1_SBo",
            "$ENV{ROOT}/var/lib/pkgtools/packages/sbozyp-basic-1.0_1-noarch-1_SBo" or die;
@@ -1942,32 +1987,37 @@ subtest 'main_install()' => sub {
     }
 
     Sbozyp::main_install({}, '-y', '-b', '/dev/null', 'sbozyp-basic');
-    ok(Sbozyp::pkg_installed(Sbozyp::pkg('sbozyp-basic')), 'installs a package');
+    ok(pkg_is_installed(Sbozyp::pkg('sbozyp-basic')), 'installs a package');
     ok(! -f "$TEST_DIR/sbozyp-basic-1.0-noarch-1_SBo.tgz", 'removes slackware package after installing it if not given -k option');
 
+    my $pkg_build2 = Sbozyp::pkg('sbozyp-basic-build-2');
+    Sbozyp::main_install({}, '-y', '-b', '/dev/null', 'sbozyp-basic-build-2');
+    is([Sbozyp::pkg_installed($pkg_build2)], ['1.0', '2'],
+       'updates a package when only its build number is newer');
+
     Sbozyp::main_install({}, '-y', '-b', '/dev/null', '-r', 'sbozyp-recursive-dep-A');
-    ok(   Sbozyp::pkg_installed(Sbozyp::pkg('sbozyp-recursive-dep-A'))
-       && Sbozyp::pkg_installed(Sbozyp::pkg('sbozyp-recursive-dep-B'))
-       && Sbozyp::pkg_installed(Sbozyp::pkg('sbozyp-recursive-dep-C'))
-       && Sbozyp::pkg_installed(Sbozyp::pkg('sbozyp-recursive-dep-D'))
-       && Sbozyp::pkg_installed(Sbozyp::pkg('sbozyp-recursive-dep-E')),
+    ok(   pkg_is_installed(Sbozyp::pkg('sbozyp-recursive-dep-A'))
+       && pkg_is_installed(Sbozyp::pkg('sbozyp-recursive-dep-B'))
+       && pkg_is_installed(Sbozyp::pkg('sbozyp-recursive-dep-C'))
+       && pkg_is_installed(Sbozyp::pkg('sbozyp-recursive-dep-D'))
+       && pkg_is_installed(Sbozyp::pkg('sbozyp-recursive-dep-E')),
        'installs a package along with its dependencies when given -r'
     );
     remove_tree "$TEST_DIR/tmp_root" or die; # cleanup for the next test
 
     Sbozyp::main_install({}, '-y', '-b', '/dev/null', 'sbozyp-recursive-dep-A');
-    ok(   Sbozyp::pkg_installed(Sbozyp::pkg('sbozyp-recursive-dep-A'))
-       && not(Sbozyp::pkg_installed(Sbozyp::pkg('sbozyp-recursive-dep-B')))
-       && not(Sbozyp::pkg_installed(Sbozyp::pkg('sbozyp-recursive-dep-C')))
-       && not(Sbozyp::pkg_installed(Sbozyp::pkg('sbozyp-recursive-dep-D')))
-       && not(Sbozyp::pkg_installed(Sbozyp::pkg('sbozyp-recursive-dep-E'))),
+    ok(   pkg_is_installed(Sbozyp::pkg('sbozyp-recursive-dep-A'))
+       && not(pkg_is_installed(Sbozyp::pkg('sbozyp-recursive-dep-B')))
+       && not(pkg_is_installed(Sbozyp::pkg('sbozyp-recursive-dep-C')))
+       && not(pkg_is_installed(Sbozyp::pkg('sbozyp-recursive-dep-D')))
+       && not(pkg_is_installed(Sbozyp::pkg('sbozyp-recursive-dep-E'))),
        'only installs package, not dependencies, when given -n option'
     );
 
     remove_tree "$TEST_DIR/tmp_root" or die;
 
     Sbozyp::main_install({}, '-y', '-r', '-b', '/dev/null', 'sbozyp-basic', 'sbozyp-readme-extra-deps');
-    ok(Sbozyp::pkg_installed(Sbozyp::pkg('sbozyp-basic')) && Sbozyp::pkg_installed(Sbozyp::pkg('sbozyp-readme-extra-deps')), 'accepts multiple package arguments to install');
+    ok(pkg_is_installed(Sbozyp::pkg('sbozyp-basic')) && pkg_is_installed(Sbozyp::pkg('sbozyp-readme-extra-deps')), 'accepts multiple package arguments to install');
 
     remove_tree "$TEST_DIR/tmp_root" or die;
 
@@ -2016,7 +2066,7 @@ END
          'dies on md5sum mismatch without -n flag'
     );
     Sbozyp::main_install({}, '-y', '-b', '/dev/null', '-n', 'sbozyp-md5sum-mismatch');
-    ok(Sbozyp::pkg_installed(Sbozyp::pkg('sbozyp-md5sum-mismatch')), 'installs package with md5sum mismatch when given -n flag');
+    ok(pkg_is_installed(Sbozyp::pkg('sbozyp-md5sum-mismatch')), 'installs package with md5sum mismatch when given -n flag');
 
     remove_tree "$TEST_DIR/tmp_root" or die;
 
@@ -2026,8 +2076,8 @@ END
             Sbozyp::main_install({}, '-y', '-r', '-b', '/dev/null',
                                  "$TEST_SBO_REPO_DIR/misc/sbozyp-recursive-dep-A");
         };
-        ok(Sbozyp::pkg_installed(Sbozyp::pkg('sbozyp-recursive-dep-A'))
-           && Sbozyp::pkg_installed(Sbozyp::pkg('sbozyp-recursive-dep-F')),
+        ok(pkg_is_installed(Sbozyp::pkg('sbozyp-recursive-dep-A'))
+           && pkg_is_installed(Sbozyp::pkg('sbozyp-recursive-dep-F')),
            'installs a working-tree package and its working-tree dependencies');
     }
     remove_tree "$TEST_DIR/tmp_root" or die;
@@ -2155,6 +2205,19 @@ subtest 'main_query()' => sub {
         ($stdout) = capture { Sbozyp::main_query({}, '-a') };
         like($stdout, qr/^misc\/sbozyp-basic$/s, 'outputs installed SBo pkgs if given -a option');
 
+        {
+            my $pkg_build2 = Sbozyp::pkg('sbozyp-basic-build-2');
+            local $pkg->{SLACKBUILD_FILE} = $pkg_build2->{SLACKBUILD_FILE};
+
+            ($stdout) = capture { Sbozyp::main_query({}, '-u') };
+            is($stdout, "misc/sbozyp-basic\n",
+               '-u finds an update with the same version and a higher build');
+
+            ($stdout) = capture { Sbozyp::main_query({}, '-v') };
+            is($stdout, "misc/sbozyp-basic 1.0-1 -> 1.0-2\n",
+               '-v prints version and build information');
+        }
+
         my $pkg_a = Sbozyp::pkg('sbozyp-recursive-dep-A'); # depends on B
         my $pkg_b = Sbozyp::pkg('sbozyp-recursive-dep-B');
         my $pkg_c = Sbozyp::pkg('sbozyp-depends-on-recursive-deps'); # depends on A and B
@@ -2169,8 +2232,6 @@ subtest 'main_query()' => sub {
 
         ($stdout) = capture { Sbozyp::main_query({}, '-m') };
         is($stdout, "misc/sbozyp-basic\nmisc/sbozyp-depends-on-recursive-deps\n", '-m outputs all packages without dependents (sorted)');
-
-        # TODO: test -u option. Need to figure out how to mock a package update situation
 
         my @built_pkgs = ($pkg_a, $pkg_b, $pkg_c);
         for my $pkg (@built_pkgs) {
@@ -2239,30 +2300,30 @@ subtest 'main_remove()' => sub {
     local *STDIN = $stdin;
     Sbozyp::main_remove({}, 'sbozyp-basic', 'sbozyp-recursive-dep-A');
     close $stdin;
-    ok(defined(Sbozyp::pkg_installed($pkg1) && defined(Sbozyp::pkg_installed($pkg2))), 'prompts user if they really want to remove the package, and if they say no then does not remove');
+    ok(pkg_is_installed($pkg1) && pkg_is_installed($pkg2), 'prompts user if they really want to remove the package, and if they say no then does not remove');
 
     open $stdin, '<', \"\n" or die;
     local *STDIN = $stdin;
     Sbozyp::main_remove({}, 'sbozyp-basic', 'sbozyp-recursive-dep-A');
     close $stdin;
-    ok(defined(Sbozyp::pkg_installed($pkg1) && defined(Sbozyp::pkg_installed($pkg2))), 'prompt rejects empty string');
+    ok(pkg_is_installed($pkg1) && pkg_is_installed($pkg2), 'prompt rejects empty string');
 
     open $stdin, '<', \"foo\n" or die;
     local *STDIN = $stdin;
     Sbozyp::main_remove({}, 'sbozyp-basic', 'sbozyp-recursive-dep-A');
     close $stdin;
-    ok(defined(Sbozyp::pkg_installed($pkg1) && defined(Sbozyp::pkg_installed($pkg2))), 'prompt rejects non yes value');
+    ok(pkg_is_installed($pkg1) && pkg_is_installed($pkg2), 'prompt rejects non yes value');
 
     open $stdin, '<', \"yes\n" or die;
     local *STDIN = $stdin;
     Sbozyp::main_remove({}, 'sbozyp-basic', 'sbozyp-recursive-dep-A');
     close $stdin;
-    ok(!defined(Sbozyp::pkg_installed($pkg1) && !defined(Sbozyp::pkg_installed($pkg2))), 'prompts user if the really want to remove the packages, and if they say yes then removes the packages');
+    ok(!pkg_is_installed($pkg1) && !pkg_is_installed($pkg2), 'prompts user if the really want to remove the packages, and if they say yes then removes the packages');
 
     # install it again ...
     Sbozyp::install_slackware_pkg(Sbozyp::build_slackware_pkg($pkg1));
     Sbozyp::main_remove({}, '-y', 'sbozyp-basic');
-    ok(!defined(Sbozyp::pkg_installed($pkg1)), q(if given '-i' option then does not prompt user for confirmation and just goes ahead and removes the package));
+    ok(!pkg_is_installed($pkg1), q(if given '-i' option then does not prompt user for confirmation and just goes ahead and removes the package));
 
     remove_tree("$TEST_DIR/tmp_root") or die;
 
@@ -2281,11 +2342,11 @@ subtest 'main_remove()' => sub {
              q(by default doesnt remove packages that have dependents));
 
         Sbozyp::main_remove({}, '-y', '-f', 'sbozyp-recursive-dep-B');
-        ok(not(defined(Sbozyp::pkg_installed($pkg_b))), q(skips dependency safety check when passed '-f' flag));
+        ok(not(pkg_is_installed($pkg_b)), q(skips dependency safety check when passed '-f' flag));
         Sbozyp::install_slackware_pkg(Sbozyp::build_slackware_pkg($pkg_b));
 
         Sbozyp::main_remove({}, '-y', $pkg_a->{PKGNAME}, $pkg_b->{PKGNAME}, $pkg_0->{PKGNAME});
-        ok((not(defined(Sbozyp::pkg_installed($pkg_a))) && not(defined(Sbozyp::pkg_installed($pkg_b))) && not(defined(Sbozyp::pkg_installed($pkg_0)))),
+        ok((not(pkg_is_installed($pkg_a)) && not(pkg_is_installed($pkg_b)) && not(pkg_is_installed($pkg_0))),
            'dependent check ignores dependents that are being specified for removal');
         Sbozyp::install_slackware_pkg(Sbozyp::build_slackware_pkg($pkg_a));
         Sbozyp::install_slackware_pkg(Sbozyp::build_slackware_pkg($pkg_b));
@@ -2298,14 +2359,15 @@ subtest 'main_remove()' => sub {
             is($Sbozyp::CONFIG{_REPO_DIR_OVERRIDE}, $TEST_SBO_REPO_DIR,
                'uses the package working tree when removing dependencies');
         }
-        ok((not(defined(Sbozyp::pkg_installed($pkg_a))) && not(defined(Sbozyp::pkg_installed($pkg_b))) && not(defined(Sbozyp::pkg_installed($pkg_0)))),
+        ok((not(pkg_is_installed($pkg_a)) && not(pkg_is_installed($pkg_b)) && not(pkg_is_installed($pkg_0))),
            q(removes recursive working-tree dependencies when given '-r' flag));
         Sbozyp::install_slackware_pkg(Sbozyp::build_slackware_pkg($pkg_a));
         Sbozyp::install_slackware_pkg(Sbozyp::build_slackware_pkg($pkg_b));
         Sbozyp::install_slackware_pkg(Sbozyp::build_slackware_pkg($pkg_0));
+        Sbozyp::install_slackware_pkg(Sbozyp::build_slackware_pkg($pkg_d));
 
         Sbozyp::main_remove({}, '-y', '-f', '-r', $pkg_a->{PRGNAM});
-        ok((not(defined(Sbozyp::pkg_installed($pkg_a))) && defined(Sbozyp::pkg_installed($pkg_b)) && defined(Sbozyp::pkg_installed($pkg_0) && defined(Sbozyp::pkg_installed($pkg_d)))),
+        ok((not(pkg_is_installed($pkg_a)) && pkg_is_installed($pkg_b) && pkg_is_installed($pkg_0) && pkg_is_installed($pkg_d)),
            q(safe about removing dependencies with '-r' flag (see pkgs_removable_dependencies())));
         Sbozyp::install_slackware_pkg(Sbozyp::build_slackware_pkg($pkg_a));
         Sbozyp::install_slackware_pkg(Sbozyp::build_slackware_pkg($pkg_b));

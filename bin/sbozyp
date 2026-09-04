@@ -6,7 +6,7 @@ use v5.34.0; # The Perl version on Slackware 15.0 (sbozyp's min supported versio
 
 package Sbozyp;
 
-our $VERSION = 'v1.9.0';
+our $VERSION = 'v1.10.0';
 
 use Cwd qw();
 use Digest::MD5 qw();
@@ -179,7 +179,8 @@ sub main_remove {
     }
     @pkgs = (@pkgs, pkgs_removable_dependencies(@pkgs)) if $opt_removedeps;
     for my $pkg (@pkgs) {
-        if (!defined pkg_installed($pkg)) {
+        my ($installed_version) = pkg_installed($pkg);
+        if (!defined $installed_version) {
             sbozyp_die("the package $pkg->{PKGNAME} is not installed");
         }
     }
@@ -248,7 +249,8 @@ sub main_query {
     } elsif ($opt_directdependents) {
         print "$_->{PKGNAME}\n" for pkg_dependents_direct($pkg);
     } elsif ($opt_pkginstalled) {
-        if (defined(my $version = pkg_installed($pkg))) {
+        my ($version) = pkg_installed($pkg);
+        if (defined $version) {
             print "$version\n";
         }
     } elsif ($opt_printqueue) {
@@ -260,17 +262,16 @@ sub main_query {
     } elsif ($opt_listneedupdate) {
         my %installed_sbo_pkgs = installed_sbo_pkgs();
         for my $pkgname (sort keys %installed_sbo_pkgs) {
-            my $installed_version = $installed_sbo_pkgs{$pkgname};
-            my $available_version = pkg($pkgname)->{VERSION};
-            print $pkgname, "\n" if version_gt($available_version, $installed_version);
+            print $pkgname, "\n" unless pkg_installed_and_up_to_date(pkg($pkgname));
         }
     } elsif ($opt_listneedupdateversion) {
         my %installed_sbo_pkgs = installed_sbo_pkgs();
         for my $pkgname (sort keys %installed_sbo_pkgs) {
-            my $installed_version = $installed_sbo_pkgs{$pkgname};
-            my $available_version = pkg($pkgname)->{VERSION};
-            if (version_gt($available_version, $installed_version)) {
-                print "$pkgname $installed_version -> $available_version\n";
+            my $pkg = pkg($pkgname);
+            my @installed = pkg_installed($pkg);
+            my @available = pkg_version_build($pkg);
+            if (@installed && version_build_gt(@available, @installed)) {
+                print "$pkgname $installed[0]-$installed[1] -> $available[0]-$available[1]\n";
             }
         }
     } elsif ($opt_listpkgsnotinrepo) {
@@ -364,6 +365,12 @@ sub pkg_package_name {
     return scalar sbozyp_qx('bash', $pkg->{SLACKBUILD_FILE});
 }
 
+sub pkg_version_build {
+    my ($pkg) = @_;
+    my (undef, $version, $build) = parse_slackware_pkgname(pkg_package_name($pkg));
+    return ($version, $build);
+}
+
 sub pkgs_uniq {
     my @pkgs = @_;
     my %seen; my @pkgs_uniq;
@@ -411,8 +418,8 @@ sub pkg_installed {
     my $root = $ENV{ROOT} // '/';
     if (-d "$root/var/lib/pkgtools/packages") {
         for my $slackware_pkg (grep /_SBo$/, sbozyp_readdir("$root/var/lib/pkgtools/packages")) {
-            my ($prgnam, $version) = parse_slackware_pkgname(basename($slackware_pkg));
-            return $version if $prgnam eq $pkg_prgnam;
+            my ($prgnam, $version, $build) = parse_slackware_pkgname(basename($slackware_pkg));
+            return ($version, $build) if $prgnam eq $pkg_prgnam;
         }
     }
     return;
@@ -420,13 +427,9 @@ sub pkg_installed {
 
 sub pkg_installed_and_up_to_date {
     my ($pkg) = @_;
-    my $installed_version = pkg_installed($pkg);
-    my (undef, $version) = parse_slackware_pkgname(pkg_package_name($pkg));
-    if (!defined $installed_version or !defined $version or version_gt($version, $installed_version)) {
-        return 0;
-    } else {
-        return 1;
-    }
+    my @installed = pkg_installed($pkg);
+    return 0 unless @installed;
+    return version_build_gt(pkg_version_build($pkg), @installed) ? 0 : 1;
 }
 
 sub pkg_matches_blacklist {
@@ -456,8 +459,8 @@ sub pkg_matches_blacklist {
 
 sub parse_slackware_pkgname {
     my ($slackware_pkgname) = @_;
-    my ($prgnam, $version) = $slackware_pkgname =~ /^([\w.+-]+)-([^-]*)-[^-]*-\d+_SBo(?:\.t[blxg]z)?$/;
-    return ($prgnam => $version);
+    my ($prgnam, $version, $build) = $slackware_pkgname =~ /^([\w.+-]+)-([^-]*)-[^-]*-(\d+)_SBo(?:\.t[blxg]z)?$/;
+    return ($prgnam, $version, $build);
 }
 
 sub installed_sbo_pkgs {
@@ -632,11 +635,13 @@ sub pkgs_removable_dependencies {
     my %deps; for my $pkg (@pkgs) {
         for my $dep (pkg_dependencies_direct($pkg)) {
             next if exists $pkgs{$dep->{PKGNAME}};
-            if (defined pkg_installed($dep)) {
+            my ($installed_version) = pkg_installed($dep);
+            if (defined $installed_version) {
                 $deps{$dep->{PKGNAME}} = $dep;
                 for my $dep (pkg_dependencies_recursive($dep)) {
                     next if exists $pkgs{$dep->{PKGNAME}};
-                    $deps{$dep->{PKGNAME}} = $dep if defined pkg_installed($dep);
+                    my ($installed_version) = pkg_installed($dep);
+                    $deps{$dep->{PKGNAME}} = $dep if defined $installed_version;
                 }
             }
         }
@@ -992,12 +997,12 @@ sub decode_url { # https://stackoverflow.com/a/4510561/13603478
     return $decoded;
 }
 
-# The internal algorithm of version_gt() is copy and pasted directly from the
+# The internal algorithm of version_cmp() is copy and pasted directly from the
 # Sort::Versions CPAN module's versioncmp() function. We copy and paste this
 # here instead of depending on Sort::Versions as we don't wish for sbozyp to
 # have any dependencies. Note that sbotools also uses Sort::Versions for version
 # comparisons.
-sub version_gt {
+sub version_cmp {
     my ($v1, $v2) = @_;
     my @v1 = ($v1 =~ /([-.]|\d+|[^-.\d]+)/g);
     my @v2 = ($v2 =~ /([-.]|\d+|[^-.\d]+)/g);
@@ -1007,34 +1012,37 @@ sub version_gt {
         if ($v1 eq '-' and $v2 eq '-') {
             next;
         } elsif ( $v1 eq '-' ) {
-            return 0;
+            return -1;
         } elsif ( $v2 eq '-') {
             return 1;
         } elsif ($v1 eq '.' and $v2 eq '.') {
             next;
         } elsif ( $v1 eq '.' ) {
-            return 0;
+            return -1;
         } elsif ( $v2 eq '.' ) {
             return 1;
         } elsif ($v1 =~ /^\d+$/ and $v2 =~ /^\d+$/) {
             if ($v1 =~ /^0/ || $v2 =~ /^0/) {
                 my $cmp = $v1 cmp $v2;
-                return 0 if $cmp < 0;
-                return 1 if $cmp > 0;
+                return $cmp if $cmp;
             } else {
                 my $cmp = $v1 <=> $v2;
-                return 0 if $cmp < 0;
-                return 1 if $cmp > 0;
+                return $cmp if $cmp;
             }
         } else {
             $v1 = uc $v1;
             $v2 = uc $v2;
             my $cmp = $v1 cmp $v2;
-            return 0 if $cmp < 0;
-            return 1 if $cmp > 0;
+            return $cmp if $cmp;
         }
     }
-    return @v1 > @v2 ? 1 : 0;
+    return @v1 <=> @v2;
+}
+
+sub version_build_gt {
+    my ($version1, $build1, $version2, $build2) = @_;
+    my $cmp = version_cmp($version1, $version2);
+    return $cmp > 0 || ($cmp == 0 && $build1 > $build2);
 }
 
 sub sbozyp_mkdir {
