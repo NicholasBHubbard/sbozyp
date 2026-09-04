@@ -1,3 +1,7 @@
+1.10.1  2026-09-04
+
+  -  Fix handling of invalid SlackBuild package directory arguments
+
 1.10.0  2026-09-04
 
   -  Consider SlackBuild build numbers when checking for updates

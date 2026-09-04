@@ -6,7 +6,7 @@ use v5.34.0; # The Perl version on Slackware 15.0 (sbozyp's min supported versio
 
 package Sbozyp;
 
-our $VERSION = 'v1.10.0';
+our $VERSION = 'v1.10.1';
 
 use Cwd qw();
 use Digest::MD5 qw();
@@ -325,7 +325,10 @@ sub main_null {
 
 sub pkg {
     my ($prgnam) = @_;
-    $prgnam = path_to_pkgname(Cwd::abs_path($prgnam)) if is_slackbuild_path($prgnam);
+    if (is_path_arg($prgnam)) {
+        is_slackbuild_dir($prgnam) or sbozyp_die("'$prgnam' is not a SlackBuild package directory");
+        $prgnam = path_to_pkgname(Cwd::abs_path($prgnam));
+    }
     my $pkgname = prgnam_to_pkgname($prgnam) // sbozyp_die("could not find a package named $prgnam");
     state %pkg_cache; if (my $pkg = $pkg_cache{$pkgname}) { return $pkg }
     my $info_file = repo_dir()."$pkgname/@{[basename($pkgname)]}.info";
@@ -512,6 +515,7 @@ sub all_pkgnames {
 
 sub prgnam_to_pkgname { # if $prgnam is already a pkgname its just returned back
     my ($prgnam) = @_; $prgnam or return;
+    return if is_path_arg($prgnam);
     state %pkgname_cache; if (my $pkgname = $pkgname_cache{$prgnam}) { return $pkgname }
     my $pkgname;
     if ($prgnam =~ m,^[^/]+/[^/]+$, && -d repo_dir().$prgnam) {
@@ -538,9 +542,7 @@ sub is_slackbuild_dir {
 
 sub is_slackbuild_path {
     my ($path) = @_;
-    return defined $path
-        && ($path eq '.' || $path eq '..' || $path =~ m{^(?:\./|\.\./|/)})
-        && is_slackbuild_dir($path);
+    return is_path_arg($path) && is_slackbuild_dir($path);
 }
 
 sub path_to_pkgname {
@@ -989,6 +991,11 @@ sub i_am_root {
 sub i_am_root_or_die {
     my ($msg) = @_;
     sbozyp_die($msg // 'must be root') unless i_am_root();
+}
+
+sub is_path_arg {
+    my ($arg) = @_;
+    return defined $arg && ($arg eq '.' || $arg eq '..' || $arg =~ m{^(?:\./|\.\./|/)}) ? 1 : 0;
 }
 
 sub decode_url { # https://stackoverflow.com/a/4510561/13603478

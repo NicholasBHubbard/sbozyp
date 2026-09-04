@@ -291,6 +291,24 @@ subtest 'sbozyp_unlink()' => sub {
     );
 };
 
+subtest 'is_path_arg()' => sub {
+    my @cases = (
+        ['dot',                         1, '.'],
+        ['dot-dot',                     1, '..'],
+        ['explicit relative path',      1, './office/mu'],
+        ['parent-relative path',        1, '../office/mu'],
+        ['absolute path',               1, '/var/lib/sbozyp/SBo/office/mu'],
+        ['package name',                0, 'mu'],
+        ['category-prefixed name',      0, 'office/mu'],
+        ['dot-prefixed package name',   0, '.mu'],
+        ['undefined argument',          0, undef],
+    );
+    for my $case (@cases) {
+        my ($name, $expected, $arg) = @$case;
+        is(Sbozyp::is_path_arg($arg), $expected, $name);
+    }
+};
+
 subtest 'version_cmp()' => sub {
     my $v1 = '0.0.3';
     my $v2 = '0.0.2';
@@ -861,6 +879,12 @@ END
          qr/^sbozyp: error: could not find a package named FOO$/,
          'dies with useful error message if passed invalid prgnam'
     );
+
+    Sbozyp::with_cwd($TEST_SBO_REPO_DIR, sub {
+        like(dies { Sbozyp::pkg('.') },
+             qr/^sbozyp: error: '\.' is not a SlackBuild package directory$/,
+             'dies with a useful error when a path is not a SlackBuild package directory');
+    });
 };
 
 subtest 'pkg_package_name()' => sub {
