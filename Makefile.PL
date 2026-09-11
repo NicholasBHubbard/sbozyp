@@ -34,8 +34,14 @@ WriteMakefile(
         'bin/sbozyp'
     ],
 
-    # No non-core dependencies
+    # No non-core runtime dependencies
     PREREQ_PM => {},
+
+    TEST_REQUIRES => {
+        'Test2::V0' => 0,
+        'Test2::Plugin::NoWarnings' => 0,
+        'Capture::Tiny' => 0,
+    },
 
     META_MERGE => {
         resources => {

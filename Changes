@@ -1,3 +1,7 @@
+Unreleased
+
+  -  Use shallow clones when supported and keep them at depth one when syncing
+
 1.10.1  2026-09-04
 
   -  Fix handling of invalid SlackBuild package directory arguments

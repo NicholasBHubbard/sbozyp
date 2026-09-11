@@ -6,6 +6,7 @@ use v5.34.0; # The Perl version on Slackware 15.0 (sbozyp's min supported versio
 
 use Test2::V0 -no_srand => 1;
 use Test2::Plugin::BailOnFail; # bail out of testing on the first failure
+use Test2::Plugin::NoWarnings;
 
 use Capture::Tiny qw(capture);
 use File::Temp;
@@ -185,14 +186,14 @@ subtest 'with_stdout_to_stderr()' => sub {
             sub { Sbozyp::sbozyp_system('echo', 'foo') }
         );
     };
-    ok($stderr eq "foo\n" and $stdout eq '', 'redirects STDOUT to STDERR');
+    ok($stderr eq "foo\n" && $stdout eq '', 'redirects STDOUT to STDERR');
     is($status, 0, 'return subs return value');
 
     ($stdout, $stderr) = capture { Sbozyp::with_stdout_to_stderr(sub { print "foo\n" }) };
-    ok($stderr eq "foo\n" and $stdout eq "", 'works for pure perl code');
+    ok($stderr eq "foo\n" && $stdout eq "", 'works for pure perl code');
 
     ($stdout, $stderr) = capture { Sbozyp::sbozyp_system("echo foo; 1>&2 echo bar") };
-    ok($stderr eq "bar\n" and $stdout eq "foo\n", 'resets STDOUT and STDERR');
+    ok($stderr eq "bar\n" && $stdout eq "foo\n", 'resets STDOUT and STDERR');
 
     like(dies { Sbozyp::with_stdout_to_stderr(sub { die "death\n" }) }, qr/^death$/, 'dies normally');
 };
