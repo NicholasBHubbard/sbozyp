@@ -61,6 +61,17 @@ sub setup_test_sbo_repo {
     Sbozyp::sbozyp_copy("$FindBin::Bin/mock-packages", "$repo_dir/misc");
 }
 
+sub commit_test_repo {
+    my ($repo_dir, $message) = @_;
+    open(my $fh, '>', "$repo_dir/README") or die $!;
+    print $fh "$message\n";
+    close $fh or die $!;
+    Sbozyp::sbozyp_system('git', '-C', $repo_dir, 'add', 'README');
+    Sbozyp::sbozyp_system('git', '-C', $repo_dir, '-c', 'user.name=sbozyp tests',
+                        '-c', 'user.email=sbozyp@example.invalid', '-c', 'commit.gpgsign=false',
+                        'commit', '--quiet', '-m', $message);
+}
+
 sub pkg_is_installed {
     my ($version) = Sbozyp::pkg_installed(@_);
     return defined $version;
@@ -578,8 +589,10 @@ END
 # set REPO_NAME to REPO_PRIMARY ('14.1') for the rest of the tests. Normally this happens in main(), which we havent tested yet.
 $Sbozyp::CONFIG{REPO_NAME} = $Sbozyp::CONFIG{REPO_PRIMARY};
 
-# Clone the SBo repo base from the network (once per test run).
-clone_sbo_repo_base();
+# A small local remote lets the repository tests create and fetch new history.
+my $GIT_TEST_REPO_DIR = "$TEST_DIR/git-test-repo";
+Sbozyp::sbozyp_system('git', 'init', '--quiet', '--initial-branch=test-branch', $GIT_TEST_REPO_DIR);
+commit_test_repo($GIT_TEST_REPO_DIR, $_) for qw(first second third);
 
 subtest 'repo_is_cloned()' => sub {
     is(0, scalar(Sbozyp::repo_is_cloned()), 'returns 0 if $CONFIG{REPO_ROOT}/$CONFIG{REPO_NAME}/.git does not exist');
@@ -588,33 +601,139 @@ subtest 'repo_is_cloned()' => sub {
     rmdir("$Sbozyp::CONFIG{REPO_ROOT}/$Sbozyp::CONFIG{REPO_NAME}/.git") or die;
 };
 
+subtest 'repo_supports_shallow_cloning()' => sub {
+    local $ENV{GIT_TRACE_PACKET} = 'original';
+    my ($stdout, $stderr, $supported) = capture {
+        Sbozyp::repo_supports_shallow_cloning("file://$GIT_TEST_REPO_DIR");
+    };
+    ok($supported, 'detects shallow support from a real Git remote');
+    is($stdout.$stderr, '', 'capability probe produces no terminal output');
+    is($ENV{GIT_TRACE_PACKET}, 'original', 'restores tracing after the probe');
+
+    my $oid = 'a' x 40;
+    my $trace_path;
+    for my $case (
+        ['first capability', "git< $oid HEAD\\0shallow multi_ack", 1],
+        ['last capability', "ls-remote< $oid HEAD\\0multi_ack shallow", 1],
+        ['middle capability', "ls-remote< $oid HEAD\\0multi_ack shallow agent=git/2.35.1", 1],
+        ['without shallow', "ls-remote< $oid HEAD\\0multi_ack thin-pack", 0],
+        ['agent contains shallow', "ls-remote< $oid HEAD\\0multi_ack agent=git/shallow", 0],
+        ['dumb HTTP', '', 0],
+        ['outgoing packet', "ls-remote> $oid HEAD\\0shallow", 0],
+        ['branch name', "ls-remote< $oid refs/heads/shallow", 0],
+        ['different feature', "ls-remote< $oid HEAD\\0shallow-other", 0],
+    ) {
+        no warnings 'redefine';
+        local *Sbozyp::sbozyp_qx = sub {
+            is([@_], ['git', '-c', 'protocol.version=0', 'ls-remote', '--', 'test-url', 'HEAD'],
+               'queries refs using protocol v0 without cloning');
+            $trace_path = $ENV{GIT_TRACE_PACKET};
+            open(my $fh, '>', $trace_path) or die $!;
+            print $fh "12:00:00 pkt-line.c:85 packet: $case->[1]\n" if length $case->[1];
+            close $fh or die $!;
+            return '';
+        };
+        is(Sbozyp::repo_supports_shallow_cloning('test-url') ? 1 : 0, $case->[2], $case->[0]);
+        is($ENV{GIT_TRACE_PACKET}, 'original', 'restores tracing before the clone');
+        ok(!-e $trace_path, 'removes the temporary trace');
+    }
+
+    {
+        no warnings 'redefine';
+        local *Sbozyp::sbozyp_qx = sub {
+            $trace_path = $ENV{GIT_TRACE_PACKET};
+            die "connection failed\n";
+        };
+        like(dies { Sbozyp::repo_supports_shallow_cloning('test-url') },
+             qr/^connection failed\n$/, 'probe errors propagate');
+        is($ENV{GIT_TRACE_PACKET}, 'original', 'restores tracing after a failed probe');
+        ok(!-e $trace_path, 'removes the trace after a failed probe');
+    }
+};
+
+subtest 'repo_is_shallow_cloned()' => sub {
+    ok(!Sbozyp::repo_is_shallow_cloned($GIT_TEST_REPO_DIR), 'returns false for a full repository');
+    my $shallow_repo = "$TEST_DIR/shallow-helper";
+    Sbozyp::sbozyp_system('git', 'clone', '--quiet', '--depth', '1', "file://$GIT_TEST_REPO_DIR", $shallow_repo);
+    ok(Sbozyp::repo_is_shallow_cloned($shallow_repo), 'returns true for a shallow clone');
+
+    my (undef, $stderr, $error) = capture {
+        dies { Sbozyp::repo_is_shallow_cloned("$TEST_DIR/no-repo") };
+    };
+    like($error, qr/exited with status 128/, 'a missing repository raises an error');
+    like($stderr, qr/^fatal:/, 'Git errors remain visible on stderr');
+};
+
 subtest 'clone_repo()' => sub {
-    Sbozyp::sbozyp_mkdir("$Sbozyp::CONFIG{REPO_ROOT}/$Sbozyp::CONFIG{REPO_NAME}");
-    my (undef, $stderr) = capture { Sbozyp::clone_repo() };
+    my $repo_dir = "$TEST_DIR/clone-repo";
+    local $Sbozyp::CONFIG{_REPO_DIR_OVERRIDE} = $repo_dir;
+    local $Sbozyp::CONFIG{REPO_0_GIT_URL} = "file://$GIT_TEST_REPO_DIR";
+    local $Sbozyp::CONFIG{REPO_0_GIT_BRANCH} = 'test-branch';
+
+    my ($stdout, $stderr) = capture { Sbozyp::clone_repo() };
     like($stderr, qr/^Cloning into/, 'clones repo if it does not yet exist');
+    is($stdout, '', 'no output to STDOUT');
+    unlike($stderr, qr/packet:/, 'does not display the capability trace');
+    like($stderr, qr/Receiving objects:/, 'preserves clone progress output');
+    is(scalar(() = $stderr =~ /^Cloning into/gm), 1, 'clones only once');
+    ok(-f "$repo_dir/.git/shallow", 'uses a shallow clone when the remote supports it');
+    is(Sbozyp::sbozyp_qx('git', '-C', $repo_dir, 'rev-list', '--count', 'HEAD'), '1', 'clones only one commit');
+    is(Sbozyp::sbozyp_qx('git', '-C', $repo_dir, 'branch', '--show-current'), 'test-branch', 'checks out the configured branch');
+
     (undef, $stderr) = capture { Sbozyp::clone_repo() };
     like($stderr, qr/^Cloning into/, 're-clones repo if it already exists');
+    is(Sbozyp::sbozyp_qx('git', '-C', $repo_dir, 'rev-list', '--count', 'HEAD'), '1', 're-clone remains at depth one');
+
+    {
+        no warnings 'redefine';
+        local *Sbozyp::repo_supports_shallow_cloning = sub { 0 };
+        ($stdout, $stderr) = capture { Sbozyp::clone_repo() };
+    }
+    is($stdout, '', 'full clone has no output to STDOUT');
+    is(scalar(() = $stderr =~ /^Cloning into/gm), 1, 'unsupported shallow cloning triggers just one full clone');
+    ok(!-f "$repo_dir/.git/shallow", 'uses a full clone when shallow support is absent');
+    is(Sbozyp::sbozyp_qx('git', '-C', $repo_dir, 'rev-list', '--count', 'HEAD'), '3', 'full clone includes all commits');
 };
 
 subtest 'sync_repo()' => sub {
-    Sbozyp::sbozyp_mkdir("$Sbozyp::CONFIG{REPO_ROOT}/$Sbozyp::CONFIG{REPO_NAME}");
+    local $Sbozyp::CONFIG{REPO_0_GIT_URL} = "file://$GIT_TEST_REPO_DIR";
+    local $Sbozyp::CONFIG{REPO_0_GIT_BRANCH} = 'test-branch';
+    for my $kind (qw(shallow full)) {
+        Sbozyp::sbozyp_system('git', 'clone', '--quiet', $kind eq 'shallow' ? ('--depth', '1') : (),
+                            "file://$GIT_TEST_REPO_DIR", "$TEST_DIR/sync-$kind");
+    }
 
-    my ($stdout, $stderr) = capture { Sbozyp::sync_repo() };
-    like($stderr,
-         qr/\[up to date\].+->/i,
-         'Uses git fetch and git reset if repo has already been cloned. Redirects to STDERR as well.'
-    );
-    is($stdout, '', 'no output to STDOUT');
+    commit_test_repo($GIT_TEST_REPO_DIR, $_) for qw(fourth fifth);
+    my $remote_head = Sbozyp::sbozyp_qx('git', '-C', $GIT_TEST_REPO_DIR, 'rev-parse', 'HEAD');
+    for my $kind (qw(shallow full)) {
+        my $repo_dir = "$TEST_DIR/sync-$kind";
+        local $Sbozyp::CONFIG{_REPO_DIR_OVERRIDE} = $repo_dir;
+        my ($stdout, $stderr) = capture { Sbozyp::sync_repo() };
+        like($stderr, qr/->.*test-branch/, "$kind clone fetches the new commits and reports to STDERR");
+        is($stdout, '', "$kind sync has no output to STDOUT");
+        is(Sbozyp::sbozyp_qx('git', '-C', $repo_dir, 'rev-parse', 'HEAD'), $remote_head, "$kind clone resets to the remote head");
+        open(my $readme, '<', "$repo_dir/README") or die $!;
+        is(scalar <$readme>, "fifth\n", "$kind clone updates the working tree");
+        close $readme or die $!;
+        is(Sbozyp::sbozyp_qx('git', '-C', $repo_dir, 'rev-parse', '--is-shallow-repository'),
+           $kind eq 'shallow' ? 'true' : 'false', "$kind clone preserves its shallow status");
+        is(Sbozyp::sbozyp_qx('git', '-C', $repo_dir, 'rev-list', '--count', 'HEAD'),
+           $kind eq 'shallow' ? '1' : '5', "$kind clone preserves the expected history depth");
 
-    Sbozyp::sbozyp_rmdir_rec("$Sbozyp::CONFIG{REPO_ROOT}/$Sbozyp::CONFIG{REPO_NAME}");
-    mkdir("$Sbozyp::CONFIG{REPO_ROOT}/$Sbozyp::CONFIG{REPO_NAME}") or die;
+        (undef, $stderr) = capture { Sbozyp::sync_repo() };
+        like($stderr, qr/\[up to date\].+->/i, "$kind clone can sync again when already up to date");
+    }
+
+    local $Sbozyp::CONFIG{_REPO_DIR_OVERRIDE} = "$TEST_DIR/sync-missing";
+    my $repo_dir = Sbozyp::repo_dir();
     like(dies { Sbozyp::sync_repo() },
-         qr/^sbozyp: error: cannot sync non-existent git repository at '$Sbozyp::CONFIG{REPO_ROOT}\/$Sbozyp::CONFIG{REPO_NAME}\/'$/,
+         qr/^sbozyp: error: cannot sync non-existent git repository at '\Q$repo_dir\E'$/,
          'dies with useful error message if trying to sync non-existent repository'
     );
-
 };
 
+# Clone the SBo repo base from the network (once per test run).
+clone_sbo_repo_base();
 setup_test_sbo_repo(); # fast local clone from cache + mock packages
 my $TEST_SBO_REPO_DIR = "$Sbozyp::CONFIG{REPO_ROOT}/$Sbozyp::CONFIG{REPO_NAME}";
 
