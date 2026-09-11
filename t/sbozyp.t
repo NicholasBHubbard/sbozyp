@@ -2011,7 +2011,7 @@ subtest 'main_build' => sub {
     ok(Sbozyp::built_slackware_pkg($pkg));
 
     ($stdout) = capture { Sbozyp::main_build({}, '-y', 'sbozyp-basic') };
-    like($stdout, qr/^sbozyp: existing package for misc\/sbozyp-basic found at '\Q$Sbozyp::CONFIG{TMPDIR}\E\/sbozyp-basic.+$'$/s);
+    like($stdout, qr/^sbozyp: existing package for misc\/sbozyp-basic found at '\Q$Sbozyp::CONFIG{TMPDIR}\E\/sbozyp-basic.+'$/s);
 
     ($stdout) = capture { Sbozyp::main_build({}, '-f', '-y', 'sbozyp-basic', 'sbozyp-basic-2.0') };
     like($stdout, qr/sbozyp-basic-1\.0.+created.+sbozyp-basic-2\.0.+created/s, 'builds multiple packages on single invocation');
