@@ -27,16 +27,21 @@ WriteMakefile(
     # No non-core runtime dependencies
     PREREQ_PM => {},
 
-    TEST_REQUIRES => {
-        'Test2::V0' => 0,
-        'Test2::Plugin::NoWarnings' => 0,
-        'Capture::Tiny' => 0,
-    },
-
     META_MERGE => {
+        'meta-spec' => { version => 2 },
+        prereqs => {
+            # Tests are excluded from the dist; their dependencies are for developers.
+            develop => {
+                requires => {
+                    'Test2::V0' => 0,
+                    'Test2::Plugin::NoWarnings' => 0,
+                    'Capture::Tiny' => 0,
+                },
+            },
+        },
         resources => {
-            repository  => 'https://github.com/NicholasBHubbard/sbozyp',
-            bugtracker  => 'https://github.com/NicholasBHubbard/sbozyp/issues',
+            repository => { url => 'https://github.com/NicholasBHubbard/sbozyp' },
+            bugtracker => { web => 'https://github.com/NicholasBHubbard/sbozyp/issues' },
         },
     },
 );

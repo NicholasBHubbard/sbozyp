@@ -48,7 +48,7 @@ Do not hesitate to open an [issue](https://github.com/NicholasBHubbard/sbozyp/is
 Running the test code:
 
 ```
-$ cpanm --installdeps .    # sbozyp has test dependencies
+$ cpanm --installdeps --with-develop . # install dependencies for the test suite
 $ perl t/sbozyp.t
 ```
 
